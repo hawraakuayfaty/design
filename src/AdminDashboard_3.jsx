@@ -38,67 +38,64 @@ import { FaRegCalendarCheck } from "react-icons/fa6";
 // ═══════════════════════════════════════════════
 const tokens = {
   light: {
-    bgPage: "#f0fdf4",
-    bgSurface: "#FFFFFF",
-    bgElevated: "#FFFFFF",
-    bgSidebar: "#064e3b",
-    bgSidebarActive: "#059669",
-    bgHeader: "#FFFFFF",
-    text: "#064e3b",
-    textSec: "#047857",
-    textMuted: "#10b981",
-    textSidebar: "#a7f3d0",
+    bgPage: "#f7f5e8",
+    bgSurface: "#fffef7",
+    bgElevated: "#f3f0d8",
+    bgSidebar: "linear-gradient(180deg, #1a4f92 0%, #1446a0 42%, #0f766e 100%)",
+    bgSidebarActive: "#0f766e",
+    bgHeader: "#fffef7",
+    text: "#17325c",
+    textSec: "#0f766e",
+    textMuted: "#6f6b52",
+    textSidebar: "#ebebd3",
     textSidebarActive: "#FFFFFF",
-    border: "rgba(5,150,105,0.06)",
-    borderCard: "rgba(5,150,105,0.05)",
-    accent: "#059669",
-    accentLight: "#e6f4ea",
-    accentText: "#065f46",
-    accentGradient: "linear-gradient(135deg,#059669 0%,#34d399 100%)",
+    border: "rgba(20,70,160,0.16)",
+    borderCard: "rgba(15,118,110,0.16)",
+    accent: "#0f766e",
+    accentLight: "#ebebd3",
+    accentText: "#1446a0",
+    accentGradient: "linear-gradient(135deg,#1446a0 0%,#0f766e 42%,#db3069 100%)",
     accentGradientSoft:
-      "linear-gradient(135deg, rgba(5,150,105,0.08) 0%, rgba(52,211,153,0.04) 100%)",
+      "linear-gradient(135deg, rgba(20,70,160,0.10) 0%, rgba(245,213,71,0.16) 100%)",
 
-    confirmed: { bg: "#e0f2fe", text: "#0369a1" },
-    pending: { bg: "#fef3c7", text: "#b45309" },
-    cancelled: { bg: "#fee2e2", text: "#b91c1c" },
-    submitted: { bg: "#e6f4ea", text: "#059669" },
-    completed: { bg: "#dcfce7", text: "#15803d" },
-    expired: { bg: "#f1f5f9", text: "#475569" },
-    noshow: { bg: "#fce7f3", text: "#9d174d" },
-    inprogress: { bg: "#fef3c7", text: "#b45309" },
+    confirmed: { bg: "rgba(20,70,160,0.12)", text: "#1446a0" },
+    pending: { bg: "rgba(245,213,71,0.28)", text: "#8a6a00" },
+    cancelled: { bg: "rgba(219,48,105,0.14)", text: "#b51f56" },
+    submitted: { bg: "rgba(15,118,110,0.12)", text: "#0f766e" },
+    completed: { bg: "rgba(15,118,110,0.14)", text: "#0a5e58" },
+    expired: { bg: "rgba(111,107,82,0.12)", text: "#6f6b52" },
+    noshow: { bg: "rgba(219,48,105,0.12)", text: "#db3069" },
+    inprogress: { bg: "rgba(20,70,160,0.10)", text: "#1446a0" },
   },
   dark: {
-    bgPage: "#18181b", // شاشة التطبيق رمادي صافي وفخم
-    bgSurface: "#27272a", // كروت رمادية صافية بدون أي كحلي
-    bgElevated: "#3f3f46",
-    // ═══════════════════════════════════════════════
-    // تعديل السايدبار في الدارك مود ليكون بخلفية خضراء واضحة وعميقة
-    // ═══════════════════════════════════════════════
-    bgSidebar: "#062e22", // أخضر غاباتي غامق وواضح جداً كالسايدبار (وليس أسود)
-    bgSidebarActive: "#10b981", // لون التحديد الأخضر المضيء عند الوقوف على العنصر
-    bgHeader: "#27272a",
-    text: "#f4f4f5",
-    textSec: "#a1a1aa",
-    textMuted: "#71717a",
-    textSidebar: "#34d399", // أسماء القوائم غير النشطة بلون أخضر ميثاني ناعم وواضح فوق الخلفية الخضراء
-    textSidebarActive: "#FFFFFF", // نص أبيض ناصع 100% ليظهر بوضوح ممتاز فوق التحديد الأخضر
+    bgPage: "#09162f",
+    bgSurface: "#102348",
+    bgElevated: "#16305f",
+    bgSidebar: "linear-gradient(180deg, #12346f 0%, #102c61 44%, #0d5f59 100%)",
+    bgSidebarActive: "#0f766e",
+    bgHeader: "#102348",
+    text: "#f5f2df",
+    textSec: "#ebebd3",
+    textMuted: "#c8c7af",
+    textSidebar: "#ebebd3",
+    textSidebarActive: "#FFFFFF",
     border: "rgba(255,255,255,0.08)",
-    borderCard: "rgba(255,255,255,0.06)",
-    accent: "#10b981",
-    accentLight: "#27272a",
-    accentText: "#34d399",
-    accentGradient: "linear-gradient(135deg,#059669 0%,#10b981 100%)",
+    borderCard: "rgba(235,235,211,0.10)",
+    accent: "#f5d547",
+    accentLight: "rgba(245, 213, 71, 0.14)",
+    accentText: "#f5d547",
+    accentGradient: "linear-gradient(135deg,#1446a0 0%,#0f766e 45%,#db3069 100%)",
     accentGradientSoft:
-      "linear-gradient(135deg, rgba(5,150,105,0.10) 0%, rgba(16,185,129,0.04) 100%)",
+      "linear-gradient(135deg, rgba(20,70,160,0.20) 0%, rgba(245,213,71,0.12) 100%)",
 
-    confirmed: { bg: "#27272a", text: "#38bdf8" },
-    pending: { bg: "#451a03", text: "#fcd34d" },
-    cancelled: { bg: "#450a0a", text: "#fca5a5" },
-    submitted: { bg: "#3f3f46", text: "#e4e4e7" },
-    completed: { bg: "#052e16", text: "#86efac" },
-    expired: { bg: "#3f3f46", text: "#a1a1aa" },
-    noshow: { bg: "#4c0519", text: "#fbcfe8" },
-    inprogress: { bg: "#451a03", text: "#fcd34d" },
+    confirmed: { bg: "rgba(20,70,160,0.20)", text: "#9bbcff" },
+    pending: { bg: "rgba(245,213,71,0.18)", text: "#f5d547" },
+    cancelled: { bg: "rgba(219,48,105,0.18)", text: "#ff88af" },
+    submitted: { bg: "rgba(15,118,110,0.22)", text: "#7ae0d9" },
+    completed: { bg: "rgba(15,118,110,0.20)", text: "#8ff0e9" },
+    expired: { bg: "rgba(235,235,211,0.10)", text: "#d5d5be" },
+    noshow: { bg: "rgba(219,48,105,0.20)", text: "#ff8db4" },
+    inprogress: { bg: "rgba(20,70,160,0.20)", text: "#8fb0ff" },
   },
 };
 // ═══════════════════════════════════════════════
@@ -224,7 +221,7 @@ function Badge({ status, t }) {
     <span style={{
       background: color.bg, color: color.text,
       padding: "3px 10px", borderRadius: 20,
-      fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+      fontSize: 12, fontWeight: 600, whiteSpace: "nowrap",
       display: "inline-block",
     }}>{status}</span>
   );
@@ -236,16 +233,35 @@ function Badge({ status, t }) {
 function StatCard({ label, value, color, icon, t }) {
   return (
     <div style={{
-      background: t.bgSurface, borderRadius: 12,
-      border: `0.5px solid ${t.borderCard}`,
-      padding: "16px 18px", display: "flex",
+      background: t.bgSurface,
+      borderRadius: 18,
+      border: `1px solid ${t.borderCard}`,
+      padding: "18px 18px 16px",
+      display: "flex",
       flexDirection: "column", gap: 8,
+      boxShadow: darkShadow(t),
     }}>
-      <div style={{ fontSize: 20, lineHeight: 1 }}>{icon}</div>
-      <div style={{ fontSize: 26, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 12, color: t.textMuted }}>{label}</div>
+      <div style={{
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        display: "grid",
+        placeItems: "center",
+        background: t.accentGradientSoft,
+        color: t.accent,
+        fontSize: 20,
+        lineHeight: 1,
+      }}>{icon}</div>
+      <div style={{ fontSize: 30, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 13, color: t.textMuted }}>{label}</div>
     </div>
   );
+}
+
+function darkShadow(t) {
+  return t.bgPage === "#020817"
+    ? "0 18px 40px rgba(2, 8, 23, 0.34)"
+    : "0 18px 38px rgba(15, 23, 42, 0.08)";
 }
 
 // ═══════════════════════════════════════════════
@@ -254,14 +270,14 @@ function StatCard({ label, value, color, icon, t }) {
 function Table({ headers, rows, t }) {
   return (
     <div style={{ borderRadius: 10, border: `0.5px solid ${t.border}`, overflow: "hidden" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
         <thead>
           <tr style={{ background: t.bgElevated }}>
             {headers.map((h, i) => (
               <th key={i} style={{
                 padding: "10px 14px", textAlign: "right",
                 color: t.textMuted, fontWeight: 600,
-                fontSize: 11, borderBottom: `0.5px solid ${t.border}`,
+                fontSize: 12, borderBottom: `0.5px solid ${t.border}`,
               }}>{h}</th>
             ))}
           </tr>
@@ -273,7 +289,7 @@ function Table({ headers, rows, t }) {
               borderBottom: `0.5px solid ${t.border}`,
             }}>
               {row.map((cell, ci) => (
-                <td key={ci} style={{ padding: "10px 14px", color: t.text }}>
+                <td key={ci} style={{ padding: "10px 14px", color: t.text, fontSize: 14 }}>
                   {typeof cell === "string" && [
                     "مؤكد","بانتظار العربون","ملغي","تم الإثبات","مكتمل",
                     "منتهي","لم يحضر","جاري","نشط","غير نشط","في إجازة",
@@ -298,17 +314,18 @@ function Table({ headers, rows, t }) {
 // ═══════════════════════════════════════════════
 function SectionHeader({ title, subtitle, action, onAction, t }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
       <div>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: t.text }}>{title}</h2>
-        {subtitle && <p style={{ margin: "4px 0 0", fontSize: 13, color: t.textSec }}>{subtitle}</p>}
+        <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: "-0.02em" }}>{title}</h2>
+        {subtitle && <p style={{ margin: "6px 0 0", fontSize: 14, color: t.textSec }}>{subtitle}</p>}
       </div>
       {action && (
         <button onClick={onAction} style={{
-          background: t.accent, color: "#fff",
-          border: "none", borderRadius: 8,
-          padding: "9px 18px", fontSize: 13, fontWeight: 600,
+          background: t.accentGradient, color: "#fff",
+          border: "none", borderRadius: 12,
+          padding: "10px 18px", fontSize: 14, fontWeight: 700,
           cursor: "pointer",
+          boxShadow: darkShadow(t),
         }}>{action}</button>
       )}
     </div>
@@ -325,11 +342,11 @@ function AlertBox({ items, t }) {
       background: t.pending.bg, border: `0.5px solid ${t.pending.text}30`,
       borderRadius: 10, padding: "12px 16px", marginBottom: 20,
     }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: t.pending.text, marginBottom: 8 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: t.pending.text, marginBottom: 8 }}>
         تنبيهات تحتاج متابعة
       </div>
       {items.map((item, i) => (
-        <div key={i} style={{ fontSize: 12, color: t.text, padding: "3px 0", display: "flex", gap: 8 }}>
+        <div key={i} style={{ fontSize: 13, color: t.text, padding: "3px 0", display: "flex", gap: 8 }}>
           <span style={{ color: t.pending.text }}>•</span> {item}
         </div>
       ))}
@@ -342,7 +359,7 @@ function AlertBox({ items, t }) {
 // ═══════════════════════════════════════════════
 function PageDashboard({ t }) {
   return (
-    <div>
+    <div className="dashboard-stack">
       <SectionHeader
         title="لوحة التحكم"
         subtitle="الخميس، 4 يونيو 2026"
@@ -358,177 +375,251 @@ function PageDashboard({ t }) {
         ]}
       />
 
-      {/* Stats Row 1 */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 12,
-          marginBottom: 12,
-        }}
-      >
+      <div className="dashboard-hero">
+        <div
+          className="dashboard-hero-card"
+          style={{
+            background: t.accentGradient,
+            borderRadius: 24,
+            padding: 24,
+            color: "#fff",
+            boxShadow: darkShadow(t),
+          }}
+        >
+          <div style={{ fontSize: 12, opacity: 0.78, marginBottom: 12 }}>ملخص تشغيل اليوم</div>
+          <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.2, marginBottom: 10 }}>
+            نظرة تنفيذية سريعة على الأداء والحجوزات والتحصيل
+          </div>
+          <div style={{ fontSize: 14, opacity: 0.88, maxWidth: 560, marginBottom: 20 }}>
+            الواجهة الآن تبرز الأولويات مباشرة: ضغط الحجوزات، الطلبات المعلقة، والمركبات أو المدربين الذين يحتاجون متابعة فورية.
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {[
+              "نسبة الإشغال 78%",
+              "3 مدفوعات تنتظر تحقق",
+              "مركبة واحدة في الصيانة",
+            ].map((item) => (
+              <div
+                key={item}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 999,
+                  background: "rgba(255,255,255,0.16)",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gap: 16 }}>
+          <div
+            className="dashboard-mini-card"
+            style={{
+              background: t.bgSurface,
+              borderRadius: 20,
+              border: `1px solid ${t.borderCard}`,
+              padding: 20,
+              boxShadow: darkShadow(t),
+            }}
+          >
+            <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 8 }}>التحصيل</div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: t.text, marginBottom: 6 }}>٤٥٠٠ ل.س</div>
+            <div style={{ fontSize: 13, color: t.textSec }}>ارتفاع طفيف عن أمس مع 3 إثباتات بانتظار المطابقة.</div>
+          </div>
+          <div
+            className="dashboard-mini-card"
+            style={{
+              background: t.bgSurface,
+              borderRadius: 20,
+              border: `1px solid ${t.borderCard}`,
+              padding: 20,
+              boxShadow: darkShadow(t),
+            }}
+          >
+            <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 8 }}>جاهزية التشغيل</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: t.text }}>6</div>
+                <div style={{ fontSize: 12, color: t.textSec }}>دروس مكتملة</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: t.text }}>1</div>
+                <div style={{ fontSize: 12, color: t.textSec }}>حالة غياب</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-stats-grid">
         <StatCard
           label="حجوزات اليوم"
           value="14"
           color={t.accent}
-          icon={<RiCalendarScheduleLine size={38} color="#10B981" />}
+          icon={<RiCalendarScheduleLine size={24} />}
           t={t}
         />
         <StatCard
           label="مؤكدة"
           value="9"
-          color="#1D9E75"
-          icon={<FaRegCalendarCheck size={38} color="#10B981" />}
+          color="#0f766e"
+          icon={<FaRegCalendarCheck size={24} />}
           t={t}
         />
         <StatCard
           label="بانتظار الدفع"
           value="3"
-          color="#BA7517"
-          icon={<BsHourglassSplit size={38} color="#10B981" />}
+          color="#c2410c"
+          icon={<BsHourglassSplit size={24} />}
           t={t}
         />
         <StatCard
           label="إثباتات معلقة"
           value="3"
           color={t.accent}
-          icon={<BsPaperclip size={38} color="#10B981" />}
+          icon={<BsPaperclip size={24} />}
           t={t}
         />
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 12,
-          marginBottom: 20,
-        }}
-      >
         <StatCard
           label="دروس مكتملة"
           value="6"
-          color="#1D9E75"
-          icon={<PiMedalFill size={38} color="#10B981" />}
+          color="#15803d"
+          icon={<PiMedalFill size={24} />}
           t={t}
         />
         <StatCard
           label="لم يحضر"
           value="1"
-          color="#D4537E"
-          icon={<MdOutlineCancel size={38} color="#10B981" />}
+          color="#be185d"
+          icon={<MdOutlineCancel size={24} />}
           t={t}
         />
         <StatCard
           label="ملغية"
           value="1"
-          color="#E24B4A"
-          icon={<TbCalendarCancel size={38} color="#10B981" />}
+          color="#b91c1c"
+          icon={<TbCalendarCancel size={24} />}
           t={t}
         />
         <StatCard
           label="إيرادات اليوم"
           value="٤٥٠٠ ل.س"
           color={t.accent}
-          icon={<TbReportMoney size={38} color="#10B981" />}
+          icon={<TbReportMoney size={24} />}
           t={t}
         />
       </div>
 
-      {/* Upcoming lessons */}
-      <div
-        style={{
-          background: t.bgSurface,
-          borderRadius: 12,
-          border: `0.5px solid ${t.borderCard}`,
-          padding: 16,
-          marginBottom: 16,
-        }}
-      >
+      <div className="dashboard-panels-grid">
         <div
-          style={{
-            fontSize: 14,
-            fontWeight: 700,
-            color: t.text,
-            marginBottom: 12,
-          }}
-        >
-          الدروس القادمة اليوم
-        </div>
-        <Table
-          t={t}
-          headers={[
-            "الطالب",
-            "المدرب",
-            "الوقت",
-            "النوع",
-            "المركبة",
-            "الحالة",
-            "الدفع المتبقي",
-          ]}
-          rows={[
-            [
-              "أحمد محمد الحسن",
-              "خالد عمر",
-              "09:00 — 10:30",
-              "عادي",
-              "أ ب ج 101",
-              "مؤكد",
-              "نعم",
-            ],
-            [
-              "سارة خالد",
-              "ليلى سعد",
-              "10:30 — 12:00",
-              "أوتوماتيك",
-              "أ ب ج 202",
-              "مؤكد",
-              "نعم",
-            ],
-            [
-              "علي حسن",
-              "خالد عمر",
-              "12:00 — 13:30",
-              "عادي",
-              "سيارة الطالب",
-              "بانتظار العربون",
-              "—",
-            ],
-            [
-              "منى العلي",
-              "ليلى سعد",
-              "14:00 — 15:30",
-              "أوتوماتيك",
-              "أ ب ج 202",
-              "تم الإثبات",
-              "نعم",
-            ],
-            [
-              "محمود سالم",
-              "أحمد الزيد",
-              "15:30 — 17:00",
-              "عادي",
-              "أ ب ج 101",
-              "مؤكد",
-              "نعم",
-            ],
-          ]}
-        />
-      </div>
-
-      {/* Payments pending */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <div
+          className="dashboard-panel"
           style={{
             background: t.bgSurface,
-            borderRadius: 12,
-            border: `0.5px solid ${t.borderCard}`,
-            padding: 16,
+            borderRadius: 20,
+            border: `1px solid ${t.borderCard}`,
+            padding: 18,
+            boxShadow: darkShadow(t),
           }}
         >
           <div
             style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+              marginBottom: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: t.text }}>الدروس القادمة اليوم</div>
+              <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>ترتيب زمني مع إشارة سريعة إلى الدفع والحالة</div>
+            </div>
+            <div style={{ padding: "7px 12px", borderRadius: 999, background: t.accentLight, color: t.accentText, fontSize: 12, fontWeight: 700 }}>
+              5 حصص مجدولة
+            </div>
+          </div>
+          <Table
+            t={t}
+            headers={[
+              "الطالب",
+              "المدرب",
+              "الوقت",
+              "النوع",
+              "المركبة",
+              "الحالة",
+              "الدفع المتبقي",
+            ]}
+            rows={[
+              [
+                "أحمد محمد الحسن",
+                "خالد عمر",
+                "09:00 — 10:30",
+                "عادي",
+                "أ ب ج 101",
+                "مؤكد",
+                "نعم",
+              ],
+              [
+                "سارة خالد",
+                "ليلى سعد",
+                "10:30 — 12:00",
+                "أوتوماتيك",
+                "أ ب ج 202",
+                "مؤكد",
+                "نعم",
+              ],
+              [
+                "علي حسن",
+                "خالد عمر",
+                "12:00 — 13:30",
+                "عادي",
+                "سيارة الطالب",
+                "بانتظار العربون",
+                "—",
+              ],
+              [
+                "منى العلي",
+                "ليلى سعد",
+                "14:00 — 15:30",
+                "أوتوماتيك",
+                "أ ب ج 202",
+                "تم الإثبات",
+                "نعم",
+              ],
+              [
+                "محمود سالم",
+                "أحمد الزيد",
+                "15:30 — 17:00",
+                "عادي",
+                "أ ب ج 101",
+                "مؤكد",
+                "نعم",
+              ],
+            ]}
+          />
+        </div>
+
+        <div className="dashboard-side-stack">
+          <div
+            className="dashboard-panel"
+            style={{
+              background: t.bgSurface,
+              borderRadius: 20,
+              border: `1px solid ${t.borderCard}`,
+              padding: 18,
+              boxShadow: darkShadow(t),
+            }}
+          >
+          <div
+            style={{
               fontSize: 14,
-              fontWeight: 700,
+              fontWeight: 800,
               color: t.text,
               marginBottom: 12,
             }}
@@ -546,17 +637,19 @@ function PageDashboard({ t }) {
           />
         </div>
         <div
+          className="dashboard-panel"
           style={{
             background: t.bgSurface,
-            borderRadius: 12,
-            border: `0.5px solid ${t.borderCard}`,
-            padding: 16,
+            borderRadius: 20,
+            border: `1px solid ${t.borderCard}`,
+            padding: 18,
+            boxShadow: darkShadow(t),
           }}
         >
           <div
             style={{
               fontSize: 14,
-              fontWeight: 700,
+              fontWeight: 800,
               color: t.text,
               marginBottom: 12,
             }}
@@ -576,6 +669,7 @@ function PageDashboard({ t }) {
               ["أ ب ج 202", "أوتوماتيك", "متاحة"],
             ]}
           />
+        </div>
         </div>
       </div>
     </div>
@@ -1607,29 +1701,29 @@ export default function App() {
   };
 
   return (
-    <div dir="rtl" style={{
-      display: "flex", height: "100vh", overflow: "hidden",
-      background: t.bgPage, fontFamily: "'Segoe UI', Tahoma, Arial, sans-serif",
+    <div dir="rtl" className="app-shell" style={{
+      display: "flex", minHeight: "100svh", overflow: "hidden", width: "100%",
+      background: t.bgPage, fontFamily: "var(--font-body)",
       direction: "rtl",
     }}>
 
       {/* ─── SIDEBAR ─── */}
       <div className="hide-scrollbar" style={{
-        width: sidebarCollapsed ? 60 : 220,
+        width: sidebarCollapsed ? 84 : 324,
         background: t.bgSidebar,
         display: "flex", flexDirection: "column",
         transition: "width 0.2s ease",
         flexShrink: 0, overflow: "hidden",
-        borderLeft: `1px solid rgba(255,255,255,0.06)`,
+        borderLeft: `1px solid ${t.borderCard}`,
       }}>
         {/* Logo */}
         <div style={{
-          padding: "20px 14px 16px",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          padding: "24px 18px 18px",
+          borderBottom: `1px solid ${t.borderCard}`,
           display: "flex", alignItems: "center", gap: 10,
         }}>
           <div style={{
-            width: 34, height: 34, borderRadius: 8,
+            width: 42, height: 42, borderRadius: 12,
             overflow: "hidden", flexShrink: 0,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
@@ -1637,14 +1731,14 @@ export default function App() {
           </div>
           {!sidebarCollapsed && (
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#b5b0b0", lineHeight: 1.2 }}>مدرسة القيادة</div>
-              <div style={{ fontSize: 10, color: t.textSidebar, marginTop: 2 }}>نظام الإدارة</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#fff7d4", lineHeight: 1.2 }}>مدرسة القيادة</div>
+              <div style={{ fontSize: 12, color: t.textSidebar, marginTop: 3 }}>نظام الإدارة</div>
             </div>
           )}
         </div>
 
         {/* Nav Items */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "8px 8px" }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: "12px 10px" }}>
           {navItems
             .filter(item => {
               // adminOnly pages only visible to manager (المدير)
@@ -1667,16 +1761,17 @@ export default function App() {
               return (
                 <button key={item.id} onClick={() => setActivePage(item.page)} style={{
                   width: "100%", display: "flex", alignItems: "center",
-                  gap: 10, padding: sidebarCollapsed ? "10px" : "9px 12px",
-                  borderRadius: 8, border: "none", cursor: "pointer",
+                  gap: 12, padding: sidebarCollapsed ? "14px 10px" : "14px 16px",
+                  borderRadius: 14, border: "none", cursor: "pointer",
                   background: isActive ? t.bgSidebarActive : "transparent",
                   color: isActive ? t.textSidebarActive : t.textSidebar,
-                  fontSize: 13, fontWeight: isActive ? 600 : 400,
-                  marginBottom: 2, textAlign: "right",
+                  fontSize: 16, fontWeight: isActive ? 700 : 500,
+                  marginBottom: 6, textAlign: "right",
                   justifyContent: sidebarCollapsed ? "center" : "flex-start",
                   transition: "all 0.15s",
+                  boxShadow: isActive ? "0 10px 24px rgba(0,0,0,0.18)" : "none",
                 }}>
-                  <span style={{ fontSize: 16, flexShrink: 0 }}>{item.icon}</span>
+                  <span style={{ fontSize: 20, flexShrink: 0 }}>{item.icon}</span>
                   {!sidebarCollapsed && <span>{displayLabel}</span>}
                 </button>
               );
@@ -1685,19 +1780,19 @@ export default function App() {
 
         {/* Sidebar Footer */}
         <div style={{
-          padding: "12px 8px",
-          borderTop: "1px solid rgba(255,255,255,0.08)",
+          padding: "14px 10px",
+          borderTop: `1px solid ${t.borderCard}`,
         }}>
           <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{
-            width: "100%", padding: "8px", borderRadius: 8,
-            background: "transparent", border: "none",
-            color: t.textSidebar, cursor: "pointer", fontSize: 16,
+            width: "100%", padding: "12px", borderRadius: 12,
+            background: t.accentLight, border: "none",
+            color: t.accentText, cursor: "pointer", fontSize: 18, fontWeight: 700,
           }}>{sidebarCollapsed ? "→" : "←"}</button>
         </div>
       </div>
 
       {/* ─── MAIN AREA ─── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="app-main" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* TOPBAR */}
         <div style={{
@@ -1801,10 +1896,7 @@ export default function App() {
         </div>
 
         {/* PAGE CONTENT */}
-        <div className="hide-scrollbar" style={{
-          flex: 1, overflowY: "auto",
-          padding: "24px 28px",
-        }}>
+        <div className="hide-scrollbar app-page">
           {pageComponents[activePage] || <PlaceholderPage title={activePage} t={t} />}
         </div>
       </div>
