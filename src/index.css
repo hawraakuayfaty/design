@@ -3,12 +3,25 @@
 :root {
   --font-body: "Tajawal", "Segoe UI", Tahoma, sans-serif;
   --font-heading: "Cairo", "Tajawal", "Segoe UI", Tahoma, sans-serif;
+  --primary: #778a3b;
+  --primary-hover: #5f702d;
+  --primary-soft: #eef2e4;
+  --bg: #f8f9f5;
+  --surface: #ffffff;
+  --text-primary: #1c1f18;
+  --text-secondary: #4f5548;
+  --text-muted: #747a70;
+  --border: #dde1d7;
+  --disabled: #b7bdb2;
+  --success: #3f6b3a;
+  --warning: #c98a28;
+  --danger: #c74848;
   color-scheme: light;
   font-family: var(--font-body);
   line-height: 1.5;
   font-weight: 400;
-  color: #0f172a;
-  background: #f3f7fb;
+  color: var(--text-primary);
+  background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -29,9 +42,9 @@ body {
   font-family: var(--font-body);
   font-size: 17px;
   background:
-    radial-gradient(circle at top right, rgba(20, 70, 160, 0.20), transparent 28%),
-    radial-gradient(circle at bottom left, rgba(219, 48, 105, 0.10), transparent 30%),
-    linear-gradient(180deg, #f9f7e9 0%, #ebebd3 100%);
+    radial-gradient(circle at top right, rgba(119, 138, 59, 0.14), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(95, 112, 45, 0.08), transparent 30%),
+    linear-gradient(180deg, #fbfcf8 0%, #f3f5ee 100%);
 }
 
 h1,
@@ -66,7 +79,7 @@ h6 {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: rgba(15, 23, 42, 0.16);
+  background: rgba(119, 138, 59, 0.24);
   border-radius: 999px;
   border: 2px solid transparent;
 }

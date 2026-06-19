@@ -6,8 +6,8 @@ import { PiChartLineDown } from "react-icons/pi";
 
 
 const T={
-  light:{bgApp:"#F7F5E8",bgSurface:"#FFFEF7",bgElevated:"#F3F0D8",bgList:"#FAF7E7",bgSidebar:"linear-gradient(180deg,#1A4F92 0%,#1446A0 42%,#0F766E 100%)",bgSidebarActive:"#0F766E",text:"#17325C",textSec:"#0F766E",textMuted:"#6F6B52",textSidebar:"#EBEBD3",textSidebarActive:"#FFFFFF",border:"rgba(20,70,160,0.16)",borderCard:"rgba(15,118,110,0.16)",accent:"#0F766E",accentLight:"#EBEBD3",accentText:"#1446A0",grad:"linear-gradient(135deg,#1446A0 0%,#0F766E 42%,#DB3069 100%)",confirmed:{bg:"rgba(20,70,160,0.12)",text:"#1446A0",dot:"#1446A0"},pending:{bg:"rgba(245,213,71,0.28)",text:"#8A6A00",dot:"#F5D547"},cancelled:{bg:"rgba(219,48,105,0.14)",text:"#B51F56",dot:"#DB3069"},completed:{bg:"rgba(15,118,110,0.14)",text:"#0A5E58",dot:"#0F766E"},noshow:{bg:"rgba(219,48,105,0.12)",text:"#DB3069",dot:"#DB3069"},expired:{bg:"rgba(111,107,82,0.12)",text:"#6F6B52",dot:"#8F8A68"},shadow:"0 12px 28px rgba(20,70,160,0.10)",shadowMd:"0 14px 32px rgba(20,70,160,0.12)",shadowLg:"0 20px 48px rgba(20,70,160,0.16)"},
-  dark:{bgApp:"#09162F",bgSurface:"#102348",bgElevated:"#16305F",bgList:"#102348",bgSidebar:"linear-gradient(180deg,#12346F 0%,#102C61 44%,#0D5F59 100%)",bgSidebarActive:"#0F766E",text:"#F5F2DF",textSec:"#EBEBD3",textMuted:"#C8C7AF",textSidebar:"#EBEBD3",textSidebarActive:"#FFFFFF",border:"rgba(255,255,255,0.08)",borderCard:"rgba(235,235,211,0.10)",accent:"#F5D547",accentLight:"rgba(245,213,71,0.14)",accentText:"#F5D547",grad:"linear-gradient(135deg,#1446A0 0%,#0F766E 45%,#DB3069 100%)",confirmed:{bg:"rgba(20,70,160,0.20)",text:"#9BBCFF",dot:"#9BBCFF"},pending:{bg:"rgba(245,213,71,0.18)",text:"#F5D547",dot:"#F5D547"},cancelled:{bg:"rgba(219,48,105,0.18)",text:"#FF88AF",dot:"#FF88AF"},completed:{bg:"rgba(15,118,110,0.20)",text:"#8FF0E9",dot:"#8FF0E9"},noshow:{bg:"rgba(219,48,105,0.20)",text:"#FF8DB4",dot:"#FF8DB4"},expired:{bg:"rgba(235,235,211,0.10)",text:"#D5D5BE",dot:"#D5D5BE"},shadow:"0 12px 28px rgba(6,17,42,0.30)",shadowMd:"0 14px 32px rgba(6,17,42,0.32)",shadowLg:"0 20px 48px rgba(6,17,42,0.38)"},
+  light:{bgApp:"#F8F9F5",bgSurface:"#FFFFFF",bgElevated:"#EEF2E4",bgList:"#F5F7F0",bgSidebar:"linear-gradient(180deg,#778A3B 0%,#6B7C35 52%,#5F702D 100%)",bgSidebarActive:"#5F702D",text:"#1C1F18",textSec:"#4F5548",textMuted:"#747A70",textSidebar:"#F8F9F5",textSidebarActive:"#FFFFFF",border:"#DDE1D7",borderCard:"rgba(119,138,59,0.14)",accent:"#778A3B",accentLight:"#EEF2E4",accentText:"#5F702D",grad:"linear-gradient(135deg,#778A3B 0%,#5F702D 100%)",confirmed:{bg:"rgba(119,138,59,0.12)",text:"#5F702D",dot:"#778A3B"},pending:{bg:"rgba(201,138,40,0.14)",text:"#C98A28",dot:"#C98A28"},cancelled:{bg:"rgba(199,72,72,0.12)",text:"#C74848",dot:"#C74848"},completed:{bg:"rgba(63,107,58,0.14)",text:"#3F6B3A",dot:"#3F6B3A"},noshow:{bg:"rgba(199,72,72,0.12)",text:"#C74848",dot:"#C74848"},expired:{bg:"rgba(183,189,178,0.16)",text:"#747A70",dot:"#B7BDB2"},shadow:"0 12px 28px rgba(119,138,59,0.10)",shadowMd:"0 14px 32px rgba(119,138,59,0.12)",shadowLg:"0 20px 48px rgba(119,138,59,0.16)"},
+  dark:{bgApp:"#20241D",bgSurface:"#2B3127",bgElevated:"#353D31",bgList:"#2B3127",bgSidebar:"linear-gradient(180deg,#5F702D 0%,#4F5F29 52%,#414E24 100%)",bgSidebarActive:"#778A3B",text:"#F4F5EF",textSec:"#DDE1D7",textMuted:"#B7BDB2",textSidebar:"#F8F9F5",textSidebarActive:"#FFFFFF",border:"rgba(255,255,255,0.08)",borderCard:"rgba(221,225,215,0.12)",accent:"#778A3B",accentLight:"rgba(119,138,59,0.18)",accentText:"#EEF2E4",grad:"linear-gradient(135deg,#778A3B 0%,#5F702D 100%)",confirmed:{bg:"rgba(119,138,59,0.20)",text:"#EEF2E4",dot:"#EEF2E4"},pending:{bg:"rgba(201,138,40,0.20)",text:"#F0CB8C",dot:"#F0CB8C"},cancelled:{bg:"rgba(199,72,72,0.20)",text:"#F2B1B1",dot:"#F2B1B1"},completed:{bg:"rgba(63,107,58,0.24)",text:"#B8D4B5",dot:"#B8D4B5"},noshow:{bg:"rgba(199,72,72,0.18)",text:"#F2B1B1",dot:"#F2B1B1"},expired:{bg:"rgba(183,189,178,0.14)",text:"#D0D5CB",dot:"#D0D5CB"},shadow:"0 12px 28px rgba(28,31,24,0.30)",shadowMd:"0 14px 32px rgba(28,31,24,0.34)",shadowLg:"0 20px 48px rgba(28,31,24,0.40)"},
 };
 
 function Card({children,t,p=16,mb=10,style={}}){return <div style={{background:t.bgSurface,borderRadius:12,border:`1px solid ${t.borderCard}`,padding:p,marginBottom:mb,boxShadow:t.shadow,...style}}>{children}</div>;}
@@ -429,18 +429,22 @@ export default function AccountantPro({embedded=false,page:forcedPage,darkMode})
   const [page,setPage]=useState(forcedPage||"dash");
   const [collapsed,setCollapsed]=useState(false);
   const t=T[dark?"dark":"light"];
+  const sidebarWidth = collapsed ? 84 : 308;
   const pages={dash:<PgDash t={t}/>,payments:<PgPayments t={t}/>,invoices:<PgInvoices t={t}/>,payroll:<PgPayroll t={t}/>,revenues:<PgRevenues t={t}/>,pricing:<PgPricing t={t}/>};
   // sync when parent forces a page (embedded mode)
   if(forcedPage && forcedPage!==page){ setPage(forcedPage); }
   return(
     <div dir="rtl" style={{display:"flex",height: embedded?"100%":"100vh",overflow:"hidden",background:t.bgApp,fontFamily:"var(--font-body)"}}>
       {!embedded && (
-        <div className="hide-scrollbar" style={{width:collapsed?84:308,background:t.bgSidebar,display:"flex",flexDirection:"column",transition:"width 0.2s",flexShrink:0,boxShadow:"2px 0 18px rgba(0,0,0,0.18)"}}>
+        <div style={{width:sidebarWidth,flexShrink:0}} />
+      )}
+      {!embedded && (
+        <div style={{width:sidebarWidth,height:"100svh",minHeight:"100svh",position:"fixed",top:0,right:0,zIndex:40,background:t.bgSidebar,display:"flex",flexDirection:"column",transition:"width 0.2s",overflow:"hidden",boxShadow:"2px 0 18px rgba(0,0,0,0.18)"}}>
           <div style={{padding:"18px 14px 16px",borderBottom:`1px solid ${t.borderCard}`,display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:40,height:40,borderRadius:11,background:"linear-gradient(135deg,#F5D547 0%,#DB3069 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,flexShrink:0,color:"#17325C"}}>💰</div>
             {!collapsed&&<div><div style={{fontSize:15,fontWeight:800,color:"#fff",lineHeight:1.2}}>المحاسب</div><div style={{fontSize:12,color:t.textSidebar,marginTop:2}}>مدرسة القيادة</div></div>}
           </div>
-          <div style={{flex:1,padding:"10px",overflowY:"auto"}}>
+          <div style={{flex:1,minHeight:0,padding:"10px",overflowY:"auto"}}>
             {NAV.map(item=>{const active=page===item.id;return <button key={item.id} onClick={()=>setPage(item.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:11,padding:collapsed?"14px 10px":"13px 15px",borderRadius:14,border:"none",cursor:"pointer",background:active?t.bgSidebarActive:"transparent",color:active?t.textSidebarActive:t.textSidebar,fontSize:15,fontWeight:active?700:500,marginBottom:6,justifyContent:collapsed?"center":"flex-start",fontFamily:"inherit",transition:"all 0.15s",boxShadow:active?"0 10px 24px rgba(0,0,0,0.16)":"none"}}><span style={{fontSize:18,flexShrink:0}}>{item.icon}</span>{!collapsed&&<span>{item.label}</span>}</button>;})}
           </div>
           <div style={{padding:"12px 10px",borderTop:`1px solid ${t.borderCard}`}}>

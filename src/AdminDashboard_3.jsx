@@ -38,64 +38,64 @@ import { FaRegCalendarCheck } from "react-icons/fa6";
 // ═══════════════════════════════════════════════
 const tokens = {
   light: {
-    bgPage: "#f7f5e8",
-    bgSurface: "#fffef7",
-    bgElevated: "#f3f0d8",
-    bgSidebar: "linear-gradient(180deg, #1a4f92 0%, #1446a0 42%, #0f766e 100%)",
-    bgSidebarActive: "#0f766e",
-    bgHeader: "#fffef7",
-    text: "#17325c",
-    textSec: "#0f766e",
-    textMuted: "#6f6b52",
-    textSidebar: "#ebebd3",
+    bgPage: "#f8f9f5",
+    bgSurface: "#ffffff",
+    bgElevated: "#f2f5eb",
+    bgSidebar: "linear-gradient(180deg, #778a3b 0%, #6c7d35 52%, #5f702d 100%)",
+    bgSidebarActive: "#5f702d",
+    bgHeader: "#ffffff",
+    text: "#1c1f18",
+    textSec: "#4f5548",
+    textMuted: "#747a70",
+    textSidebar: "#f8f9f5",
     textSidebarActive: "#FFFFFF",
-    border: "rgba(20,70,160,0.16)",
-    borderCard: "rgba(15,118,110,0.16)",
-    accent: "#0f766e",
-    accentLight: "#ebebd3",
-    accentText: "#1446a0",
-    accentGradient: "linear-gradient(135deg,#1446a0 0%,#0f766e 42%,#db3069 100%)",
+    border: "#dde1d7",
+    borderCard: "rgba(119,138,59,0.14)",
+    accent: "#778a3b",
+    accentLight: "#eef2e4",
+    accentText: "#5f702d",
+    accentGradient: "linear-gradient(135deg,#778a3b 0%,#5f702d 100%)",
     accentGradientSoft:
-      "linear-gradient(135deg, rgba(20,70,160,0.10) 0%, rgba(245,213,71,0.16) 100%)",
+      "linear-gradient(135deg, rgba(119,138,59,0.12) 0%, rgba(238,242,228,0.90) 100%)",
 
-    confirmed: { bg: "rgba(20,70,160,0.12)", text: "#1446a0" },
-    pending: { bg: "rgba(245,213,71,0.28)", text: "#8a6a00" },
-    cancelled: { bg: "rgba(219,48,105,0.14)", text: "#b51f56" },
-    submitted: { bg: "rgba(15,118,110,0.12)", text: "#0f766e" },
-    completed: { bg: "rgba(15,118,110,0.14)", text: "#0a5e58" },
-    expired: { bg: "rgba(111,107,82,0.12)", text: "#6f6b52" },
-    noshow: { bg: "rgba(219,48,105,0.12)", text: "#db3069" },
-    inprogress: { bg: "rgba(20,70,160,0.10)", text: "#1446a0" },
+    confirmed: { bg: "rgba(119,138,59,0.12)", text: "#5f702d" },
+    pending: { bg: "rgba(201,138,40,0.14)", text: "#c98a28" },
+    cancelled: { bg: "rgba(199,72,72,0.12)", text: "#c74848" },
+    submitted: { bg: "rgba(119,138,59,0.10)", text: "#778a3b" },
+    completed: { bg: "rgba(63,107,58,0.14)", text: "#3f6b3a" },
+    expired: { bg: "rgba(183,189,178,0.16)", text: "#747a70" },
+    noshow: { bg: "rgba(199,72,72,0.12)", text: "#c74848" },
+    inprogress: { bg: "rgba(119,138,59,0.12)", text: "#778a3b" },
   },
   dark: {
-    bgPage: "#09162f",
-    bgSurface: "#102348",
-    bgElevated: "#16305f",
-    bgSidebar: "linear-gradient(180deg, #12346f 0%, #102c61 44%, #0d5f59 100%)",
-    bgSidebarActive: "#0f766e",
-    bgHeader: "#102348",
-    text: "#f5f2df",
-    textSec: "#ebebd3",
-    textMuted: "#c8c7af",
-    textSidebar: "#ebebd3",
+    bgPage: "#20241d",
+    bgSurface: "#2b3127",
+    bgElevated: "#353d31",
+    bgSidebar: "linear-gradient(180deg, #5f702d 0%, #4f5d28 52%, #3f4b22 100%)",
+    bgSidebarActive: "#778a3b",
+    bgHeader: "#2b3127",
+    text: "#f4f5ef",
+    textSec: "#dde1d7",
+    textMuted: "#b7bdb2",
+    textSidebar: "#f8f9f5",
     textSidebarActive: "#FFFFFF",
     border: "rgba(255,255,255,0.08)",
-    borderCard: "rgba(235,235,211,0.10)",
-    accent: "#f5d547",
-    accentLight: "rgba(245, 213, 71, 0.14)",
-    accentText: "#f5d547",
-    accentGradient: "linear-gradient(135deg,#1446a0 0%,#0f766e 45%,#db3069 100%)",
+    borderCard: "rgba(221,225,215,0.12)",
+    accent: "#778a3b",
+    accentLight: "rgba(119, 138, 59, 0.18)",
+    accentText: "#eef2e4",
+    accentGradient: "linear-gradient(135deg,#778a3b 0%,#5f702d 100%)",
     accentGradientSoft:
-      "linear-gradient(135deg, rgba(20,70,160,0.20) 0%, rgba(245,213,71,0.12) 100%)",
+      "linear-gradient(135deg, rgba(119,138,59,0.20) 0%, rgba(95,112,45,0.12) 100%)",
 
-    confirmed: { bg: "rgba(20,70,160,0.20)", text: "#9bbcff" },
-    pending: { bg: "rgba(245,213,71,0.18)", text: "#f5d547" },
-    cancelled: { bg: "rgba(219,48,105,0.18)", text: "#ff88af" },
-    submitted: { bg: "rgba(15,118,110,0.22)", text: "#7ae0d9" },
-    completed: { bg: "rgba(15,118,110,0.20)", text: "#8ff0e9" },
-    expired: { bg: "rgba(235,235,211,0.10)", text: "#d5d5be" },
-    noshow: { bg: "rgba(219,48,105,0.20)", text: "#ff8db4" },
-    inprogress: { bg: "rgba(20,70,160,0.20)", text: "#8fb0ff" },
+    confirmed: { bg: "rgba(119,138,59,0.20)", text: "#eef2e4" },
+    pending: { bg: "rgba(201,138,40,0.20)", text: "#f0cb8c" },
+    cancelled: { bg: "rgba(199,72,72,0.20)", text: "#f2b1b1" },
+    submitted: { bg: "rgba(119,138,59,0.18)", text: "#eef2e4" },
+    completed: { bg: "rgba(63,107,58,0.24)", text: "#b8d4b5" },
+    expired: { bg: "rgba(183,189,178,0.14)", text: "#d0d5cb" },
+    noshow: { bg: "rgba(199,72,72,0.18)", text: "#f0b0b0" },
+    inprogress: { bg: "rgba(119,138,59,0.18)", text: "#eef2e4" },
   },
 };
 // ═══════════════════════════════════════════════
@@ -1681,6 +1681,7 @@ export default function App() {
   const [userRole, setUserRole] = useState("manager"); // "manager" | "admin" (موظف إداري) | "accountant"
 
   const t = tokens[darkMode ? "dark" : "light"];
+  const sidebarWidth = sidebarCollapsed ? 84 : 324;
 
   const pageComponents = {
     Dashboard: <PageDashboard t={t} />,
@@ -1708,12 +1709,19 @@ export default function App() {
     }}>
 
       {/* ─── SIDEBAR ─── */}
-      <div className="hide-scrollbar" style={{
-        width: sidebarCollapsed ? 84 : 324,
+      <div style={{ width: sidebarWidth, flexShrink: 0 }} />
+      <div style={{
+        width: sidebarWidth,
+        height: "100svh",
+        minHeight: "100svh",
+        position: "fixed",
+        top: 0,
+        right: 0,
+        zIndex: 40,
         background: t.bgSidebar,
         display: "flex", flexDirection: "column",
         transition: "width 0.2s ease",
-        flexShrink: 0, overflow: "hidden",
+        overflow: "hidden",
         borderLeft: `1px solid ${t.borderCard}`,
       }}>
         {/* Logo */}
@@ -1738,7 +1746,7 @@ export default function App() {
         </div>
 
         {/* Nav Items */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "12px 10px" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "12px 10px" }}>
           {navItems
             .filter(item => {
               // adminOnly pages only visible to manager (المدير)
