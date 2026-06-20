@@ -38,40 +38,47 @@ import { FaRegCalendarCheck } from "react-icons/fa6";
 // ═══════════════════════════════════════════════
 const tokens = {
   light: {
-    bgPage: "#f8f9f5",
+    bgPage: "#f4f5f0", // خلفية الصفحة متناسقة مع لون السايدبار
     bgSurface: "#ffffff",
-    bgElevated: "#f2f5eb",
-    bgSidebar: "linear-gradient(180deg, #778a3b 0%, #6c7d35 52%, #5f702d 100%)",
-    bgSidebarActive: "#5f702d",
-    bgHeader: "#ffffff",
-    text: "#1c1f18",
-    textSec: "#4f5548",
-    textMuted: "#747a70",
-    textSidebar: "#f8f9f5",
-    textSidebarActive: "#FFFFFF",
-    border: "#dde1d7",
-    borderCard: "rgba(119,138,59,0.14)",
-    accent: "#778a3b",
-    accentLight: "#eef2e4",
-    accentText: "#5f702d",
-    accentGradient: "linear-gradient(135deg,#778a3b 0%,#5f702d 100%)",
-    accentGradientSoft:
-      "linear-gradient(135deg, rgba(119,138,59,0.12) 0%, rgba(238,242,228,0.90) 100%)",
+    bgElevated: "#e8e9e4", // لون للبطاقات بتدرج أفتح قليلاً
 
-    confirmed: { bg: "rgba(119,138,59,0.12)", text: "#5f702d" },
-    pending: { bg: "rgba(201,138,40,0.14)", text: "#c98a28" },
+    // الألوان الجديدة للسايدبار كما طلبتِ
+    bgSidebar: "#f4f5f0", // لون الخلفية المطلوبة
+    bgSidebarActive: "#778a3b", // لون العنصر عند الوقوف عليه
+
+    bgHeader: "#ffffff",
+    text: "#2c3024", // نص أساسي غامق لضمان الوضوح
+    textSec: "#5a6150",
+    textMuted: "#796c2c",
+    textSidebar: "#715317", // لون الخط في السايدبار
+    textSidebarActive: "#FFFFFF", // لون النص عند تفعيل العنصر (أبيض ليتضح فوق #715317)
+
+    border: "#d9ddd0",
+    borderCard: "rgba(113,83,23,0.2)",
+
+    accent: "#715317", // اللون الأساسي المعتمد في التصميم
+    accentLight: "#e9e3d6",
+    accentText: "#715317",
+    accentGradient: "linear-gradient(135deg, #796c2c 0%, #715317 100%)",
+    accentGradientSoft:
+      "linear-gradient(135deg, rgba(113,83,23,0.1) 0%, rgba(244,245,240,0.9) 100%)",
+
+    // الحالات التشغيلية (تم ضبطها لتتناغم مع الألوان الدافئة)
+    confirmed: { bg: "rgba(113,83,23,0.1)", text: "#715317" },
+    pending: { bg: "rgba(201,124,40,0.14)", text: "#c98a28" },
     cancelled: { bg: "rgba(199,72,72,0.12)", text: "#c74848" },
-    submitted: { bg: "rgba(119,138,59,0.10)", text: "#778a3b" },
-    completed: { bg: "rgba(63,107,58,0.14)", text: "#3f6b3a" },
-    expired: { bg: "rgba(183,189,178,0.16)", text: "#747a70" },
+    submitted: { bg: "rgba(113,83,23,0.08)", text: "#796c2c" },
+    completed: { bg: "rgba(80,90,50,0.14)", text: "#505a32" },
+    expired: { bg: "rgba(160,165,155,0.16)", text: "#747a70" },
     noshow: { bg: "rgba(199,72,72,0.12)", text: "#c74848" },
-    inprogress: { bg: "rgba(119,138,59,0.12)", text: "#778a3b" },
+    inprogress: { bg: "rgba(113,83,23,0.12)", text: "#715317" },
   },
+
   dark: {
     bgPage: "#20241d",
     bgSurface: "#2b3127",
     bgElevated: "#353d31",
-    bgSidebar: "linear-gradient(180deg, #5f702d 0%, #4f5d28 52%, #3f4b22 100%)",
+    bgSidebar: "linear-gradient(180deg, #2b3127 0%, #2b3127 52%, #2b3127 100%)",
     bgSidebarActive: "#778a3b",
     bgHeader: "#2b3127",
     text: "#f4f5ef",
@@ -81,21 +88,21 @@ const tokens = {
     textSidebarActive: "#FFFFFF",
     border: "rgba(255,255,255,0.08)",
     borderCard: "rgba(221,225,215,0.12)",
-    accent: "#778a3b",
-    accentLight: "rgba(119, 138, 59, 0.18)",
+    accent: "#e7bc65",
+    accentLight: "rgba(119, 124, 59, 0.18)",
     accentText: "#eef2e4",
     accentGradient: "linear-gradient(135deg,#778a3b 0%,#5f702d 100%)",
     accentGradientSoft:
-      "linear-gradient(135deg, rgba(119,138,59,0.20) 0%, rgba(95,112,45,0.12) 100%)",
+      "linear-gradient(135deg, rgba(119,124,59,0.20) 0%, rgba(95,112,45,0.12) 100%)",
 
-    confirmed: { bg: "rgba(119,138,59,0.20)", text: "#eef2e4" },
-    pending: { bg: "rgba(201,138,40,0.20)", text: "#f0cb8c" },
+    confirmed: { bg: "rgba(119,124,59,0.20)", text: "#eef2e4" },
+    pending: { bg: "rgba(201,124,40,0.20)", text: "#f0cb8c" },
     cancelled: { bg: "rgba(199,72,72,0.20)", text: "#f2b1b1" },
-    submitted: { bg: "rgba(119,138,59,0.18)", text: "#eef2e4" },
+    submitted: { bg: "rgba(119,124,59,0.18)", text: "#eef2e4" },
     completed: { bg: "rgba(63,107,58,0.24)", text: "#b8d4b5" },
     expired: { bg: "rgba(183,189,178,0.14)", text: "#d0d5cb" },
     noshow: { bg: "rgba(199,72,72,0.18)", text: "#f0b0b0" },
-    inprogress: { bg: "rgba(119,138,59,0.18)", text: "#eef2e4" },
+    inprogress: { bg: "rgba(119,124,59,0.18)", text: "#eef2e4" },
   },
 };
 // ═══════════════════════════════════════════════
@@ -261,7 +268,7 @@ function StatCard({ label, value, color, icon, t }) {
 function darkShadow(t) {
   return t.bgPage === "#020817"
     ? "0 18px 40px rgba(2, 8, 23, 0.34)"
-    : "0 18px 38px rgba(15, 23, 42, 0.08)";
+    : "0 18px 24px rgba(15, 23, 42, 0.08)";
 }
 
 // ═══════════════════════════════════════════════
@@ -314,19 +321,38 @@ function Table({ headers, rows, t }) {
 // ═══════════════════════════════════════════════
 function SectionHeader({ title, subtitle, action, onAction, t }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: 16,
+        flexWrap: "wrap",
+      }}
+    >
       <div>
-        <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: "-0.02em" }}>{title}</h2>
+        <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: "-0.02em" }}>
+          {title}
+        </h2>
         {subtitle && <p style={{ margin: "6px 0 0", fontSize: 14, color: t.textSec }}>{subtitle}</p>}
       </div>
       {action && (
-        <button onClick={onAction} style={{
-          background: t.accentGradient, color: "#fff",
-          border: "none", borderRadius: 12,
-          padding: "10px 18px", fontSize: 14, fontWeight: 700,
-          cursor: "pointer",
-          boxShadow: darkShadow(t),
-        }}>{action}</button>
+        <button
+          onClick={onAction}
+          style={{
+            background: "#778a3b",
+            color: "#fff",
+            border: "none",
+            borderRadius: 12,
+            padding: "10px 18px",
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: "pointer",
+            boxShadow: darkShadow(t),
+          }}
+        >
+          {action}
+        </button>
       )}
     </div>
   );
@@ -379,19 +405,36 @@ function PageDashboard({ t }) {
         <div
           className="dashboard-hero-card"
           style={{
-            background: t.accentGradient,
+            background: "#778a3b",
             borderRadius: 24,
             padding: 24,
             color: "#fff",
             boxShadow: darkShadow(t),
           }}
         >
-          <div style={{ fontSize: 12, opacity: 0.78, marginBottom: 12 }}>ملخص تشغيل اليوم</div>
-          <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.2, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, opacity: 0.78, marginBottom: 12 }}>
+            ملخص تشغيل اليوم
+          </div>
+          <div
+            style={{
+              fontSize: 32,
+              fontWeight: 800,
+              lineHeight: 1.2,
+              marginBottom: 10,
+            }}
+          >
             نظرة تنفيذية سريعة على الأداء والحجوزات والتحصيل
           </div>
-          <div style={{ fontSize: 14, opacity: 0.88, maxWidth: 560, marginBottom: 20 }}>
-            الواجهة الآن تبرز الأولويات مباشرة: ضغط الحجوزات، الطلبات المعلقة، والمركبات أو المدربين الذين يحتاجون متابعة فورية.
+          <div
+            style={{
+              fontSize: 14,
+              opacity: 0.88,
+              maxWidth: 560,
+              marginBottom: 20,
+            }}
+          >
+            الواجهة الآن تبرز الأولويات مباشرة: ضغط الحجوزات، الطلبات المعلقة،
+            والمركبات أو المدربين الذين يحتاجون متابعة فورية.
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             {[
@@ -427,9 +470,22 @@ function PageDashboard({ t }) {
               boxShadow: darkShadow(t),
             }}
           >
-            <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 8 }}>التحصيل</div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: t.text, marginBottom: 6 }}>٤٥٠٠ ل.س</div>
-            <div style={{ fontSize: 13, color: t.textSec }}>ارتفاع طفيف عن أمس مع 3 إثباتات بانتظار المطابقة.</div>
+            <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 8 }}>
+              التحصيل
+            </div>
+            <div
+              style={{
+                fontSize: 26,
+                fontWeight: 800,
+                color: t.text,
+                marginBottom: 6,
+              }}
+            >
+              ٤٥٠٠ ل.س
+            </div>
+            <div style={{ fontSize: 13, color: t.textSec }}>
+              ارتفاع طفيف عن أمس مع 3 إثباتات بانتظار المطابقة.
+            </div>
           </div>
           <div
             className="dashboard-mini-card"
@@ -441,14 +497,28 @@ function PageDashboard({ t }) {
               boxShadow: darkShadow(t),
             }}
           >
-            <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 8 }}>جاهزية التشغيل</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 8 }}>
+              جاهزية التشغيل
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+              }}
+            >
               <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: t.text }}>6</div>
-                <div style={{ fontSize: 12, color: t.textSec }}>دروس مكتملة</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: t.text }}>
+                  6
+                </div>
+                <div style={{ fontSize: 12, color: t.textSec }}>
+                  دروس مكتملة
+                </div>
               </div>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: t.text }}>1</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: t.text }}>
+                  1
+                </div>
                 <div style={{ fontSize: 12, color: t.textSec }}>حالة غياب</div>
               </div>
             </div>
@@ -467,7 +537,7 @@ function PageDashboard({ t }) {
         <StatCard
           label="مؤكدة"
           value="9"
-          color="#0f766e"
+          color={t.accent}
           icon={<FaRegCalendarCheck size={24} />}
           t={t}
         />
@@ -488,14 +558,14 @@ function PageDashboard({ t }) {
         <StatCard
           label="دروس مكتملة"
           value="6"
-          color="#15803d"
+          color={t.accent}
           icon={<PiMedalFill size={24} />}
           t={t}
         />
         <StatCard
           label="لم يحضر"
           value="1"
-          color="#be185d"
+          color={t.accent}
           icon={<MdOutlineCancel size={24} />}
           t={t}
         />
@@ -537,10 +607,23 @@ function PageDashboard({ t }) {
             }}
           >
             <div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: t.text }}>الدروس القادمة اليوم</div>
-              <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>ترتيب زمني مع إشارة سريعة إلى الدفع والحالة</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: t.text }}>
+                الدروس القادمة اليوم
+              </div>
+              <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>
+                ترتيب زمني مع إشارة سريعة إلى الدفع والحالة
+              </div>
             </div>
-            <div style={{ padding: "7px 12px", borderRadius: 999, background: t.accentLight, color: t.accentText, fontSize: 12, fontWeight: 700 }}>
+            <div
+              style={{
+                padding: "7px 12px",
+                borderRadius: 999,
+                background: t.accentLight,
+                color: t.accentText,
+                fontSize: 12,
+                fontWeight: 700,
+              }}
+            >
               5 حصص مجدولة
             </div>
           </div>
@@ -616,60 +699,60 @@ function PageDashboard({ t }) {
               boxShadow: darkShadow(t),
             }}
           >
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: t.text,
+                marginBottom: 12,
+              }}
+            >
+              إثباتات دفع بانتظار التحقق
+            </div>
+            <Table
+              t={t}
+              headers={["الطالب", "المبلغ", "الطريقة", "الحالة"]}
+              rows={[
+                ["أحمد الناصر", "١٥٠٠ ل.س", "شام كاش", "تم الإثبات"],
+                ["نورا سالم", "١٥٠٠ ل.س", "شام كاش", "تم الإثبات"],
+                ["كريم عبدو", "١٥٠٠ ل.س", "شام كاش", "تم الإثبات"],
+              ]}
+            />
+          </div>
           <div
+            className="dashboard-panel"
             style={{
-              fontSize: 14,
-              fontWeight: 800,
-              color: t.text,
-              marginBottom: 12,
+              background: t.bgSurface,
+              borderRadius: 20,
+              border: `1px solid ${t.borderCard}`,
+              padding: 18,
+              boxShadow: darkShadow(t),
             }}
           >
-            إثباتات دفع بانتظار التحقق
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: t.text,
+                marginBottom: 12,
+              }}
+            >
+              المركبات والمدربون
+            </div>
+            <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 8 }}>
+              المركبات
+            </div>
+            <Table
+              t={t}
+              headers={["المركبة", "النوع", "الحالة"]}
+              rows={[
+                ["أ ب ج 101", "عادي", "متاحة"],
+                ["أ ب ج 102", "عادي", "في الصيانة"],
+                ["أ ب ج 201", "أوتوماتيك", "متاحة"],
+                ["أ ب ج 202", "أوتوماتيك", "متاحة"],
+              ]}
+            />
           </div>
-          <Table
-            t={t}
-            headers={["الطالب", "المبلغ", "الطريقة", "الحالة"]}
-            rows={[
-              ["أحمد الناصر", "١٥٠٠ ل.س", "شام كاش", "تم الإثبات"],
-              ["نورا سالم", "١٥٠٠ ل.س", "شام كاش", "تم الإثبات"],
-              ["كريم عبدو", "١٥٠٠ ل.س", "شام كاش", "تم الإثبات"],
-            ]}
-          />
-        </div>
-        <div
-          className="dashboard-panel"
-          style={{
-            background: t.bgSurface,
-            borderRadius: 20,
-            border: `1px solid ${t.borderCard}`,
-            padding: 18,
-            boxShadow: darkShadow(t),
-          }}
-        >
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 800,
-              color: t.text,
-              marginBottom: 12,
-            }}
-          >
-            المركبات والمدربون
-          </div>
-          <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 8 }}>
-            المركبات
-          </div>
-          <Table
-            t={t}
-            headers={["المركبة", "النوع", "الحالة"]}
-            rows={[
-              ["أ ب ج 101", "عادي", "متاحة"],
-              ["أ ب ج 102", "عادي", "في الصيانة"],
-              ["أ ب ج 201", "أوتوماتيك", "متاحة"],
-              ["أ ب ج 202", "أوتوماتيك", "متاحة"],
-            ]}
-          />
-        </div>
         </div>
       </div>
     </div>
@@ -903,28 +986,28 @@ function PageCertificate({ t }) {
           label="طلبات نشطة"
           value="٨"
           color={t.accent}
-          icon={<TbReport size={38} color="#10B981" />}
+          icon={<TbReport size={24} color="t.accent" />}
           t={t}
         />
         <StatCard
           label="قيد المتابعة"
           value="٥"
           color="#BA7517"
-          icon={<BsHourglassSplit size={38} color="#10B981" />}
+          icon={<BsHourglassSplit size={24} color="t.accent" />}
           t={t}
         />
         <StatCard
           label="فحص قادم"
           value="٢"
           color={t.accent}
-          icon={<RiCalendarScheduleLine size={38} color="#10B981" />}
+          icon={<RiCalendarScheduleLine size={24} color="t.accent" />}
           t={t}
         />
         <StatCard
           label="ناجح هذا الشهر"
           value="١١"
           color="#1D9E75"
-          icon={<PiCertificateDuotone size={38} color="#10B981" />}
+          icon={<PiCertificateDuotone size={24} color="t.accent" />}
           t={t}
         />
       </div>
@@ -1188,21 +1271,21 @@ function PagePayments({ t }) {
           label="إيرادات اليوم"
           value="٤٥٠٠ ل.س"
           color={t.accent}
-          icon={<TbReportMoney size={38} color="#10B981" />}
+          icon={<TbReportMoney size={24} color="t.accent" />}
           t={t}
         />
         <StatCard
           label="عربونات مؤكدة"
           value="٩"
-          color="#1D9E75"
-          icon={<FaRegCheckCircle size={38} color="#10B981" />}
+          color={t.accent}
+          icon={<FaRegCheckCircle size={24} color="t.accent" />}
           t={t}
         />
         <StatCard
           label="بانتظار التحقق"
           value="٣"
-          color="#BA7517"
-          icon={<BsHourglassSplit size={38} color="#10B981" />}
+          color={t.accent}
+          icon={<BsHourglassSplit size={24} color="t.accent" />}
           t={t}
         />
 
@@ -1210,7 +1293,7 @@ function PagePayments({ t }) {
           label="عربونات منتهية"
           value="١"
           color="#E24B4A"
-          icon={<LuX size={38} color="#10B981" />}
+          icon={<LuX size={24} color="t.accent" />}
           t={t}
         />
       </div>
@@ -1347,14 +1430,14 @@ function PageAccounting({ t }) {
         <StatCard
           label="صافي الشهر"
           value="٨٥,٠٠٠ ل.س"
-          color="#1D9E75"
+          color={t.accent}
           icon={<FaChartLine />}
           t={t}
         />
         <StatCard
           label="مستحقات مدربين"
           value="١٨,٠٠٠ ل.س"
-          color="#BA7517"
+          color={t.accent}
           icon={<FaUserTie />}
           t={t}
         />
@@ -1488,33 +1571,33 @@ function PageReports({ t }) {
           {
             title: "تقرير الحجوزات",
             desc: "إجمالي، مؤكد، مكتمل، ملغي، لم يحضر",
-            icon: <RiCalendarScheduleLine size={38} color="#10B981" />,
+            icon: <RiCalendarScheduleLine size={24} color="t.accent" />,
           },
           {
             title: "تقرير الطلاب",
             desc: "جدد، نشطون، قيد التدريب، أنهوا، طلبوا شهادة",
-            icon: <PiStudent size={38} color="#10B981" />,
+            icon: <PiStudent size={24} color="t.accent" />,
           },
           {
             title: "تقرير المدربين",
             desc: "جلسات مكتملة، ملغية، مستحقات",
-            icon: <FaUserTie size={38} color="#10B981" />,
+            icon: <FaUserTie size={24} color="t.accent" />,
           },
           {
             title: "تقرير المركبات",
             desc: "استخدام كل مركبة، صيانة، توقف",
-            icon: <FaCar size={38} color="#10B981" />,
+            icon: <FaCar size={24} color="t.accent" />,
           },
           {
             title: "تقرير الشهادة الحكومية",
             desc: "طلبات، فحوص، نجاح، رسوب، إعادة",
-            icon: <FaRegAddressCard size={38} color="#10B981" />,
+            icon: <FaRegAddressCard size={24} color="t.accent" />,
           },
-          { title: "تقرير خدمة النقل", desc: "رحلات، حضور، دفعات", icon:<TbBus size={38} color="#10B981" /> },
+          { title: "تقرير خدمة النقل", desc: "رحلات، حضور، دفعات", icon:<TbBus size={24} color="t.accent" /> },
           {
             title: "التقرير المالي المختصر",
             desc: "إيرادات، مصاريف، صافي، مستحقات",
-            icon: <TbReportMoney size={38} color="#10B981" />,
+            icon: <TbReportMoney size={24} color="t.accent" />,
           },
         ].map((r) => (
           <div

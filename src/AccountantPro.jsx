@@ -5,9 +5,63 @@ import { PiChartLineDown } from "react-icons/pi";
 
 
 
-const T={
-  light:{bgApp:"#F8F9F5",bgSurface:"#FFFFFF",bgElevated:"#EEF2E4",bgList:"#F5F7F0",bgSidebar:"linear-gradient(180deg,#778A3B 0%,#6B7C35 52%,#5F702D 100%)",bgSidebarActive:"#5F702D",text:"#1C1F18",textSec:"#4F5548",textMuted:"#747A70",textSidebar:"#F8F9F5",textSidebarActive:"#FFFFFF",border:"#DDE1D7",borderCard:"rgba(119,138,59,0.14)",accent:"#778A3B",accentLight:"#EEF2E4",accentText:"#5F702D",grad:"linear-gradient(135deg,#778A3B 0%,#5F702D 100%)",confirmed:{bg:"rgba(119,138,59,0.12)",text:"#5F702D",dot:"#778A3B"},pending:{bg:"rgba(201,138,40,0.14)",text:"#C98A28",dot:"#C98A28"},cancelled:{bg:"rgba(199,72,72,0.12)",text:"#C74848",dot:"#C74848"},completed:{bg:"rgba(63,107,58,0.14)",text:"#3F6B3A",dot:"#3F6B3A"},noshow:{bg:"rgba(199,72,72,0.12)",text:"#C74848",dot:"#C74848"},expired:{bg:"rgba(183,189,178,0.16)",text:"#747A70",dot:"#B7BDB2"},shadow:"0 12px 28px rgba(119,138,59,0.10)",shadowMd:"0 14px 32px rgba(119,138,59,0.12)",shadowLg:"0 20px 48px rgba(119,138,59,0.16)"},
-  dark:{bgApp:"#20241D",bgSurface:"#2B3127",bgElevated:"#353D31",bgList:"#2B3127",bgSidebar:"linear-gradient(180deg,#5F702D 0%,#4F5F29 52%,#414E24 100%)",bgSidebarActive:"#778A3B",text:"#F4F5EF",textSec:"#DDE1D7",textMuted:"#B7BDB2",textSidebar:"#F8F9F5",textSidebarActive:"#FFFFFF",border:"rgba(255,255,255,0.08)",borderCard:"rgba(221,225,215,0.12)",accent:"#778A3B",accentLight:"rgba(119,138,59,0.18)",accentText:"#EEF2E4",grad:"linear-gradient(135deg,#778A3B 0%,#5F702D 100%)",confirmed:{bg:"rgba(119,138,59,0.20)",text:"#EEF2E4",dot:"#EEF2E4"},pending:{bg:"rgba(201,138,40,0.20)",text:"#F0CB8C",dot:"#F0CB8C"},cancelled:{bg:"rgba(199,72,72,0.20)",text:"#F2B1B1",dot:"#F2B1B1"},completed:{bg:"rgba(63,107,58,0.24)",text:"#B8D4B5",dot:"#B8D4B5"},noshow:{bg:"rgba(199,72,72,0.18)",text:"#F2B1B1",dot:"#F2B1B1"},expired:{bg:"rgba(183,189,178,0.14)",text:"#D0D5CB",dot:"#D0D5CB"},shadow:"0 12px 28px rgba(28,31,24,0.30)",shadowMd:"0 14px 32px rgba(28,31,24,0.34)",shadowLg:"0 20px 48px rgba(28,31,24,0.40)"},
+const T = {
+  light: {
+    bgApp: "#F8F9F5",
+    bgSurface: "#FFFFFF",
+    bgElevated: "#EEF2E4",
+    bgList: "#F5F7F0",
+    bgSidebar: "linear-gradient(180deg,#778A3B 0%,#6B7C35 52%,#5F702D 100%)",
+    bgSidebarActive: "#5F702D",
+    text: "#1C1F18",
+    textSec: "#4F5548",
+    textMuted: "#747A70",
+    textSidebar: "#F8F9F5",
+    textSidebarActive: "#FFFFFF",
+    border: "#DDE1D7",
+    borderCard: "rgba(119,138,59,0.14)",
+    accent: "#715317",
+    accentLight: "#EEF2E4",
+    accentText: "#715317",
+    grad: "linear-gradient(135deg,#778A3B 0%,#5F702D 100%)",
+    confirmed: { bg: "rgba(119,138,59,0.12)", text: "#5F702D", dot: "#778A3B" },
+    pending: { bg: "rgba(201,138,40,0.14)", text: "#C98A28", dot: "#C98A28" },
+    cancelled: { bg: "rgba(199,72,72,0.12)", text: "#C74848", dot: "#C74848" },
+    completed: { bg: "rgba(63,107,58,0.14)", text: "#3F6B3A", dot: "#3F6B3A" },
+    noshow: { bg: "rgba(199,72,72,0.12)", text: "#C74848", dot: "#C74848" },
+    expired: { bg: "rgba(183,189,178,0.16)", text: "#747A70", dot: "#B7BDB2" },
+    shadow: "0 12px 28px rgba(119,138,59,0.10)",
+    shadowMd: "0 14px 32px rgba(119,138,59,0.12)",
+    shadowLg: "0 20px 48px rgba(119,138,59,0.16)",
+  },
+  dark: {
+    bgApp: "#20241D",
+    bgSurface: "#2B3127",
+    bgElevated: "#353D31",
+    bgList: "#2B3127",
+    bgSidebar: "linear-gradient(180deg,#5F702D 0%,#4F5F29 52%,#414E24 100%)",
+    bgSidebarActive: "#778A3B",
+    text: "#F4F5EF",
+    textSec: "#DDE1D7",
+    textMuted: "#B7BDB2",
+    textSidebar: "#F8F9F5",
+    textSidebarActive: "#FFFFFF",
+    border: "rgba(255,255,255,0.08)",
+    borderCard: "rgba(221,225,215,0.12)",
+    accent: "#778A3B",
+    accentLight: "rgba(119,138,59,0.18)",
+    accentText: "#EEF2E4",
+    grad: "linear-gradient(135deg,#778A3B 0%,#5F702D 100%)",
+    confirmed: { bg: "rgba(119,138,59,0.20)", text: "#EEF2E4", dot: "#EEF2E4" },
+    pending: { bg: "rgba(201,138,40,0.20)", text: "#F0CB8C", dot: "#F0CB8C" },
+    cancelled: { bg: "rgba(199,72,72,0.20)", text: "#F2B1B1", dot: "#F2B1B1" },
+    completed: { bg: "rgba(63,107,58,0.24)", text: "#B8D4B5", dot: "#B8D4B5" },
+    noshow: { bg: "rgba(199,72,72,0.18)", text: "#F2B1B1", dot: "#F2B1B1" },
+    expired: { bg: "rgba(183,189,178,0.14)", text: "#D0D5CB", dot: "#D0D5CB" },
+    shadow: "0 12px 28px rgba(28,31,24,0.30)",
+    shadowMd: "0 14px 32px rgba(28,31,24,0.34)",
+    shadowLg: "0 20px 48px rgba(28,31,24,0.40)",
+  },
 };
 
 function Card({children,t,p=16,mb=10,style={}}){return <div style={{background:t.bgSurface,borderRadius:12,border:`1px solid ${t.borderCard}`,padding:p,marginBottom:mb,boxShadow:t.shadow,...style}}>{children}</div>;}
@@ -18,56 +72,247 @@ function Stat({label,value,color,sub,t}){return <Card t={t} p={14} mb={0}><div s
 
 // ─── FINANCIAL DASHBOARD ───
 function PgDash({t}){
-  return(
-    <div style={{padding:"20px 24px",overflowY:"auto",flex:1}}>
-      <div style={{fontSize:14,fontWeight:700,color:t.textMuted,marginBottom:8}}> اليوم</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:12}}>
-        <Stat label="إيرادات اليوم" value="٤,٥٠٠ ل.س" color={t.accent} sub="٣ دروس مدفوعة" t={t}/>
-        <Stat label="مصاريف اليوم" value="١,٢٠٠ ل.س" color="#b91c1c" sub="وقود أ·ب·ج ١٠١" t={t}/>
-        <Stat label="صافي اليوم" value="٣,٣٠٠ ل.س" color="#166534" sub="تقديري" t={t}/>
-        <Stat label="إثباتات معلقة" value="٣" color="#6B21A8" sub="تحتاج تحققك" t={t}/>
+  return (
+    <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+      <div
+        style={{
+          fontSize: 14,
+          fontWeight: 700,
+          color: t.textMuted,
+          marginBottom: 8,
+        }}
+      >
+        {" "}
+        اليوم
       </div>
-      <div style={{fontSize:14,fontWeight:700,color:t.textMuted,marginBottom:8}}> يونيو ٢٠٢٦</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
-        <Stat label="الإيرادات" value="١٢٠,٠٠٠ ل.س" color={t.accent} t={t}/>
-        <Stat label="المصاريف" value="٣٥,٠٠٠ ل.س" color="#b91c1c" t={t}/>
-        <Stat label="صافي الربح" value="٨٥,٠٠٠ ل.س" color="#166534" t={t}/>
-        <Stat label="مستحقات مدربين" value="١٨,٠٠٠ ل.س" color="#92400E" t={t}/>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4,1fr)",
+          gap: 10,
+          marginBottom: 12,
+        }}
+      >
+        <Stat
+          label="إيرادات اليوم"
+          value="٤,٥٠٠ ل.س"
+          color={t.accent}
+          sub="٣ دروس مدفوعة"
+          t={t}
+        />
+        <Stat
+          label="مصاريف اليوم"
+          value="١,٢٠٠ ل.س"
+          color="#b91c1c"
+          sub="وقود أ·ب·ج ١٠١"
+          t={t}
+        />
+        <Stat
+          label="صافي اليوم"
+          value="٣,٣٠٠ ل.س"
+          color={t.accent}
+          sub="تقديري"
+          t={t}
+        />
+        <Stat
+          label="إثباتات معلقة"
+          value="٣"
+          color={t.accent}
+          sub="تحتاج تحققك"
+          t={t}
+        />
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14}}>
+      <div
+        style={{
+          fontSize: 14,
+          fontWeight: 700,
+          color: t.textMuted,
+          marginBottom: 8,
+        }}
+      >
+        {" "}
+        يونيو ٢٠٢٦
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4,1fr)",
+          gap: 10,
+          marginBottom: 20,
+        }}
+      >
+        <Stat label="الإيرادات" value="١٢٠,٠٠٠ ل.س" color={t.accent} t={t} />
+        <Stat label="المصاريف" value="٣٥,٠٠٠ ل.س" color="#b91c1c" t={t} />
+        <Stat label="صافي الربح" value="٨٥,٠٠٠ ل.س" color={t.accent} t={t} />
+        <Stat
+          label="مستحقات مدربين"
+          value="١٨,٠٠٠ ل.س"
+          color={t.accent}
+          t={t}
+        />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14 }}>
         <Card t={t} p={16}>
-          <div style={{fontSize:14,fontWeight:700,color:t.text,marginBottom:12}}>إثباتات الدفع المعلقة</div>
-          {[{name:"سارة خالد",amount:"١,٥٠٠ ل.س",booking:"#١٢٤٧",method:"شام كاش",time:"منذ ٥ دق"},{name:"علي حسن",amount:"١,٥٠٠ ل.س",booking:"#١٢٤٨",method:"شام كاش",time:"منذ ١٢ دق"},{name:"كريم عبدو",amount:"١,٥٠٠ ل.س",booking:"#١٢٣٩",method:"شام كاش",time:"منذ ٣٠ دق"}].map((p,i)=>(
-            <div key={i} style={{padding:"11px 0",borderBottom:`1px solid ${t.border}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                <span style={{fontSize:13,fontWeight:600,color:t.text}}>{p.name}</span>
-                <span style={{fontSize:13,fontWeight:700,color:t.accent}}>{p.amount}</span>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: t.text,
+              marginBottom: 12,
+            }}
+          >
+            إثباتات الدفع المعلقة
+          </div>
+          {[
+            {
+              name: "سارة خالد",
+              amount: "١,٥٠٠ ل.س",
+              booking: "#١٢٤٧",
+              method: "شام كاش",
+              time: "منذ ٥ دق",
+            },
+            {
+              name: "علي حسن",
+              amount: "١,٥٠٠ ل.س",
+              booking: "#١٢٤٨",
+              method: "شام كاش",
+              time: "منذ ١٢ دق",
+            },
+            {
+              name: "كريم عبدو",
+              amount: "١,٥٠٠ ل.س",
+              booking: "#١٢٣٩",
+              method: "شام كاش",
+              time: "منذ ٣٠ دق",
+            },
+          ].map((p, i) => (
+            <div
+              key={i}
+              style={{
+                padding: "11px 0",
+                borderBottom: `1px solid ${t.border}`,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: 3,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 600, color: t.text }}>
+                  {p.name}
+                </span>
+                <span
+                  style={{ fontSize: 13, fontWeight: 700, color: t.accent }}
+                >
+                  {p.amount}
+                </span>
               </div>
-              <div style={{fontSize:11,color:t.textMuted,marginBottom:7}}>{p.booking} • {p.method} • {p.time}</div>
-              <div style={{display:"flex",gap:6}}>
-                <Btn label="✓ قبول وتأكيد الحجز" t={t} sz="sm" style={{flex:1}}/>
-                <Btn label="✕ رفض" t={t} sz="sm" v="danger"/>
+              <div
+                style={{ fontSize: 11, color: t.textMuted, marginBottom: 7 }}
+              >
+                {p.booking} • {p.method} • {p.time}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <Btn
+                  label="✓ قبول وتأكيد الحجز"
+                  t={t}
+                  sz="sm"
+                  style={{ flex: 1 }}
+                />
+                <Btn label="✕ رفض" t={t} sz="sm" v="danger" />
               </div>
             </div>
           ))}
         </Card>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <Card t={t} p={14}>
-            <div style={{fontSize:12,fontWeight:700,color:t.text,marginBottom:8}}>ملخص مالي سريع</div>
-            {[["عربونات مستلمة اليوم","٣,٠٠٠ ل.س",t.accent],["مبالغ متبقية مستلمة","١,٥٠٠ ل.س",t.accent],["وقود مدفوع اليوم","١,٢٠٠ ل.س","#b91c1c"],["مستحقات مدربين اليوم","٤,٣٥٠ ل.س","#92400E"]].map(([k,v,c])=>(
-              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${t.border}`,fontSize:11}}>
-                <span style={{color:t.textMuted}}>{k}</span><span style={{fontWeight:700,color:c}}>{v}</span>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: t.text,
+                marginBottom: 8,
+              }}
+            >
+              ملخص مالي سريع
+            </div>
+            {[
+              ["عربونات مستلمة اليوم", "٣,٠٠٠ ل.س", t.accent],
+              ["مبالغ متبقية مستلمة", "١,٥٠٠ ل.س", t.accent],
+              ["وقود مدفوع اليوم", "١,٢٠٠ ل.س", "#b91c1c"],
+              ["مستحقات مدربين اليوم", "٤,٣٥٠ ل.س", "#92400E"],
+            ].map(([k, v, c]) => (
+              <div
+                key={k}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "5px 0",
+                  borderBottom: `1px solid ${t.border}`,
+                  fontSize: 11,
+                }}
+              >
+                <span style={{ color: t.textMuted }}>{k}</span>
+                <span style={{ fontWeight: 700, color: c }}>{v}</span>
               </div>
             ))}
           </Card>
           <Card t={t} p={14}>
-            <div style={{fontSize:12,fontWeight:700,color:t.text,marginBottom:8}}>ضريبة الشهر</div>
-            {[["الدخل الخاضع للضريبة","٨٥,٠٠٠ ل.س"],["نسبة الضريبة","٢٠٪"],["الضريبة المستحقة","١٧,٠٠٠ ل.س"]].map(([k,v])=>(
-              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${t.border}`,fontSize:11}}>
-                <span style={{color:t.textMuted}}>{k}</span><span style={{fontWeight:600,color:k==="الضريبة المستحقة"?"#b91c1c":t.text}}>{v}</span>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: t.text,
+                marginBottom: 8,
+              }}
+            >
+              ضريبة الشهر
+            </div>
+            {[
+              ["الدخل الخاضع للضريبة", "٨٥,٠٠٠ ل.س"],
+              ["نسبة الضريبة", "٢٠٪"],
+              ["الضريبة المستحقة", "١٧,٠٠٠ ل.س"],
+            ].map(([k, v]) => (
+              <div
+                key={k}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "5px 0",
+                  borderBottom: `1px solid ${t.border}`,
+                  fontSize: 11,
+                }}
+              >
+                <span style={{ color: t.textMuted }}>{k}</span>
+                <span
+                  style={{
+                    fontWeight: 600,
+                    color: k === "الضريبة المستحقة" ? "#b91c1c" : t.text,
+                  }}
+                >
+                  {v}
+                </span>
               </div>
             ))}
-            <button style={{marginTop:8,width:"100%",padding:"7px",borderRadius:7,background:t.pending.bg,color:t.pending.text,border:"none",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>تسجيل دفع الضريبة</button>
+            <button
+              style={{
+                marginTop: 8,
+                width: "100%",
+                padding: "7px",
+                borderRadius: 7,
+                background: t.pending.bg,
+                color: t.pending.text,
+                border: "none",
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              تسجيل دفع الضريبة
+            </button>
           </Card>
         </div>
       </div>
@@ -306,52 +551,288 @@ function PgRevenues({t}){
   const expenses=[["مستحقات مدرب","خالد عمر","—","١,٥٠٠ ل.س","نقدي","٤ يونيو"],["وقود","أ·ب·ج ١٠١","—","١,٢٠٠ ل.س","نقدي","٤ يونيو"],["صيانة","أ·ب·ج ١٠٢","—","٣,٠٠٠ ل.س","تحويل","٢ يونيو"],["ضريبة شهرية","—","—","١٧,٠٠٠ ل.س","تحويل","١ مايو"]];
   const data=tab==="revenues"?revenues:expenses;
   const headers=tab==="revenues"?["النوع","الطالب","الحجز","المبلغ","الطريقة","التاريخ"]:["النوع","المرتبط بـ","الحجز","المبلغ","الطريقة","التاريخ"];
-  return(
-    <div style={{padding:"20px 24px",overflowY:"auto",flex:1}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{display:"flex",gap:3,background:t.bgElevated,borderRadius:9,padding:3}}>
-          {[["revenues","الإيرادات"],["expenses","المصاريف"]].map(([id,label])=>(
-            <button key={id} onClick={()=>setTab(id)} style={{padding:"7px 18px",borderRadius:7,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:tab===id?700:400,background:tab===id?t.bgSurface:"transparent",color:tab===id?t.text:t.textMuted,boxShadow:tab===id?t.shadow:"none"}}>{label}</button>
+  return (
+    <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 14,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            gap: 3,
+            background: t.bgElevated,
+            borderRadius: 9,
+            padding: 3,
+          }}
+        >
+          {[
+            ["revenues", "الإيرادات"],
+            ["expenses", "المصاريف"],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              style={{
+                padding: "7px 18px",
+                borderRadius: 7,
+                border: "none",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: tab === id ? 700 : 400,
+                background: tab === id ? t.bgSurface : "transparent",
+                color: tab === id ? t.text : t.textMuted,
+                boxShadow: tab === id ? t.shadow : "none",
+              }}
+            >
+              {label}
+            </button>
           ))}
         </div>
-        <Btn label={tab==="revenues"?"+ إيراد جديد":"+ مصروف جديد"} onClick={()=>setAddModal(tab)} t={t}/>
+        <Btn
+          label={tab === "revenues" ? "+ إيراد جديد" : "+ مصروف جديد"}
+          onClick={() => setAddModal(tab)}
+          t={t}
+        />
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-        {(tab==="revenues"
-          ?[{l:"إجمالي الشهر",v:"١٢٠,٠٠٠",c:t.accent},{l:"عربونات دروس",v:"٤٥,٠٠٠",c:"#1D4ED8"},{l:"مبالغ دروس",v:"٤٨,٠٠٠",c:"#166534"},{l:"خدمات أخرى",v:"٢٧,٠٠٠",c:"#6B21A8"}]
-          :[{l:"إجمالي الشهر",v:"٣٥,٠٠٠",c:"#b91c1c"},{l:"مستحقات مدربين",v:"١٨,٠٠٠",c:"#92400E"},{l:"وقود وصيانة",v:"١٠,٠٠٠",c:"#0369a1"},{l:"ضريبة رسمية",v:"١٧,٠٠٠",c:"#b91c1c"}]
-        ).map((s,i)=>(
-          <div key={i} style={{background:t.bgSurface,borderRadius:10,border:`1px solid ${t.borderCard}`,padding:14}}>
-            <div style={{fontSize:18,fontWeight:700,color:s.c}}>{s.v} ل.س</div>
-            <div style={{fontSize:11,color:t.textMuted,marginTop:3}}>{s.l}</div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4,1fr)",
+          gap: 10,
+          marginBottom: 14,
+        }}
+      >
+        {(tab === "revenues"
+          ? [
+              { l: "إجمالي الشهر", v: "١٢٠,٠٠٠", c: t.accent },
+              { l: "عربونات دروس", v: "٤٥,٠٠٠", c: t.accent },
+              { l: "مبالغ دروس", v: "٤٨,٠٠٠", c: t.accent },
+              { l: "خدمات أخرى", v: "٢٧,٠٠٠", c: t.accent },
+            ]
+          : [
+              { l: "إجمالي الشهر", v: "٣٥,٠٠٠", c: "#b91c1c" },
+              { l: "مستحقات مدربين", v: "١٨,٠٠٠", c: t.accent },
+              { l: "وقود وصيانة", v: "١٠,٠٠٠", c: t.accent },
+              { l: "ضريبة رسمية", v: "١٧,٠٠٠", c: "#b91c1c" },
+            ]
+        ).map((s, i) => (
+          <div
+            key={i}
+            style={{
+              background: t.bgSurface,
+              borderRadius: 10,
+              border: `1px solid ${t.borderCard}`,
+              padding: 14,
+            }}
+          >
+            <div style={{ fontSize: 18, fontWeight: 700, color: s.c }}>
+              {s.v} ل.س
+            </div>
+            <div style={{ fontSize: 11, color: t.textMuted, marginTop: 3 }}>
+              {s.l}
+            </div>
           </div>
         ))}
       </div>
-      <div style={{borderRadius:10,border:`1px solid ${t.border}`,overflow:"hidden"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-          <thead><tr style={{background:t.bgElevated}}>{headers.map((h,i)=><th key={i} style={{padding:"9px 12px",textAlign:"right",color:t.textMuted,fontWeight:600,fontSize:11,borderBottom:`1px solid ${t.border}`}}>{h}</th>)}</tr></thead>
+      <div
+        style={{
+          borderRadius: 10,
+          border: `1px solid ${t.border}`,
+          overflow: "hidden",
+        }}
+      >
+        <table
+          style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}
+        >
+          <thead>
+            <tr style={{ background: t.bgElevated }}>
+              {headers.map((h, i) => (
+                <th
+                  key={i}
+                  style={{
+                    padding: "9px 12px",
+                    textAlign: "right",
+                    color: t.textMuted,
+                    fontWeight: 600,
+                    fontSize: 11,
+                    borderBottom: `1px solid ${t.border}`,
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
           <tbody>
-            {data.map((row,ri)=>(
-              <tr key={ri} style={{background:ri%2===0?t.bgSurface:t.bgList,borderBottom:`1px solid ${t.border}`}}>
-                {row.map((c,ci)=><td key={ci} style={{padding:"9px 12px",fontWeight:ci===3?700:400,color:ci===3?(tab==="revenues"?t.accent:"#b91c1c"):t.text}}>{c}</td>)}
+            {data.map((row, ri) => (
+              <tr
+                key={ri}
+                style={{
+                  background: ri % 2 === 0 ? t.bgSurface : t.bgList,
+                  borderBottom: `1px solid ${t.border}`,
+                }}
+              >
+                {row.map((c, ci) => (
+                  <td
+                    key={ci}
+                    style={{
+                      padding: "9px 12px",
+                      fontWeight: ci === 3 ? 700 : 400,
+                      color:
+                        ci === 3
+                          ? tab === "revenues"
+                            ? t.accent
+                            : "#b91c1c"
+                          : t.text,
+                    }}
+                  >
+                    {c}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      {addModal&&<Modal title={addModal==="revenues"?"إضافة إيراد":"إضافة مصروف"} onClose={()=>setAddModal(null)} t={t} width={440}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-          {(addModal==="revenues"
-            ?[{l:"نوع الإيراد",type:"select",opts:["عربون درس","باقي مبلغ درس","رسوم شهادة","رسوم نقل","رسوم إعادة فحص","أخرى"]},{l:"المبلغ (ل.س)",type:"number"},{l:"الطالب",type:"select",opts:["—","أحمد محمد","سارة خالد"]},{l:"طريقة الدفع",type:"select",opts:["نقدي","شام كاش","أخرى"]}]
-            :[{l:"نوع المصروف",type:"select",opts:["مستحقات مدرب","وقود","صيانة","إيجار","كهرباء","ضريبة رسمية","أخرى"]},{l:"المبلغ (ل.س)",type:"number"},{l:"مرتبط بـ",type:"select",opts:["—","خالد عمر","أ·ب·ج ١٠١","عام"]},{l:"طريقة الدفع",type:"select",opts:["نقدي","تحويل","شام كاش"]}]
-          ).map((f,i)=>(
-            <div key={i}><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>{f.l}</label>
-            {f.type==="select"?<select style={{width:"100%",padding:"8px 9px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:12,fontFamily:"inherit"}}>{f.opts.map(o=><option key={o}>{o}</option>)}</select>
-            :<input type="number" placeholder="0" style={{width:"100%",padding:"8px 9px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>}</div>
-          ))}
-        </div>
-        <div style={{display:"flex",gap:8}}><Btn label="✓ حفظ" onClick={()=>setAddModal(null)} t={t} style={{flex:1}}/><Btn label="إلغاء" onClick={()=>setAddModal(null)} t={t} v="ghost"/></div>
-      </Modal>}
+      {addModal && (
+        <Modal
+          title={addModal === "revenues" ? "إضافة إيراد" : "إضافة مصروف"}
+          onClose={() => setAddModal(null)}
+          t={t}
+          width={440}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 10,
+              marginBottom: 10,
+            }}
+          >
+            {(addModal === "revenues"
+              ? [
+                  {
+                    l: "نوع الإيراد",
+                    type: "select",
+                    opts: [
+                      "عربون درس",
+                      "باقي مبلغ درس",
+                      "رسوم شهادة",
+                      "رسوم نقل",
+                      "رسوم إعادة فحص",
+                      "أخرى",
+                    ],
+                  },
+                  { l: "المبلغ (ل.س)", type: "number" },
+                  {
+                    l: "الطالب",
+                    type: "select",
+                    opts: ["—", "أحمد محمد", "سارة خالد"],
+                  },
+                  {
+                    l: "طريقة الدفع",
+                    type: "select",
+                    opts: ["نقدي", "شام كاش", "أخرى"],
+                  },
+                ]
+              : [
+                  {
+                    l: "نوع المصروف",
+                    type: "select",
+                    opts: [
+                      "مستحقات مدرب",
+                      "وقود",
+                      "صيانة",
+                      "إيجار",
+                      "كهرباء",
+                      "ضريبة رسمية",
+                      "أخرى",
+                    ],
+                  },
+                  { l: "المبلغ (ل.س)", type: "number" },
+                  {
+                    l: "مرتبط بـ",
+                    type: "select",
+                    opts: ["—", "خالد عمر", "أ·ب·ج ١٠١", "عام"],
+                  },
+                  {
+                    l: "طريقة الدفع",
+                    type: "select",
+                    opts: ["نقدي", "تحويل", "شام كاش"],
+                  },
+                ]
+            ).map((f, i) => (
+              <div key={i}>
+                <label
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: t.textSec,
+                    display: "block",
+                    marginBottom: 4,
+                  }}
+                >
+                  {f.l}
+                </label>
+                {f.type === "select" ? (
+                  <select
+                    style={{
+                      width: "100%",
+                      padding: "8px 9px",
+                      borderRadius: 8,
+                      border: `1px solid ${t.border}`,
+                      background: t.bgElevated,
+                      color: t.text,
+                      fontSize: 12,
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {f.opts.map((o) => (
+                      <option key={o}>{o}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="number"
+                    placeholder="0"
+                    style={{
+                      width: "100%",
+                      padding: "8px 9px",
+                      borderRadius: 8,
+                      border: `1px solid ${t.border}`,
+                      background: t.bgElevated,
+                      color: t.text,
+                      fontSize: 12,
+                      fontFamily: "inherit",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn
+              label="✓ حفظ"
+              onClick={() => setAddModal(null)}
+              t={t}
+              style={{ flex: 1 }}
+            />
+            <Btn
+              label="إلغاء"
+              onClick={() => setAddModal(null)}
+              t={t}
+              v="ghost"
+            />
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

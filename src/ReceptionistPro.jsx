@@ -10,27 +10,51 @@ import { FaCar } from "react-icons/fa";
 
 const T = {
   light: {
-    bgApp:"#F8F9F5",bgSurface:"#FFFFFF",bgElevated:"#EEF2E4",bgList:"#F5F7F0",
-    bgSidebar:"linear-gradient(180deg,#778A3B 0%,#6B7C35 52%,#5F702D 100%)",bgSidebarActive:"#5F702D",
-    text:"#1C1F18",textSec:"#4F5548",textMuted:"#747A70",
-    textSidebar:"#F8F9F5",textSidebarActive:"#FFFFFF",
-    border:"#DDE1D7",borderCard:"rgba(119,138,59,0.14)",
-    accent:"#778A3B",accentLight:"#EEF2E4",accentText:"#5F702D",
-    grad:"linear-gradient(135deg,#778A3B 0%,#5F702D 100%)",
-    confirmed:{bg:"rgba(119,138,59,0.12)",text:"#5F702D",dot:"#778A3B"},
-    pending:{bg:"rgba(201,138,40,0.14)",text:"#C98A28",dot:"#C98A28"},
-    cancelled:{bg:"rgba(199,72,72,0.12)",text:"#C74848",dot:"#C74848"},
-    completed:{bg:"rgba(63,107,58,0.14)",text:"#3F6B3A",dot:"#3F6B3A"},
-    noshow:{bg:"rgba(199,72,72,0.12)",text:"#C74848",dot:"#C74848"},
-    inprogress:{bg:"rgba(119,138,59,0.12)",text:"#778A3B",dot:"#778A3B"},
-    expired:{bg:"rgba(183,189,178,0.16)",text:"#747A70",dot:"#B7BDB2"},
-    accepted:{bg:"rgba(63,107,58,0.14)",text:"#3F6B3A",dot:"#3F6B3A"},
-    qualified:{bg:"rgba(119,138,59,0.12)",text:"#5F702D",dot:"#778A3B"},
-    passed:{bg:"rgba(63,107,58,0.14)",text:"#3F6B3A",dot:"#3F6B3A"},
-    failed:{bg:"rgba(199,72,72,0.12)",text:"#C74848",dot:"#C74848"},
-    applied:{bg:"rgba(201,138,40,0.14)",text:"#C98A28",dot:"#C98A28"},
-    shadow:"0 12px 28px rgba(119,138,59,0.10)",shadowMd:"0 14px 32px rgba(119,138,59,0.12)",shadowLg:"0 20px 48px rgba(119,138,59,0.16)",
+    bgApp: "#f4f5f0",
+    bgSurface: "#ffffff",
+    bgElevated: "#e8e9e4",
+    bgList: "#fcfcf9",
+    
+    // ألوان السايدبار المعتمدة
+    bgSidebar: "#f4f5f0",
+    bgSidebarActive: "#778a3b",
+    
+    text: "#2c3024",
+    textSec: "#5a6150",
+    textMuted: "#796c2c",
+    textSidebar: "#715317",
+    textSidebarActive: "#FFFFFF",
+    
+    border: "#d9ddd0",
+    borderCard: "rgba(113,83,23,0.2)",
+    
+    accent: "#715317",
+    accentLight: "#e9e3d6",
+    accentText: "#715317",
+    grad: "linear-gradient(135deg, #796c2c 0%, #715317 100%)",
+    
+    // الحالات التشغيلية المحدثة
+    confirmed: { bg: "rgba(113,83,23,0.1)", text: "#715317", dot: "#715317" },
+    pending: { bg: "rgba(201,124,40,0.14)", text: "#c98a28", dot: "#c98a28" },
+    cancelled: { bg: "rgba(199,72,72,0.12)", text: "#c74848", dot: "#c74848" },
+    completed: { bg: "rgba(80,90,50,0.14)", text: "#505a32", dot: "#505a32" },
+    noshow: { bg: "rgba(199,72,72,0.12)", text: "#c74848", dot: "#c74848" },
+    inprogress: { bg: "rgba(113,83,23,0.12)", text: "#715317", dot: "#715317" },
+    expired: { bg: "rgba(160,165,155,0.16)", text: "#747a70", dot: "#747a70" },
+    
+    // حالات الاستقبال الخاصة
+    accepted: { bg: "rgba(80,90,50,0.14)", text: "#505a32", dot: "#505a32" },
+    qualified: { bg: "rgba(113,83,23,0.1)", text: "#715317", dot: "#715317" },
+    passed: { bg: "rgba(80,90,50,0.14)", text: "#505a32", dot: "#505a32" },
+    failed: { bg: "rgba(199,72,72,0.12)", text: "#c74848", dot: "#c74848" },
+    applied: { bg: "rgba(201,124,40,0.14)", text: "#c98a28", dot: "#c98a28" },
+    
+    // الظلال (Shadows) متناسقة مع اللون الأساسي
+    shadow: "0 12px 28px rgba(113,83,23,0.08)",
+    shadowMd: "0 14px 32px rgba(113,83,23,0.10)",
+    shadowLg: "0 20px 48px rgba(113,83,23,0.14)",
   },
+
   dark:{
     bgApp:"#20241D",bgSurface:"#2B3127",bgElevated:"#353D31",bgList:"#2B3127",
     bgSidebar:"linear-gradient(180deg,#5F702D 0%,#4F5F29 52%,#414E24 100%)",bgSidebarActive:"#778A3B",
