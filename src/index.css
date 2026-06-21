@@ -1,139 +1,174 @@
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=Tajawal:wght@400;500;700;800&display=swap");
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #1F6FE0; /* comfortable mid-blue (day) */
-  --accent-bg: rgba(31, 111, 224, 0.08);
-  --accent-border: rgba(31, 111, 224, 0.4);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
+  --font-body: "Tajawal", "Segoe UI", Tahoma, sans-serif;
+  --font-heading: "Cairo", "Tajawal", "Segoe UI", Tahoma, sans-serif;
+  --primary: #778a3b;
+  --primary-hover: #5f702d;
+  --primary-soft: #eef2e4;
+  --bg: #f8f9f5;
+  --surface: #ffffff;
+  --text-primary: #1c1f18;
+  --text-secondary: #4f5548;
+  --text-muted: #747a70;
+  --border: #dde1d7;
+  --disabled: #b7bdb2;
+  --success: #3f6b3a;
+  --warning: #c98a28;
+  --danger: #c74848;
+  color-scheme: light;
+  font-family: var(--font-body);
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--text-primary);
   background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #3A7BD5; /* muted blue for dark mode */
-    --accent-bg: rgba(58, 123, 213, 0.12);
-    --accent-border: rgba(58, 123, 213, 0.45);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
 }
 
 body {
   margin: 0;
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+  font-family: var(--font-body);
+  font-size: 17px;
+  background:
+    radial-gradient(circle at top right, rgba(119, 138, 59, 0.14), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(95, 112, 45, 0.08), transparent 30%),
+    linear-gradient(180deg, #fbfcf8 0%, #f3f5ee 100%);
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+#root {
+  display: flex;
+  flex: 1;
+  min-height: 100svh;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
-}
-
-/* Custom scrollbar: light track, subtle rounded thumb, smooth scrolling */
 * {
+  box-sizing: border-box;
   scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 23, 42, 0.16) transparent;
 }
 
-/* WebKit browsers */
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
+
 *::-webkit-scrollbar-track {
-  background: transparent; /* make track transparent */
-  border-radius: 10px;
-}
-*::-webkit-scrollbar-thumb {
-  background: rgba(16, 24, 40, 0.12); /* subtle thumb */
-  border-radius: 10px;
-  border: 2px solid transparent; /* padded look but transparent */
+  background: transparent;
 }
 
-/* Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(16,24,40,0.12) #f7f7f8;
+*::-webkit-scrollbar-thumb {
+  background: rgba(119, 138, 59, 0.24);
+  border-radius: 999px;
+  border: 2px solid transparent;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  width: 100%;
+  min-height: 100svh;
+  font-family: var(--font-body);
+}
+
+.app-main {
+  min-width: 0;
+}
+
+.app-page {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px;
+}
+
+.dashboard-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dashboard-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
+  gap: 16px;
+}
+
+.dashboard-hero-card,
+.dashboard-panel,
+.dashboard-mini-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dashboard-panels-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.dashboard-side-stack {
+  display: grid;
+  gap: 16px;
+}
+
+@media (max-width: 1180px) {
+  .dashboard-hero,
+  .dashboard-panels-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .app-page {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-page {
+    padding: 14px;
+  }
+
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* utility: hide native scrollbar but keep scrolling functional */
@@ -141,12 +176,14 @@ code {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
-/* hide scrollbars on the element and any nested scrollable children */
+
 .hide-scrollbar::-webkit-scrollbar,
 .hide-scrollbar *::-webkit-scrollbar {
   display: none; /* Chrome, Safari */
 }
+
 .hide-scrollbar * {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+

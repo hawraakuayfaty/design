@@ -5,69 +5,314 @@ import { PiChartLineDown } from "react-icons/pi";
 
 
 
-const T={
-  light:{bgApp:"#F0F7F0",bgSurface:"#FFFFFF",bgElevated:"#F8FCF8",bgList:"#FAFCFA",bgSidebar:"#0B3D27",bgSidebarActive:"#1A6B42",text:"#0D2E1A",textSec:"#3A6B4F",textMuted:"#7A9E87",textSidebar:"#A8D5BA",textSidebarActive:"#FFFFFF",border:"rgba(13,46,26,0.08)",borderCard:"rgba(13,46,26,0.06)",accent:"#059669",accentLight:"#ECFDF5",accentText:"#065F46",grad:"linear-gradient(135deg,#059669 0%,#34D399 100%)",confirmed:{bg:"#EFF6FF",text:"#1D4ED8",dot:"#3B82F6"},pending:{bg:"#FFFBEB",text:"#92400E",dot:"#F59E0B"},cancelled:{bg:"#FFF1F2",text:"#9F1239",dot:"#F43F5E"},completed:{bg:"#F0FDF4",text:"#166534",dot:"#22C55E"},noshow:{bg:"#FDF4FF",text:"#6B21A8",dot:"#A855F7"},expired:{bg:"#F8FAFC",text:"#475569",dot:"#94A3B8"},shadow:"0 1px 3px rgba(0,0,0,0.06)",shadowMd:"0 4px 12px rgba(0,0,0,0.08)",shadowLg:"0 8px 24px rgba(0,0,0,0.10)"},
-  dark:{bgApp:"#0D1117",bgSurface:"#161B22",bgElevated:"#21262D",bgList:"#161B22",bgSidebar:"#010409",bgSidebarActive:"#1A4731",text:"#E6EDF3",textSec:"#8B949E",textMuted:"#6E7681",textSidebar:"#7EE8A2",textSidebarActive:"#FFFFFF",border:"rgba(255,255,255,0.08)",borderCard:"rgba(255,255,255,0.05)",accent:"#3FB950",accentLight:"#0D2818",accentText:"#7EE8A2",grad:"linear-gradient(135deg,#238636 0%,#3FB950 100%)",confirmed:{bg:"#0D1B2E",text:"#58A6FF",dot:"#58A6FF"},pending:{bg:"#1F1700",text:"#E3B341",dot:"#E3B341"},cancelled:{bg:"#1F0D12",text:"#FF7B72",dot:"#FF7B72"},completed:{bg:"#0D2818",text:"#56D364",dot:"#56D364"},noshow:{bg:"#1A0D2E",text:"#D2A8FF",dot:"#D2A8FF"},expired:{bg:"#21262D",text:"#8B949E",dot:"#8B949E"},shadow:"0 1px 3px rgba(0,0,0,0.3)",shadowMd:"0 4px 12px rgba(0,0,0,0.4)",shadowLg:"0 8px 24px rgba(0,0,0,0.5)"},
+const T = {
+  light: {
+    bgApp: "#F8F9F5",
+    bgSurface: "#FFFFFF",
+    bgElevated: "#EEF2E4",
+    bgList: "#F5F7F0",
+    bgSidebar: "linear-gradient(180deg,#778A3B 0%,#6B7C35 52%,#5F702D 100%)",
+    bgSidebarActive: "#5F702D",
+    text: "#1C1F18",
+    textSec: "#4F5548",
+    textMuted: "#747A70",
+    textSidebar: "#F8F9F5",
+    textSidebarActive: "#FFFFFF",
+    border: "#DDE1D7",
+    borderCard: "rgba(119,138,59,0.14)",
+    accent: "#715317",
+    accentLight: "#EEF2E4",
+    accentText: "#715317",
+    grad: "linear-gradient(135deg,#778A3B 0%,#5F702D 100%)",
+    confirmed: { bg: "rgba(119,138,59,0.12)", text: "#5F702D", dot: "#778A3B" },
+    pending: { bg: "rgba(201,138,40,0.14)", text: "#C98A28", dot: "#C98A28" },
+    cancelled: { bg: "rgba(199,72,72,0.12)", text: "#C74848", dot: "#C74848" },
+    completed: { bg: "rgba(63,107,58,0.14)", text: "#3F6B3A", dot: "#3F6B3A" },
+    noshow: { bg: "rgba(199,72,72,0.12)", text: "#C74848", dot: "#C74848" },
+    expired: { bg: "rgba(183,189,178,0.16)", text: "#747A70", dot: "#B7BDB2" },
+    shadow: "0 12px 28px rgba(119,138,59,0.10)",
+    shadowMd: "0 14px 32px rgba(119,138,59,0.12)",
+    shadowLg: "0 20px 48px rgba(119,138,59,0.16)",
+  },
+  dark: {
+    bgApp: "#20241D",
+    bgSurface: "#2B3127",
+    bgElevated: "#353D31",
+    bgList: "#2B3127",
+    bgSidebar: "linear-gradient(180deg,#5F702D 0%,#4F5F29 52%,#414E24 100%)",
+    bgSidebarActive: "#778A3B",
+    text: "#F4F5EF",
+    textSec: "#DDE1D7",
+    textMuted: "#B7BDB2",
+    textSidebar: "#F8F9F5",
+    textSidebarActive: "#FFFFFF",
+    border: "rgba(255,255,255,0.08)",
+    borderCard: "rgba(221,225,215,0.12)",
+    accent: "#778A3B",
+    accentLight: "rgba(119,138,59,0.18)",
+    accentText: "#EEF2E4",
+    grad: "linear-gradient(135deg,#778A3B 0%,#5F702D 100%)",
+    confirmed: { bg: "rgba(119,138,59,0.20)", text: "#EEF2E4", dot: "#EEF2E4" },
+    pending: { bg: "rgba(201,138,40,0.20)", text: "#F0CB8C", dot: "#F0CB8C" },
+    cancelled: { bg: "rgba(199,72,72,0.20)", text: "#F2B1B1", dot: "#F2B1B1" },
+    completed: { bg: "rgba(63,107,58,0.24)", text: "#B8D4B5", dot: "#B8D4B5" },
+    noshow: { bg: "rgba(199,72,72,0.18)", text: "#F2B1B1", dot: "#F2B1B1" },
+    expired: { bg: "rgba(183,189,178,0.14)", text: "#D0D5CB", dot: "#D0D5CB" },
+    shadow: "0 12px 28px rgba(28,31,24,0.30)",
+    shadowMd: "0 14px 32px rgba(28,31,24,0.34)",
+    shadowLg: "0 20px 48px rgba(28,31,24,0.40)",
+  },
 };
 
 function Card({children,t,p=16,mb=10,style={}}){return <div style={{background:t.bgSurface,borderRadius:12,border:`1px solid ${t.borderCard}`,padding:p,marginBottom:mb,boxShadow:t.shadow,...style}}>{children}</div>;}
-function Modal({title,onClose,children,t,width=500}){return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(2px)"}} onClick={onClose}><div onClick={e=>e.stopPropagation()} style={{background:t.bgSurface,borderRadius:16,width,maxWidth:"calc(100vw - 40px)",maxHeight:"85vh",overflow:"hidden",boxShadow:t.shadowLg,display:"flex",flexDirection:"column"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px",borderBottom:`1px solid ${t.border}`}}><div style={{fontSize:15,fontWeight:700,color:t.text}}>{title}</div><button onClick={onClose} style={{width:28,height:28,borderRadius:7,border:"none",background:t.bgElevated,cursor:"pointer",fontSize:15,color:t.textMuted}}>✕</button></div><div style={{padding:"18px 20px",overflowY:"auto"}}>{children}</div></div></div>;}
-function Btn({label,onClick,v="primary",sz="md",t,style={}}){const base={padding:sz==="sm"?"4px 11px":"9px 18px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:sz==="sm"?11:13,fontWeight:600,transition:"all 0.15s"};const vs={primary:{background:t.grad,color:"#fff"},secondary:{background:t.accentLight,color:t.accentText,border:`1px solid ${t.accent}30`},danger:{background:"#FFF1F2",color:"#9F1239",border:"1px solid #FECDD3"},ghost:{background:"transparent",color:t.textSec,border:`1px solid ${t.border}`}};return <button onClick={onClick} style={{...base,...vs[v],...style}}>{label}</button>;}
-function InfoRow({k,v,t,bold=false}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${t.border}`,fontSize:12}}><span style={{color:t.textMuted}}>{k}</span><span style={{fontWeight:bold?700:600,color:bold?t.accent:t.text}}>{v}</span></div>;}
-function Stat({label,value,color,sub,t}){return <Card t={t} p={14} mb={0}><div style={{fontSize:22,fontWeight:700,color,lineHeight:1,marginBottom:3}}>{value}</div><div style={{fontSize:11,fontWeight:600,color:t.text}}>{label}</div>{sub&&<div style={{fontSize:10,color:t.textMuted,marginTop:2}}>{sub}</div>}</Card>;}
+function Modal({title,onClose,children,t,width=500}){return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(2px)"}} onClick={onClose}><div onClick={e=>e.stopPropagation()} style={{background:t.bgSurface,borderRadius:16,width,maxWidth:"calc(100vw - 40px)",maxHeight:"85vh",overflow:"hidden",boxShadow:t.shadowLg,display:"flex",flexDirection:"column"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px",borderBottom:`1px solid ${t.border}`}}><div style={{fontSize:16,fontWeight:700,color:t.text}}>{title}</div><button onClick={onClose} style={{width:28,height:28,borderRadius:7,border:"none",background:t.bgElevated,cursor:"pointer",fontSize:16,color:t.textMuted}}>✕</button></div><div style={{padding:"18px 20px",overflowY:"auto"}}>{children}</div></div></div>;}
+function Btn({label,onClick,v="primary",sz="md",t,style={}}){const base={padding:sz==="sm"?"4px 11px":"9px 18px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:sz==="sm"?12:14,fontWeight:600,transition:"all 0.15s"};const vs={primary:{background:t.grad,color:"#fff"},secondary:{background:t.accentLight,color:t.accentText,border:`1px solid ${t.accent}30`},danger:{background:"#FFF1F2",color:"#9F1239",border:"1px solid #FECDD3"},ghost:{background:"transparent",color:t.textSec,border:`1px solid ${t.border}`}};return <button onClick={onClick} style={{...base,...vs[v],...style}}>{label}</button>;}
+function InfoRow({k,v,t,bold=false}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${t.border}`,fontSize:13}}><span style={{color:t.textMuted}}>{k}</span><span style={{fontWeight:bold?700:600,color:bold?t.accent:t.text}}>{v}</span></div>;}
+function Stat({label,value,color,sub,t}){return <Card t={t} p={14} mb={0}><div style={{fontSize:24,fontWeight:700,color,lineHeight:1,marginBottom:3}}>{value}</div><div style={{fontSize:12,fontWeight:600,color:t.text}}>{label}</div>{sub&&<div style={{fontSize:11,color:t.textMuted,marginTop:2}}>{sub}</div>}</Card>;}
 
 // ─── FINANCIAL DASHBOARD ───
 function PgDash({t}){
-  return(
-    <div style={{padding:"20px 24px",overflowY:"auto",flex:1}}>
-      <div style={{fontSize:14,fontWeight:700,color:t.textMuted,marginBottom:8}}> اليوم</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:12}}>
-        <Stat label="إيرادات اليوم" value="٤,٥٠٠ ل.س" color={t.accent} sub="٣ دروس مدفوعة" t={t}/>
-        <Stat label="مصاريف اليوم" value="١,٢٠٠ ل.س" color="#b91c1c" sub="وقود أ·ب·ج ١٠١" t={t}/>
-        <Stat label="صافي اليوم" value="٣,٣٠٠ ل.س" color="#166534" sub="تقديري" t={t}/>
-        <Stat label="إثباتات معلقة" value="٣" color="#6B21A8" sub="تحتاج تحققك" t={t}/>
+  return (
+    <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+      <div
+        style={{
+          fontSize: 14,
+          fontWeight: 700,
+          color: t.textMuted,
+          marginBottom: 8,
+        }}
+      >
+        {" "}
+        اليوم
       </div>
-      <div style={{fontSize:14,fontWeight:700,color:t.textMuted,marginBottom:8}}> يونيو ٢٠٢٦</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
-        <Stat label="الإيرادات" value="١٢٠,٠٠٠ ل.س" color={t.accent} t={t}/>
-        <Stat label="المصاريف" value="٣٥,٠٠٠ ل.س" color="#b91c1c" t={t}/>
-        <Stat label="صافي الربح" value="٨٥,٠٠٠ ل.س" color="#166534" t={t}/>
-        <Stat label="مستحقات مدربين" value="١٨,٠٠٠ ل.س" color="#92400E" t={t}/>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4,1fr)",
+          gap: 10,
+          marginBottom: 12,
+        }}
+      >
+        <Stat
+          label="إيرادات اليوم"
+          value="٤,٥٠٠ ل.س"
+          color={t.accent}
+          sub="٣ دروس مدفوعة"
+          t={t}
+        />
+        <Stat
+          label="مصاريف اليوم"
+          value="١,٢٠٠ ل.س"
+          color="#b91c1c"
+          sub="وقود أ·ب·ج ١٠١"
+          t={t}
+        />
+        <Stat
+          label="صافي اليوم"
+          value="٣,٣٠٠ ل.س"
+          color={t.accent}
+          sub="تقديري"
+          t={t}
+        />
+        <Stat
+          label="إثباتات معلقة"
+          value="٣"
+          color={t.accent}
+          sub="تحتاج تحققك"
+          t={t}
+        />
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14}}>
+      <div
+        style={{
+          fontSize: 14,
+          fontWeight: 700,
+          color: t.textMuted,
+          marginBottom: 8,
+        }}
+      >
+        {" "}
+        يونيو ٢٠٢٦
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4,1fr)",
+          gap: 10,
+          marginBottom: 20,
+        }}
+      >
+        <Stat label="الإيرادات" value="١٢٠,٠٠٠ ل.س" color={t.accent} t={t} />
+        <Stat label="المصاريف" value="٣٥,٠٠٠ ل.س" color="#b91c1c" t={t} />
+        <Stat label="صافي الربح" value="٨٥,٠٠٠ ل.س" color={t.accent} t={t} />
+        <Stat
+          label="مستحقات مدربين"
+          value="١٨,٠٠٠ ل.س"
+          color={t.accent}
+          t={t}
+        />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14 }}>
         <Card t={t} p={16}>
-          <div style={{fontSize:14,fontWeight:700,color:t.text,marginBottom:12}}>إثباتات الدفع المعلقة</div>
-          {[{name:"سارة خالد",amount:"١,٥٠٠ ل.س",booking:"#١٢٤٧",method:"شام كاش",time:"منذ ٥ دق"},{name:"علي حسن",amount:"١,٥٠٠ ل.س",booking:"#١٢٤٨",method:"شام كاش",time:"منذ ١٢ دق"},{name:"كريم عبدو",amount:"١,٥٠٠ ل.س",booking:"#١٢٣٩",method:"شام كاش",time:"منذ ٣٠ دق"}].map((p,i)=>(
-            <div key={i} style={{padding:"11px 0",borderBottom:`1px solid ${t.border}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                <span style={{fontSize:13,fontWeight:600,color:t.text}}>{p.name}</span>
-                <span style={{fontSize:13,fontWeight:700,color:t.accent}}>{p.amount}</span>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: t.text,
+              marginBottom: 12,
+            }}
+          >
+            إثباتات الدفع المعلقة
+          </div>
+          {[
+            {
+              name: "سارة خالد",
+              amount: "١,٥٠٠ ل.س",
+              booking: "#١٢٤٧",
+              method: "شام كاش",
+              time: "منذ ٥ دق",
+            },
+            {
+              name: "علي حسن",
+              amount: "١,٥٠٠ ل.س",
+              booking: "#١٢٤٨",
+              method: "شام كاش",
+              time: "منذ ١٢ دق",
+            },
+            {
+              name: "كريم عبدو",
+              amount: "١,٥٠٠ ل.س",
+              booking: "#١٢٣٩",
+              method: "شام كاش",
+              time: "منذ ٣٠ دق",
+            },
+          ].map((p, i) => (
+            <div
+              key={i}
+              style={{
+                padding: "11px 0",
+                borderBottom: `1px solid ${t.border}`,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: 3,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 600, color: t.text }}>
+                  {p.name}
+                </span>
+                <span
+                  style={{ fontSize: 13, fontWeight: 700, color: t.accent }}
+                >
+                  {p.amount}
+                </span>
               </div>
-              <div style={{fontSize:11,color:t.textMuted,marginBottom:7}}>{p.booking} • {p.method} • {p.time}</div>
-              <div style={{display:"flex",gap:6}}>
-                <Btn label="✓ قبول وتأكيد الحجز" t={t} sz="sm" style={{flex:1}}/>
-                <Btn label="✕ رفض" t={t} sz="sm" v="danger"/>
+              <div
+                style={{ fontSize: 11, color: t.textMuted, marginBottom: 7 }}
+              >
+                {p.booking} • {p.method} • {p.time}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <Btn
+                  label="✓ قبول وتأكيد الحجز"
+                  t={t}
+                  sz="sm"
+                  style={{ flex: 1 }}
+                />
+                <Btn label="✕ رفض" t={t} sz="sm" v="danger" />
               </div>
             </div>
           ))}
         </Card>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <Card t={t} p={14}>
-            <div style={{fontSize:12,fontWeight:700,color:t.text,marginBottom:8}}>ملخص مالي سريع</div>
-            {[["عربونات مستلمة اليوم","٣,٠٠٠ ل.س",t.accent],["مبالغ متبقية مستلمة","١,٥٠٠ ل.س",t.accent],["وقود مدفوع اليوم","١,٢٠٠ ل.س","#b91c1c"],["مستحقات مدربين اليوم","٤,٣٥٠ ل.س","#92400E"]].map(([k,v,c])=>(
-              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${t.border}`,fontSize:11}}>
-                <span style={{color:t.textMuted}}>{k}</span><span style={{fontWeight:700,color:c}}>{v}</span>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: t.text,
+                marginBottom: 8,
+              }}
+            >
+              ملخص مالي سريع
+            </div>
+            {[
+              ["عربونات مستلمة اليوم", "٣,٠٠٠ ل.س", t.accent],
+              ["مبالغ متبقية مستلمة", "١,٥٠٠ ل.س", t.accent],
+              ["وقود مدفوع اليوم", "١,٢٠٠ ل.س", "#b91c1c"],
+              ["مستحقات مدربين اليوم", "٤,٣٥٠ ل.س", "#92400E"],
+            ].map(([k, v, c]) => (
+              <div
+                key={k}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "5px 0",
+                  borderBottom: `1px solid ${t.border}`,
+                  fontSize: 11,
+                }}
+              >
+                <span style={{ color: t.textMuted }}>{k}</span>
+                <span style={{ fontWeight: 700, color: c }}>{v}</span>
               </div>
             ))}
           </Card>
           <Card t={t} p={14}>
-            <div style={{fontSize:12,fontWeight:700,color:t.text,marginBottom:8}}>ضريبة الشهر</div>
-            {[["الدخل الخاضع للضريبة","٨٥,٠٠٠ ل.س"],["نسبة الضريبة","٢٠٪"],["الضريبة المستحقة","١٧,٠٠٠ ل.س"]].map(([k,v])=>(
-              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${t.border}`,fontSize:11}}>
-                <span style={{color:t.textMuted}}>{k}</span><span style={{fontWeight:600,color:k==="الضريبة المستحقة"?"#b91c1c":t.text}}>{v}</span>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: t.text,
+                marginBottom: 8,
+              }}
+            >
+              ضريبة الشهر
+            </div>
+            {[
+              ["الدخل الخاضع للضريبة", "٨٥,٠٠٠ ل.س"],
+              ["نسبة الضريبة", "٢٠٪"],
+              ["الضريبة المستحقة", "١٧,٠٠٠ ل.س"],
+            ].map(([k, v]) => (
+              <div
+                key={k}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "5px 0",
+                  borderBottom: `1px solid ${t.border}`,
+                  fontSize: 11,
+                }}
+              >
+                <span style={{ color: t.textMuted }}>{k}</span>
+                <span
+                  style={{
+                    fontWeight: 600,
+                    color: k === "الضريبة المستحقة" ? "#b91c1c" : t.text,
+                  }}
+                >
+                  {v}
+                </span>
               </div>
             ))}
-            <button style={{marginTop:8,width:"100%",padding:"7px",borderRadius:7,background:t.pending.bg,color:t.pending.text,border:"none",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>تسجيل دفع الضريبة</button>
+            <button
+              style={{
+                marginTop: 8,
+                width: "100%",
+                padding: "7px",
+                borderRadius: 7,
+                background: t.pending.bg,
+                color: t.pending.text,
+                border: "none",
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              تسجيل دفع الضريبة
+            </button>
           </Card>
         </div>
       </div>
@@ -306,52 +551,288 @@ function PgRevenues({t}){
   const expenses=[["مستحقات مدرب","خالد عمر","—","١,٥٠٠ ل.س","نقدي","٤ يونيو"],["وقود","أ·ب·ج ١٠١","—","١,٢٠٠ ل.س","نقدي","٤ يونيو"],["صيانة","أ·ب·ج ١٠٢","—","٣,٠٠٠ ل.س","تحويل","٢ يونيو"],["ضريبة شهرية","—","—","١٧,٠٠٠ ل.س","تحويل","١ مايو"]];
   const data=tab==="revenues"?revenues:expenses;
   const headers=tab==="revenues"?["النوع","الطالب","الحجز","المبلغ","الطريقة","التاريخ"]:["النوع","المرتبط بـ","الحجز","المبلغ","الطريقة","التاريخ"];
-  return(
-    <div style={{padding:"20px 24px",overflowY:"auto",flex:1}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{display:"flex",gap:3,background:t.bgElevated,borderRadius:9,padding:3}}>
-          {[["revenues","الإيرادات"],["expenses","المصاريف"]].map(([id,label])=>(
-            <button key={id} onClick={()=>setTab(id)} style={{padding:"7px 18px",borderRadius:7,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:tab===id?700:400,background:tab===id?t.bgSurface:"transparent",color:tab===id?t.text:t.textMuted,boxShadow:tab===id?t.shadow:"none"}}>{label}</button>
+  return (
+    <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 14,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            gap: 3,
+            background: t.bgElevated,
+            borderRadius: 9,
+            padding: 3,
+          }}
+        >
+          {[
+            ["revenues", "الإيرادات"],
+            ["expenses", "المصاريف"],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              style={{
+                padding: "7px 18px",
+                borderRadius: 7,
+                border: "none",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: tab === id ? 700 : 400,
+                background: tab === id ? t.bgSurface : "transparent",
+                color: tab === id ? t.text : t.textMuted,
+                boxShadow: tab === id ? t.shadow : "none",
+              }}
+            >
+              {label}
+            </button>
           ))}
         </div>
-        <Btn label={tab==="revenues"?"+ إيراد جديد":"+ مصروف جديد"} onClick={()=>setAddModal(tab)} t={t}/>
+        <Btn
+          label={tab === "revenues" ? "+ إيراد جديد" : "+ مصروف جديد"}
+          onClick={() => setAddModal(tab)}
+          t={t}
+        />
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-        {(tab==="revenues"
-          ?[{l:"إجمالي الشهر",v:"١٢٠,٠٠٠",c:t.accent},{l:"عربونات دروس",v:"٤٥,٠٠٠",c:"#1D4ED8"},{l:"مبالغ دروس",v:"٤٨,٠٠٠",c:"#166534"},{l:"خدمات أخرى",v:"٢٧,٠٠٠",c:"#6B21A8"}]
-          :[{l:"إجمالي الشهر",v:"٣٥,٠٠٠",c:"#b91c1c"},{l:"مستحقات مدربين",v:"١٨,٠٠٠",c:"#92400E"},{l:"وقود وصيانة",v:"١٠,٠٠٠",c:"#0369a1"},{l:"ضريبة رسمية",v:"١٧,٠٠٠",c:"#b91c1c"}]
-        ).map((s,i)=>(
-          <div key={i} style={{background:t.bgSurface,borderRadius:10,border:`1px solid ${t.borderCard}`,padding:14}}>
-            <div style={{fontSize:18,fontWeight:700,color:s.c}}>{s.v} ل.س</div>
-            <div style={{fontSize:11,color:t.textMuted,marginTop:3}}>{s.l}</div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4,1fr)",
+          gap: 10,
+          marginBottom: 14,
+        }}
+      >
+        {(tab === "revenues"
+          ? [
+              { l: "إجمالي الشهر", v: "١٢٠,٠٠٠", c: t.accent },
+              { l: "عربونات دروس", v: "٤٥,٠٠٠", c: t.accent },
+              { l: "مبالغ دروس", v: "٤٨,٠٠٠", c: t.accent },
+              { l: "خدمات أخرى", v: "٢٧,٠٠٠", c: t.accent },
+            ]
+          : [
+              { l: "إجمالي الشهر", v: "٣٥,٠٠٠", c: "#b91c1c" },
+              { l: "مستحقات مدربين", v: "١٨,٠٠٠", c: t.accent },
+              { l: "وقود وصيانة", v: "١٠,٠٠٠", c: t.accent },
+              { l: "ضريبة رسمية", v: "١٧,٠٠٠", c: "#b91c1c" },
+            ]
+        ).map((s, i) => (
+          <div
+            key={i}
+            style={{
+              background: t.bgSurface,
+              borderRadius: 10,
+              border: `1px solid ${t.borderCard}`,
+              padding: 14,
+            }}
+          >
+            <div style={{ fontSize: 18, fontWeight: 700, color: s.c }}>
+              {s.v} ل.س
+            </div>
+            <div style={{ fontSize: 11, color: t.textMuted, marginTop: 3 }}>
+              {s.l}
+            </div>
           </div>
         ))}
       </div>
-      <div style={{borderRadius:10,border:`1px solid ${t.border}`,overflow:"hidden"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-          <thead><tr style={{background:t.bgElevated}}>{headers.map((h,i)=><th key={i} style={{padding:"9px 12px",textAlign:"right",color:t.textMuted,fontWeight:600,fontSize:11,borderBottom:`1px solid ${t.border}`}}>{h}</th>)}</tr></thead>
+      <div
+        style={{
+          borderRadius: 10,
+          border: `1px solid ${t.border}`,
+          overflow: "hidden",
+        }}
+      >
+        <table
+          style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}
+        >
+          <thead>
+            <tr style={{ background: t.bgElevated }}>
+              {headers.map((h, i) => (
+                <th
+                  key={i}
+                  style={{
+                    padding: "9px 12px",
+                    textAlign: "right",
+                    color: t.textMuted,
+                    fontWeight: 600,
+                    fontSize: 11,
+                    borderBottom: `1px solid ${t.border}`,
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
           <tbody>
-            {data.map((row,ri)=>(
-              <tr key={ri} style={{background:ri%2===0?t.bgSurface:t.bgList,borderBottom:`1px solid ${t.border}`}}>
-                {row.map((c,ci)=><td key={ci} style={{padding:"9px 12px",fontWeight:ci===3?700:400,color:ci===3?(tab==="revenues"?t.accent:"#b91c1c"):t.text}}>{c}</td>)}
+            {data.map((row, ri) => (
+              <tr
+                key={ri}
+                style={{
+                  background: ri % 2 === 0 ? t.bgSurface : t.bgList,
+                  borderBottom: `1px solid ${t.border}`,
+                }}
+              >
+                {row.map((c, ci) => (
+                  <td
+                    key={ci}
+                    style={{
+                      padding: "9px 12px",
+                      fontWeight: ci === 3 ? 700 : 400,
+                      color:
+                        ci === 3
+                          ? tab === "revenues"
+                            ? t.accent
+                            : "#b91c1c"
+                          : t.text,
+                    }}
+                  >
+                    {c}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      {addModal&&<Modal title={addModal==="revenues"?"إضافة إيراد":"إضافة مصروف"} onClose={()=>setAddModal(null)} t={t} width={440}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-          {(addModal==="revenues"
-            ?[{l:"نوع الإيراد",type:"select",opts:["عربون درس","باقي مبلغ درس","رسوم شهادة","رسوم نقل","رسوم إعادة فحص","أخرى"]},{l:"المبلغ (ل.س)",type:"number"},{l:"الطالب",type:"select",opts:["—","أحمد محمد","سارة خالد"]},{l:"طريقة الدفع",type:"select",opts:["نقدي","شام كاش","أخرى"]}]
-            :[{l:"نوع المصروف",type:"select",opts:["مستحقات مدرب","وقود","صيانة","إيجار","كهرباء","ضريبة رسمية","أخرى"]},{l:"المبلغ (ل.س)",type:"number"},{l:"مرتبط بـ",type:"select",opts:["—","خالد عمر","أ·ب·ج ١٠١","عام"]},{l:"طريقة الدفع",type:"select",opts:["نقدي","تحويل","شام كاش"]}]
-          ).map((f,i)=>(
-            <div key={i}><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>{f.l}</label>
-            {f.type==="select"?<select style={{width:"100%",padding:"8px 9px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:12,fontFamily:"inherit"}}>{f.opts.map(o=><option key={o}>{o}</option>)}</select>
-            :<input type="number" placeholder="0" style={{width:"100%",padding:"8px 9px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>}</div>
-          ))}
-        </div>
-        <div style={{display:"flex",gap:8}}><Btn label="✓ حفظ" onClick={()=>setAddModal(null)} t={t} style={{flex:1}}/><Btn label="إلغاء" onClick={()=>setAddModal(null)} t={t} v="ghost"/></div>
-      </Modal>}
+      {addModal && (
+        <Modal
+          title={addModal === "revenues" ? "إضافة إيراد" : "إضافة مصروف"}
+          onClose={() => setAddModal(null)}
+          t={t}
+          width={440}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 10,
+              marginBottom: 10,
+            }}
+          >
+            {(addModal === "revenues"
+              ? [
+                  {
+                    l: "نوع الإيراد",
+                    type: "select",
+                    opts: [
+                      "عربون درس",
+                      "باقي مبلغ درس",
+                      "رسوم شهادة",
+                      "رسوم نقل",
+                      "رسوم إعادة فحص",
+                      "أخرى",
+                    ],
+                  },
+                  { l: "المبلغ (ل.س)", type: "number" },
+                  {
+                    l: "الطالب",
+                    type: "select",
+                    opts: ["—", "أحمد محمد", "سارة خالد"],
+                  },
+                  {
+                    l: "طريقة الدفع",
+                    type: "select",
+                    opts: ["نقدي", "شام كاش", "أخرى"],
+                  },
+                ]
+              : [
+                  {
+                    l: "نوع المصروف",
+                    type: "select",
+                    opts: [
+                      "مستحقات مدرب",
+                      "وقود",
+                      "صيانة",
+                      "إيجار",
+                      "كهرباء",
+                      "ضريبة رسمية",
+                      "أخرى",
+                    ],
+                  },
+                  { l: "المبلغ (ل.س)", type: "number" },
+                  {
+                    l: "مرتبط بـ",
+                    type: "select",
+                    opts: ["—", "خالد عمر", "أ·ب·ج ١٠١", "عام"],
+                  },
+                  {
+                    l: "طريقة الدفع",
+                    type: "select",
+                    opts: ["نقدي", "تحويل", "شام كاش"],
+                  },
+                ]
+            ).map((f, i) => (
+              <div key={i}>
+                <label
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: t.textSec,
+                    display: "block",
+                    marginBottom: 4,
+                  }}
+                >
+                  {f.l}
+                </label>
+                {f.type === "select" ? (
+                  <select
+                    style={{
+                      width: "100%",
+                      padding: "8px 9px",
+                      borderRadius: 8,
+                      border: `1px solid ${t.border}`,
+                      background: t.bgElevated,
+                      color: t.text,
+                      fontSize: 12,
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {f.opts.map((o) => (
+                      <option key={o}>{o}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="number"
+                    placeholder="0"
+                    style={{
+                      width: "100%",
+                      padding: "8px 9px",
+                      borderRadius: 8,
+                      border: `1px solid ${t.border}`,
+                      background: t.bgElevated,
+                      color: t.text,
+                      fontSize: 12,
+                      fontFamily: "inherit",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn
+              label="✓ حفظ"
+              onClick={() => setAddModal(null)}
+              t={t}
+              style={{ flex: 1 }}
+            />
+            <Btn
+              label="إلغاء"
+              onClick={() => setAddModal(null)}
+              t={t}
+              v="ghost"
+            />
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -429,22 +910,26 @@ export default function AccountantPro({embedded=false,page:forcedPage,darkMode})
   const [page,setPage]=useState(forcedPage||"dash");
   const [collapsed,setCollapsed]=useState(false);
   const t=T[dark?"dark":"light"];
+  const sidebarWidth = collapsed ? 84 : 308;
   const pages={dash:<PgDash t={t}/>,payments:<PgPayments t={t}/>,invoices:<PgInvoices t={t}/>,payroll:<PgPayroll t={t}/>,revenues:<PgRevenues t={t}/>,pricing:<PgPricing t={t}/>};
   // sync when parent forces a page (embedded mode)
   if(forcedPage && forcedPage!==page){ setPage(forcedPage); }
   return(
-    <div dir="rtl" style={{display:"flex",height: embedded?"100%":"100vh",overflow:"hidden",background:t.bgApp,fontFamily:"'Segoe UI',Tahoma,Arial,sans-serif"}}>
+    <div dir="rtl" style={{display:"flex",height: embedded?"100%":"100vh",overflow:"hidden",background:t.bgApp,fontFamily:"var(--font-body)"}}>
       {!embedded && (
-        <div className="hide-scrollbar" style={{width:collapsed?58:215,background:t.bgSidebar,display:"flex",flexDirection:"column",transition:"width 0.2s",flexShrink:0,boxShadow:"2px 0 12px rgba(0,0,0,0.18)"}}>
-          <div style={{padding:"16px 12px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",gap:9}}>
-            <div style={{width:34,height:34,borderRadius:9,background:"linear-gradient(135deg,#059669 0%,#34D399 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>💰</div>
-            {!collapsed&&<div><div style={{fontSize:12,fontWeight:700,color:"#fff",lineHeight:1.2}}>المحاسب</div><div style={{fontSize:10,color:t.textSidebar,marginTop:1}}>مدرسة القيادة</div></div>}
+        <div style={{width:sidebarWidth,flexShrink:0}} />
+      )}
+      {!embedded && (
+        <div style={{width:sidebarWidth,height:"100svh",minHeight:"100svh",position:"fixed",top:0,right:0,zIndex:40,background:t.bgSidebar,display:"flex",flexDirection:"column",transition:"width 0.2s",overflow:"hidden",boxShadow:"2px 0 18px rgba(0,0,0,0.18)"}}>
+          <div style={{padding:"18px 14px 16px",borderBottom:`1px solid ${t.borderCard}`,display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:40,height:40,borderRadius:11,background:"linear-gradient(135deg,#F5D547 0%,#DB3069 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,flexShrink:0,color:"#17325C"}}>💰</div>
+            {!collapsed&&<div><div style={{fontSize:15,fontWeight:800,color:"#fff",lineHeight:1.2}}>المحاسب</div><div style={{fontSize:12,color:t.textSidebar,marginTop:2}}>مدرسة القيادة</div></div>}
           </div>
-          <div style={{flex:1,padding:"7px",overflowY:"auto"}}>
-            {NAV.map(item=>{const active=page===item.id;return <button key={item.id} onClick={()=>setPage(item.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:collapsed?"9px 0":"8px 11px",borderRadius:8,border:"none",cursor:"pointer",background:active?t.bgSidebarActive:"transparent",color:active?t.textSidebarActive:t.textSidebar,fontSize:12,fontWeight:active?600:400,marginBottom:2,justifyContent:collapsed?"center":"flex-start",fontFamily:"inherit",transition:"all 0.15s"}}><span style={{fontSize:15,flexShrink:0}}>{item.icon}</span>{!collapsed&&<span>{item.label}</span>}</button>;})}
+          <div style={{flex:1,minHeight:0,padding:"10px",overflowY:"auto"}}>
+            {NAV.map(item=>{const active=page===item.id;return <button key={item.id} onClick={()=>setPage(item.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:11,padding:collapsed?"14px 10px":"13px 15px",borderRadius:14,border:"none",cursor:"pointer",background:active?t.bgSidebarActive:"transparent",color:active?t.textSidebarActive:t.textSidebar,fontSize:15,fontWeight:active?700:500,marginBottom:6,justifyContent:collapsed?"center":"flex-start",fontFamily:"inherit",transition:"all 0.15s",boxShadow:active?"0 10px 24px rgba(0,0,0,0.16)":"none"}}><span style={{fontSize:18,flexShrink:0}}>{item.icon}</span>{!collapsed&&<span>{item.label}</span>}</button>;})}
           </div>
-          <div style={{padding:"9px 7px",borderTop:"1px solid rgba(255,255,255,0.08)"}}>
-            <button onClick={()=>setCollapsed(!collapsed)} style={{width:"100%",padding:"7px",borderRadius:7,background:"rgba(255,255,255,0.05)",border:"none",color:t.textSidebar,cursor:"pointer",fontSize:13}}>{collapsed?"»":"«"}</button>
+          <div style={{padding:"12px 10px",borderTop:`1px solid ${t.borderCard}`}}>
+            <button onClick={()=>setCollapsed(!collapsed)} style={{width:"100%",padding:"11px",borderRadius:12,background:t.accentLight,border:"none",color:t.accentText,cursor:"pointer",fontSize:18,fontWeight:700}}>{collapsed?"»":"«"}</button>
           </div>
         </div>
       )}

@@ -291,7 +291,7 @@ export default function App() {
   );
 
   return (
-    <div dir="rtl" style={{ fontFamily: "'Segoe UI', Tahoma, Arial, sans-serif", background: "#F1F5F9", minHeight: "100vh", padding: "16px", boxSizing: "border-box" }}>
+    <div dir="rtl" style={{ fontFamily: "var(--font-body)", background: "#F1F5F9", minHeight: "100vh", padding: "16px", boxSizing: "border-box" }}>
 
       {/* ── Header ── */}
       <div style={{ background: "linear-gradient(135deg, #0F172A 0%, #1E3A5F 100%)", borderRadius: "14px", padding: "22px 26px", marginBottom: "14px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>

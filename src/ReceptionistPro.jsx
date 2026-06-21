@@ -10,49 +10,89 @@ import { FaCar } from "react-icons/fa";
 
 const T = {
   light: {
-    bgApp:"#F0F7F0",bgSurface:"#FFFFFF",bgElevated:"#F8FCF8",bgList:"#FAFCFA",
-    bgSidebar:"#0B3D27",bgSidebarActive:"#1A6B42",
-    text:"#0D2E1A",textSec:"#3A6B4F",textMuted:"#7A9E87",
-    textSidebar:"#A8D5BA",textSidebarActive:"#FFFFFF",
-    border:"rgba(13,46,26,0.08)",borderCard:"rgba(13,46,26,0.06)",
-    accent:"#059669",accentLight:"#ECFDF5",accentText:"#065F46",
-    grad:"linear-gradient(135deg,#059669 0%,#34D399 100%)",
-    confirmed:{bg:"#EFF6FF",text:"#1D4ED8",dot:"#3B82F6"},
-    pending:{bg:"#FFFBEB",text:"#92400E",dot:"#F59E0B"},
-    cancelled:{bg:"#FFF1F2",text:"#9F1239",dot:"#F43F5E"},
-    completed:{bg:"#F0FDF4",text:"#166534",dot:"#22C55E"},
-    noshow:{bg:"#FDF4FF",text:"#6B21A8",dot:"#A855F7"},
-    inprogress:{bg:"#FFF7ED",text:"#C2410C",dot:"#F97316"},
-    expired:{bg:"#F8FAFC",text:"#475569",dot:"#94A3B8"},
-    accepted:{bg:"#F0FDF4",text:"#166534",dot:"#22C55E"},
-    qualified:{bg:"#EFF6FF",text:"#1D4ED8",dot:"#3B82F6"},
-    passed:{bg:"#F0FDF4",text:"#166534",dot:"#22C55E"},
-    failed:{bg:"#FFF1F2",text:"#9F1239",dot:"#F43F5E"},
-    applied:{bg:"#FFFBEB",text:"#92400E",dot:"#F59E0B"},
-    shadow:"0 1px 3px rgba(0,0,0,0.06)",shadowMd:"0 4px 12px rgba(0,0,0,0.08)",shadowLg:"0 8px 24px rgba(0,0,0,0.10)",
+    bgApp: "#f4f5f0",
+    bgSurface: "#ffffff",
+    bgElevated: "#e8e9e4",
+    bgList: "#fcfcf9",
+
+    // ألوان السايدبار المعتمدة
+    bgSidebar: "#f4f5f0",
+    bgSidebarActive: "#778a3b",
+
+    text: "#2c3024",
+    textSec: "#5a6150",
+    textMuted: "#796c2c",
+    textSidebar: "#715317",
+    textSidebarActive: "#FFFFFF",
+
+    border: "#d9ddd0",
+    borderCard: "rgba(113,83,23,0.2)",
+
+    accent: "#715317",
+    accentLight: "#e9e3d6",
+    accentText: "#715317",
+    grad: "linear-gradient(135deg, #796c2c 0%, #715317 100%)",
+
+    // الحالات التشغيلية المحدثة
+    confirmed: { bg: "rgba(113,83,23,0.1)", text: "#715317", dot: "#715317" },
+    pending: { bg: "rgba(201,124,40,0.14)", text: "#c98a28", dot: "#c98a28" },
+    cancelled: { bg: "rgba(199,72,72,0.12)", text: "#c74848", dot: "#c74848" },
+    completed: { bg: "rgba(80,90,50,0.14)", text: "#505a32", dot: "#505a32" },
+    noshow: { bg: "rgba(199,72,72,0.12)", text: "#c74848", dot: "#c74848" },
+    inprogress: { bg: "rgba(113,83,23,0.12)", text: "#715317", dot: "#715317" },
+    expired: { bg: "rgba(160,165,155,0.16)", text: "#747a70", dot: "#747a70" },
+
+    // حالات الاستقبال الخاصة
+    accepted: { bg: "rgba(80,90,50,0.14)", text: "#505a32", dot: "#505a32" },
+    qualified: { bg: "rgba(113,83,23,0.1)", text: "#715317", dot: "#715317" },
+    passed: { bg: "rgba(80,90,50,0.14)", text: "#505a32", dot: "#505a32" },
+    failed: { bg: "rgba(199,72,72,0.12)", text: "#c74848", dot: "#c74848" },
+    applied: { bg: "rgba(201,124,40,0.14)", text: "#c98a28", dot: "#c98a28" },
+
+    // الظلال (Shadows) متناسقة مع اللون الأساسي
+    shadow: "0 12px 28px rgba(113,83,23,0.08)",
+    shadowMd: "0 14px 32px rgba(113,83,23,0.10)",
+    shadowLg: "0 20px 48px rgba(113,83,23,0.14)",
   },
-  dark:{
-    bgApp:"#0D1117",bgSurface:"#161B22",bgElevated:"#21262D",bgList:"#161B22",
-    bgSidebar:"#010409",bgSidebarActive:"#1A4731",
-    text:"#E6EDF3",textSec:"#8B949E",textMuted:"#6E7681",
-    textSidebar:"#7EE8A2",textSidebarActive:"#FFFFFF",
-    border:"rgba(255,255,255,0.08)",borderCard:"rgba(255,255,255,0.05)",
-    accent:"#3FB950",accentLight:"#0D2818",accentText:"#7EE8A2",
-    grad:"linear-gradient(135deg,#238636 0%,#3FB950 100%)",
-    confirmed:{bg:"#0D1B2E",text:"#58A6FF",dot:"#58A6FF"},
-    pending:{bg:"#1F1700",text:"#E3B341",dot:"#E3B341"},
-    cancelled:{bg:"#1F0D12",text:"#FF7B72",dot:"#FF7B72"},
-    completed:{bg:"#0D2818",text:"#56D364",dot:"#56D364"},
-    noshow:{bg:"#1A0D2E",text:"#D2A8FF",dot:"#D2A8FF"},
-    inprogress:{bg:"#1F1200",text:"#FFA657",dot:"#FFA657"},
-    expired:{bg:"#21262D",text:"#8B949E",dot:"#8B949E"},
-    accepted:{bg:"#0D2818",text:"#56D364",dot:"#56D364"},
-    qualified:{bg:"#0D1B2E",text:"#58A6FF",dot:"#58A6FF"},
-    passed:{bg:"#0D2818",text:"#56D364",dot:"#56D364"},
-    failed:{bg:"#1F0D12",text:"#FF7B72",dot:"#FF7B72"},
-    applied:{bg:"#1F1700",text:"#E3B341",dot:"#E3B341"},
-    shadow:"0 1px 3px rgba(0,0,0,0.3)",shadowMd:"0 4px 12px rgba(0,0,0,0.4)",shadowLg:"0 8px 24px rgba(0,0,0,0.5)",
-  }
+
+  dark: {
+    bgApp: "#20241D",
+    bgSurface: "#2B3127",
+    bgElevated: "#353D31",
+    bgList: "#2B3127",
+    bgSidebar: "linear-gradient(180deg,#5F702D 0%,#4F5F29 52%,#414E24 100%)",
+    bgSidebarActive: "#778A3B",
+    text: "#F4F5EF",
+    textSec: "#DDE1D7",
+    textMuted: "#B7BDB2",
+    textSidebar: "#F8F9F5",
+    textSidebarActive: "#FFFFFF",
+    border: "rgba(255,255,255,0.08)",
+    borderCard: "rgba(221,225,215,0.12)",
+    accent: "#778A3B",
+    accentLight: "rgba(119,138,59,0.18)",
+    accentText: "#EEF2E4",
+    grad: "linear-gradient(135deg,#778A3B 0%,#5F702D 100%)",
+    confirmed: { bg: "rgba(119,138,59,0.20)", text: "#EEF2E4", dot: "#EEF2E4" },
+    pending: { bg: "rgba(201,138,40,0.20)", text: "#F0CB8C", dot: "#F0CB8C" },
+    cancelled: { bg: "rgba(199,72,72,0.20)", text: "#F2B1B1", dot: "#F2B1B1" },
+    completed: { bg: "rgba(63,107,58,0.24)", text: "#B8D4B5", dot: "#B8D4B5" },
+    noshow: { bg: "rgba(199,72,72,0.18)", text: "#F2B1B1", dot: "#F2B1B1" },
+    inprogress: {
+      bg: "rgba(119,138,59,0.18)",
+      text: "#EEF2E4",
+      dot: "#EEF2E4",
+    },
+    expired: { bg: "rgba(183,189,178,0.14)", text: "#D0D5CB", dot: "#D0D5CB" },
+    accepted: { bg: "rgba(63,107,58,0.24)", text: "#B8D4B5", dot: "#B8D4B5" },
+    qualified: { bg: "rgba(119,138,59,0.20)", text: "#EEF2E4", dot: "#EEF2E4" },
+    passed: { bg: "rgba(63,107,58,0.24)", text: "#B8D4B5", dot: "#B8D4B5" },
+    failed: { bg: "rgba(199,72,72,0.20)", text: "#F2B1B1", dot: "#F2B1B1" },
+    applied: { bg: "rgba(201,138,40,0.20)", text: "#F0CB8C", dot: "#F0CB8C" },
+    shadow: "0 12px 28px rgba(28,31,24,0.30)",
+    shadowMd: "0 14px 32px rgba(28,31,24,0.34)",
+    shadowLg: "0 20px 48px rgba(28,31,24,0.40)",
+  },
 };
 
 const SL=["مؤكد","بانتظار العربون","ملغي","مكتمل","لم يحضر","جاري","منتهي","نشط","غير نشط","في إجازة","متاحة","في الصيانة","مقبول","مؤهل للامتحان","ناجح","راسب","تم التقديم","داخلي","خارجي","عادي","أوتوماتيك","مسجل","غير مسجل","حضر","مدفوع","معلق","تم الإثبات","جديد","قيد التدريب","أنهى التدريب","طلب شهادة","ذكر","أنثى"];
@@ -69,14 +109,27 @@ function Badge({s,t}){
     "طلب شهادة":t.qualified,"ذكر":t.confirmed,"أنثى":t.noshow,
   };
   const c=m[s]||t.expired;
-  return <span style={{display:"inline-flex",alignItems:"center",gap:5,background:c.bg,color:c.text,padding:"2px 9px",borderRadius:20,fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>{s}</span>;
+  return <span style={{display:"inline-flex",alignItems:"center",gap:5,background:c.bg,color:c.text,padding:"2px 9px",borderRadius:20,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>{s}</span>;
 }
 function Card({children,t,p=16,mb=10,style={}}){return <div style={{background:t.bgSurface,borderRadius:12,border:`1px solid ${t.borderCard}`,padding:p,marginBottom:mb,boxShadow:t.shadow,...style}}>{children}</div>;}
-function Modal({title,onClose,children,t,width=500}){return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(2px)"}} onClick={onClose}><div onClick={e=>e.stopPropagation()} style={{background:t.bgSurface,borderRadius:16,width,maxWidth:"calc(100vw-40px)",maxHeight:"85vh",overflow:"hidden",boxShadow:t.shadowLg,display:"flex",flexDirection:"column"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px",borderBottom:`1px solid ${t.border}`}}><div style={{fontSize:15,fontWeight:700,color:t.text}}>{title}</div><button onClick={onClose} style={{width:28,height:28,borderRadius:7,border:"none",background:t.bgElevated,cursor:"pointer",fontSize:15,color:t.textMuted}}>✕</button></div><div style={{padding:"18px 20px",overflowY:"auto"}}>{children}</div></div></div>;}
-function Btn({label,onClick,v="primary",sz="md",t,style={},disabled=false}){const base={padding:sz==="sm"?"4px 12px":"9px 18px",borderRadius:8,border:"none",cursor:disabled?"not-allowed":"pointer",fontFamily:"inherit",fontSize:sz==="sm"?11:13,fontWeight:600,transition:"all 0.15s",opacity:disabled?0.5:1};const vs={primary:{background:t.grad,color:"#fff"},secondary:{background:t.accentLight,color:t.accentText,border:`1px solid ${t.accent}30`},danger:{background:"#FFF1F2",color:"#9F1239",border:"1px solid #FECDD3"},ghost:{background:"transparent",color:t.textSec,border:`1px solid ${t.border}`}};return <button disabled={disabled} onClick={onClick} style={{...base,...vs[v],...style}}>{label}</button>;}
+function Modal({title,onClose,children,t,width=500}){return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(2px)"}} onClick={onClose}><div onClick={e=>e.stopPropagation()} style={{background:t.bgSurface,borderRadius:16,width,maxWidth:"calc(100vw-40px)",maxHeight:"85vh",overflow:"hidden",boxShadow:t.shadowLg,display:"flex",flexDirection:"column"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px",borderBottom:`1px solid ${t.border}`}}><div style={{fontSize:16,fontWeight:700,color:t.text}}>{title}</div><button onClick={onClose} style={{width:28,height:28,borderRadius:7,border:"none",background:t.bgElevated,cursor:"pointer",fontSize:16,color:t.textMuted}}>✕</button></div><div style={{padding:"18px 20px",overflowY:"auto"}}>{children}</div></div></div>;}
+function Btn({label,onClick,v="primary",sz="md",t,style={},disabled=false}){
+  const base={padding:sz==="sm"?"4px 12px":"9px 18px",borderRadius:8,border:"none",cursor:disabled?"not-allowed":"pointer",fontFamily:"inherit",fontSize:sz==="sm"?12:14,fontWeight:600,transition:"all 0.15s",opacity:disabled?0.5:1};
+
+  const primaryBg = "#778a3b";
+  const vs={
+    primary:{background:primaryBg,color:"#fff"},
+    secondary:{background:t.accentLight,color:t.accentText,border:`1px solid ${t.accent}30`},
+    danger:{background:"#FFF1F2",color:"#9F1239",border:"1px solid #FECDD3"},
+    ghost:{background:"transparent",color:t.textSec,border:`1px solid ${t.border}`}
+  };
+
+  return <button disabled={disabled} onClick={onClick} style={{...base,...vs[v],...style}}>{label}</button>;
+}
+
 function Divider({t}){return <div style={{height:1,background:t.border,margin:"12px 0"}}/>;}
-function InfoRow({k,v,t}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${t.border}`,fontSize:12}}><span style={{color:t.textMuted}}>{k}</span><span style={{fontWeight:600,color:t.text}}>{SL.includes(v)?<Badge s={v} t={t}/>:v}</span></div>;}
-function SearchBar({placeholder,t,value,onChange}){return <div style={{position:"relative",flex:1}}><span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:13,color:t.textMuted}}>🔍</span><input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{width:"100%",padding:"8px 32px 8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/></div>;}
+function InfoRow({k,v,t}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${t.border}`,fontSize:13}}><span style={{color:t.textMuted}}>{k}</span><span style={{fontWeight:600,color:t.text}}>{SL.includes(v)?<Badge s={v} t={t}/>:v}</span></div>;}
+function SearchBar({placeholder,t,value,onChange}){return <div style={{position:"relative",flex:1}}><span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:14,color:t.textMuted}}>🔍</span><input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{width:"100%",padding:"8px 32px 8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/></div>;}
 // `Sel` component removed — it was defined but never used.
 
 function InvoiceModal({booking,t,onClose}){
@@ -146,10 +199,12 @@ function SectionStudents({t}){
           </div>
         </div>
         <div style={{flex:1,overflowY:"auto"}}>
-          {filtered.map(s=>(
+            {filtered.map(s=>(
             <div key={s.id} onClick={()=>setSel(s)} style={{padding:"11px 13px",cursor:"pointer",display:"flex",alignItems:"center",gap:9,borderBottom:`1px solid ${t.border}`,background:sel?.id===s.id?t.accentLight:t.bgSurface,borderRight:sel?.id===s.id?`3px solid ${t.accent}`:"3px solid transparent"}}>
-              <div style={{width:34,height:34,borderRadius:"50%",background:t.grad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"#fff",fontWeight:700,flexShrink:0}}>{s.name[0]}</div>
+              <div style={{width:34,height:34,borderRadius:"50%",background:"#778a3b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"#fff",fontWeight:700,flexShrink:0}}>{s.name[0]}</div>
+
               <div style={{flex:1,minWidth:0}}>
+
                 <div style={{fontSize:13,fontWeight:600,color:t.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div>
                 <div style={{fontSize:11,color:t.textMuted,marginTop:1}}>{s.phone}</div>
               </div>
@@ -163,8 +218,8 @@ function SectionStudents({t}){
       </div>
       {sel&&(
         <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-          <div style={{padding:"16px 22px",borderBottom:`1px solid ${t.border}`,display:"flex",alignItems:"center",gap:14,background:t.bgSurface,flexShrink:0}}>
-            <div style={{width:50,height:50,borderRadius:"50%",background:t.grad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:"#fff",fontWeight:700}}>{sel.name[0]}</div>
+            <div style={{padding:"16px 22px",borderBottom:`1px solid ${t.border}`,display:"flex",alignItems:"center",gap:14,background:t.bgSurface,flexShrink:0}}>
+            <div style={{width:50,height:50,borderRadius:"50%",background:"#778a3b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:"#fff",fontWeight:700}}>{sel.name[0]}</div>
             <div style={{flex:1}}>
               <div style={{fontSize:17,fontWeight:700,color:t.text}}>{sel.name}</div>
               <div style={{fontSize:12,color:t.textSec,marginTop:2}}>{sel.phone}</div>
@@ -1253,6 +1308,7 @@ export default function ReceptionistPro({embedded=false,page:forcedPage,darkMode
   const [page,setPage]=useState(forcedPage||"students");
   const [collapsed,setCollapsed]=useState(false);
   const t=T[dark?"dark":"light"];
+  const sidebarWidth = collapsed ? 84 : 308;
   const pages={
     students:<SectionStudents t={t}/>,
     instructors:<SectionInstructors t={t}/>,
@@ -1264,23 +1320,26 @@ export default function ReceptionistPro({embedded=false,page:forcedPage,darkMode
   // sync when parent forces a page (embedded mode)
   if(forcedPage && forcedPage!==page){ setPage(forcedPage); }
   return(
-    <div dir="rtl" style={{display:"flex",height: embedded?"100%":"100vh",overflow:"hidden",background:t.bgApp,fontFamily:"'Segoe UI',Tahoma,Arial,sans-serif"}}>
+    <div dir="rtl" style={{display:"flex",height: embedded?"100%":"100vh",overflow:"hidden",background:t.bgApp,fontFamily:"var(--font-body)"}}>
       {!embedded && (
-        <div style={{width:collapsed?58:215,background:t.bgSidebar,display:"flex",flexDirection:"column",transition:"width 0.2s",flexShrink:0,boxShadow:"2px 0 12px rgba(0,0,0,0.18)"}}>
-          <div style={{padding:"16px 12px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",gap:9}}>
-            <div style={{width:34,height:34,borderRadius:9,background:"linear-gradient(135deg,#059669 0%,#34D399 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0,boxShadow:"0 2px 8px rgba(5,150,105,0.4)"}}>🗂️</div>
-            {!collapsed&&<div><div style={{fontSize:12,fontWeight:700,color:"#fff",lineHeight:1.2}}>الموظف الإداري</div><div style={{fontSize:10,color:t.textSidebar,marginTop:1}}>مدرسة القيادة</div></div>}
+        <div style={{width:sidebarWidth,flexShrink:0}} />
+      )}
+      {!embedded && (
+        <div style={{width:sidebarWidth,height:"100svh",minHeight:"100svh",position:"fixed",top:0,right:0,zIndex:40,background:t.bgSidebar,display:"flex",flexDirection:"column",transition:"width 0.2s",overflow:"hidden",boxShadow:"2px 0 18px rgba(0,0,0,0.18)"}}>
+          <div style={{padding:"18px 14px 16px",borderBottom:`1px solid ${t.borderCard}`,display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:40,height:40,borderRadius:11,background:"linear-gradient(135deg,#0F766E 0%,#F5D547 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,boxShadow:"0 2px 8px rgba(15,118,110,0.30)",color:"#17325C"}}>🗂️</div>
+            {!collapsed&&<div><div style={{fontSize:15,fontWeight:800,color:"#fff",lineHeight:1.2}}>الموظف الإداري</div><div style={{fontSize:12,color:t.textSidebar,marginTop:2}}>مدرسة القيادة</div></div>}
           </div>
-          <div style={{flex:1,padding:"7px",overflowY:"auto"}}>
+          <div style={{flex:1,minHeight:0,padding:"10px",overflowY:"auto"}}>
             {NAV.map(item=>{const active=page===item.id;return(
-              <button key={item.id} onClick={()=>setPage(item.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:collapsed?"9px 0":"8px 11px",borderRadius:8,border:"none",cursor:"pointer",background:active?t.bgSidebarActive:"transparent",color:active?t.textSidebarActive:t.textSidebar,fontSize:12,fontWeight:active?600:400,marginBottom:2,justifyContent:collapsed?"center":"flex-start",fontFamily:"inherit",transition:"all 0.15s"}}>
-                <span style={{fontSize:15,flexShrink:0}}>{item.icon}</span>
+              <button key={item.id} onClick={()=>setPage(item.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:11,padding:collapsed?"14px 10px":"13px 15px",borderRadius:14,border:"none",cursor:"pointer",background:active?t.bgSidebarActive:"transparent",color:active?t.textSidebarActive:t.textSidebar,fontSize:15,fontWeight:active?700:500,marginBottom:6,justifyContent:collapsed?"center":"flex-start",fontFamily:"inherit",transition:"all 0.15s",boxShadow:active?"0 10px 24px rgba(0,0,0,0.16)":"none"}}>
+                <span style={{fontSize:18,flexShrink:0}}>{item.icon}</span>
                 {!collapsed&&<span>{item.label}</span>}
               </button>
             );})}
           </div>
-          <div style={{padding:"9px 7px",borderTop:"1px solid rgba(255,255,255,0.08)"}}>
-            <button onClick={()=>setCollapsed(!collapsed)} style={{width:"100%",padding:"7px",borderRadius:7,background:"rgba(255,255,255,0.05)",border:"none",color:t.textSidebar,cursor:"pointer",fontSize:13}}>{collapsed?"»":"«"}</button>
+          <div style={{padding:"12px 10px",borderTop:`1px solid ${t.borderCard}`}}>
+            <button onClick={()=>setCollapsed(!collapsed)} style={{width:"100%",padding:"11px",borderRadius:12,background:t.accentLight,border:"none",color:t.accentText,cursor:"pointer",fontSize:18,fontWeight:700}}>{collapsed?"»":"«"}</button>
           </div>
         </div>
       )}
