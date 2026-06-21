@@ -10,6 +10,7 @@ import { FaRegAddressCard } from "react-icons/fa";
 import { CiCreditCard1 } from "react-icons/ci";
 import { TbBus } from "react-icons/tb";
 import { FaCar } from "react-icons/fa";
+
 import { FaUserTie } from "react-icons/fa";
 import { PiStudent } from "react-icons/pi";
 import { GrSchedules } from "react-icons/gr";
@@ -992,7 +993,7 @@ function PageCertificate({ t }) {
         <StatCard
           label="قيد المتابعة"
           value="٥"
-          color="#BA7517"
+          color={t.accent}
           icon={<BsHourglassSplit size={24} color="t.accent" />}
           t={t}
         />
@@ -1006,7 +1007,7 @@ function PageCertificate({ t }) {
         <StatCard
           label="ناجح هذا الشهر"
           value="١١"
-          color="#1D9E75"
+          color={t.accent}
           icon={<PiCertificateDuotone size={24} color="t.accent" />}
           t={t}
         />
