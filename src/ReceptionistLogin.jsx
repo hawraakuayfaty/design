@@ -242,7 +242,7 @@ export default function CreateAccount() {
       const token = localStorage.getItem("token"); // جلب توكن المشرف للتحقق من الصلاحية
 
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/admin/create-user`,
+        `${import.meta.env.VITE_API_URL || "http://20.250.144.221:3000/api/v1"}/admin/create-user`,
         {
           name: fullName,
           email,

@@ -1,8 +1,8 @@
-import { useState } from "react";
-import axios from "axios";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-// أضيفي هذا السطر تحت استيرادات الأيقونات القديمة
-import { FaBellConcierge } from 'react-icons/fa6';
+import { useAuth } from "./contexts/useAuth";
+import { ROLES } from "./constants/roles";
+import { FaBellConcierge } from "react-icons/fa6";
 import styled, { keyframes, createGlobalStyle } from "styled-components";
 import {
   FiLock,
@@ -11,13 +11,8 @@ import {
   FiAlertCircle,
   FiUser,
   FiShield,
-  
   FiDollarSign,
 } from "react-icons/fi";
-
-// ===================================================================
-// 1. التنسيقات الشاملة والرسوم المتحركة المتناسقة مع التطبيق
-// ===================================================================
 
 const GlobalStyle = createGlobalStyle`
   @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
@@ -28,7 +23,7 @@ const GlobalStyle = createGlobalStyle`
   }
   body {
     font-family: 'Tajawal', sans-serif;
-    background-color: #f4f5f0; 
+    background-color: #f4f5f0;
     overflow: hidden;
   }
 `;
@@ -249,57 +244,55 @@ const SubmitButton = styled.button`
   }
 `;
 
-// ===================================================================
-// 3. دالة الـ Component الأساسية مع تفعيل الصلاحيات
-// ===================================================================
+const DEV_ROLE_MAP = {
+  admin: ROLES.MANAGER,
+  receptionist: ROLES.RECEPTIONIST,
+  accountant: ROLES.ACCOUNTANT,
+};
 
 export default function LogIn() {
-  const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState(""); // لحفظ الدور المختار
+  const [devRole, setDevRole] = useState("admin");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login, devLogin, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!role) {
-      setError("الرجاء اختيار نوع الحساب أولاً ليتم توجيهك بشكل صحيح.");
+    // Dev bypass — both fields empty: mock login for frontend-only design reviews
+    if (!phone.trim() && !password) {
+      devLogin(DEV_ROLE_MAP[devRole]);
+      navigate("/dashboard");
       return;
     }
 
-    // ─── الكود التجريبي المؤقت لتخطي الباك إيند للدخول ───
-    if (username === "admin" && password === "123") {
-      navigate("/DashBoard/Home");
+    if (!phone.trim()) {
+      setError("الرجاء إدخال رقم الهاتف.");
       return;
     }
-    // ───────────────────────────────────────────
+    if (!password) {
+      setError("الرجاء إدخال كلمة المرور.");
+      return;
+    }
 
     setLoading(true);
-
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/login`,
-        {
-          username,
-          password,
-          role,
-        },
-      );
-
-      if (response.data?.token) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("userRole", role);
-        navigate("/DashBoard/Home");
-      } else {
-        setError("فشل تسجيل الدخول، يرجى التحقق من البيانات العائدة.");
-      }
+      await login(phone, password);
+      navigate("/dashboard");
     } catch (err) {
+      const msg = err.response?.data?.message;
       setError(
-        err.response?.data?.message ||
-          "خطأ في الاتصال بالسيرفر، تأكد من تشغيل الباك إيند.",
+        Array.isArray(msg) ? msg.join("، ") : msg || "خطأ في الاتصال بالسيرفر، تأكد من تشغيل الباك إيند."
       );
     } finally {
       setLoading(false);
@@ -320,15 +313,12 @@ export default function LogIn() {
           </BrandSection>
 
           <form onSubmit={handleLogin}>
-            {/* أزرار اختيار رتبة أو صلاحية الموظف قبل الدخول */}
+            {/* Dev role selector — used only for offline dev bypass */}
             <RoleContainer>
               <RoleCard
                 type="button"
-                active={role === "admin"}
-                onClick={() => {
-                  setRole("admin");
-                  setError("");
-                }}
+                active={devRole === "admin"}
+                onClick={() => setDevRole("admin")}
               >
                 <FiShield />
                 <span>مدير</span>
@@ -336,11 +326,8 @@ export default function LogIn() {
 
               <RoleCard
                 type="button"
-                active={role === "receptionist"}
-                onClick={() => {
-                  setRole("receptionist");
-                  setError("");
-                }}
+                active={devRole === "receptionist"}
+                onClick={() => setDevRole("receptionist")}
               >
                 <FaBellConcierge />
                 <span>استقبال</span>
@@ -348,11 +335,8 @@ export default function LogIn() {
 
               <RoleCard
                 type="button"
-                active={role === "accountant"}
-                onClick={() => {
-                  setRole("accountant");
-                  setError("");
-                }}
+                active={devRole === "accountant"}
+                onClick={() => setDevRole("accountant")}
               >
                 <FiDollarSign />
                 <span>محاسب</span>
@@ -369,10 +353,10 @@ export default function LogIn() {
             <InputGroup>
               <StyledInput
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 required
-                placeholder="اسم المستخدم"
+                placeholder="رقم الهاتف"
               />
               <InputIcon>
                 <FiUser />

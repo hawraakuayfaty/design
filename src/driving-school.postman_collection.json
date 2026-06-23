@@ -1,0 +1,572 @@
+{
+  "info": {
+    "_postman_id": "8b80db61-6891-46c2-bfbc-810a60c0d0b2",
+    "name": "driving-school",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "39834260"
+  },
+  "item": [
+    {
+      "name": "auth",
+      "item": [
+        {
+          "name": "log-in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"phone\" : \"0999111222\", \r\n    \"password\" :  \"Admin@12345\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/auth/login",
+              "host": ["{{url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "refresh-token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"refreshToken\": \"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/auth/refresh",
+              "host": ["{{url}}"],
+              "path": ["auth", "refresh"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "log-out",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/auth/logout",
+              "host": ["{{url}}"],
+              "path": ["auth", "logout"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/auth/me",
+              "host": ["{{url}}"],
+              "path": ["auth", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "logout-all",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/auth/logout-all",
+              "host": ["{{url}}"],
+              "path": ["auth", "logout-all"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "permission per role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/auth/me",
+              "host": ["{{url}}"],
+              "path": ["auth", "me"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Students",
+      "item": [
+        {
+          "name": "get all students",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/students?search=&status=PASSED",
+              "host": ["{{url}}"],
+              "path": ["students"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "seach by name"
+                },
+                {
+                  "key": "status",
+                  "value": "PASSED",
+                  "description": "PASSED , FAILED , IN_TRAINING , CERTIFICATE_SEEKER"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get one student",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/students/10",
+              "host": ["{{url}}"],
+              "path": ["students", "10"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add student",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\" : \"sarhan\",\r\n    \"phone\" : \"0987654321\",\r\n    \"password\" : \"0000\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/users/students",
+              "host": ["{{url}}"],
+              "path": ["users", "students"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "instructors",
+      "item": [
+        {
+          "name": "get all instructors",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/instructors?search=&instructorType=BOTH&gender=FEMALE",
+              "host": ["{{url}}"],
+              "path": ["instructors"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "by name"
+                },
+                {
+                  "key": "instructorType",
+                  "value": "BOTH",
+                  "description": "MANUAL , AUTOMATIC , BOTH"
+                },
+                {
+                  "key": "gender",
+                  "value": "FEMALE",
+                  "description": "MALE , FEMALE"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get one instructor",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/instructors/5",
+              "host": ["{{url}}"],
+              "path": ["instructors", "5"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "add instructor",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\" :\"ghaeth\" ,\r\n    \"phone\" : \"0987654322\",\r\n    \"password\" : \"0000\",\r\n    \"gender\" : \"MALE\", // MALE , FEMALE\r\n    \"instructorType\" : \"BOTH\"   // BOTH ,AUTOMATIC , MANUAL\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/users/instructors",
+              "host": ["{{url}}"],
+              "path": ["users", "instructors"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "get all employees",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/employees/?role=RECEPTIONIST",
+              "host": ["{{url}}"],
+              "path": ["employees", ""],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "خالد",
+                  "description": "by name",
+                  "disabled": true
+                },
+                {
+                  "key": "role",
+                  "value": "RECEPTIONIST",
+                  "description": "ACCOUNTANT, RECEPTIONIST"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get one employee",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/employees/2",
+              "host": ["{{url}}"],
+              "path": ["employees", "2"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "add employee",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\" :\"ghaeth\" ,\r\n    \"phone\" : \"0987654222\",\r\n    \"password\" : \"0000\",\r\n    \"role\" : \"RECEPTIONIST\", // RECEPTIONIST , ACCOUNTANT\r\n    \"monthlySalary\" : 100 ,  // number\r\n    \"hireDate\" : \"2026-06-20\" // optinal by defult now \r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/users/employees",
+              "host": ["{{url}}"],
+              "path": ["users", "employees"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "url",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "secret": true,
+      "source": {}
+    }
+  ]
+}

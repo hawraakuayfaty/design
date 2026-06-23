@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import qeyadahLogo from "./assets/qeyadah-logo.jpg";
 import AdminPro from "./AdminPro";
 import AccountantPro from "./AccountantPro";
 import ReceptionistPro from "./ReceptionistPro";
+import { studentsService, instructorsService } from "./api";
+import { useAuth } from "./contexts/useAuth";
+import { P } from "./constants/roles";
 import { CiSettings } from "react-icons/ci";
 import { PiChartLineDown, PiChartLineUp, PiUsersThin } from "react-icons/pi";
 import { TbReport } from "react-icons/tb";
@@ -179,14 +182,14 @@ const navItems = [
     label: "المستخدمون",
     icon: <PiUsersThin />,
     page: "Users",
-    adminOnly: true,
+    permission: P.USERS_READ,
   },
   {
     id: "settings",
     label: "إعدادات النظام",
     icon: <CiSettings />,
     page: "Settings",
-    adminOnly: true,
+    permission: P.SETTINGS_READ,
   },
 
   // ➕ ضيفي الموديولات الثلاثة الجديدة هنا أسفل القائمة:
@@ -848,50 +851,261 @@ function PageBookings({ t }) {
 // ═══════════════════════════════════════════════
 // PAGE: STUDENTS
 // ═══════════════════════════════════════════════
-function PageStudents({ t, userRole }) {
+const STUDENT_STATUS_MAP = {
+  IN_TRAINING: "قيد التدريب",
+  PASSED: "مكتمل",
+  FAILED: "راسب",
+  CERTIFICATE_SEEKER: "طلب شهادة",
+};
+
+const STUDENT_FILTER_OPTIONS = [
+  { value: "", label: "كل الحالات" },
+  { value: "IN_TRAINING", label: "قيد التدريب" },
+  { value: "PASSED", label: "مكتمل" },
+  { value: "FAILED", label: "راسب" },
+  { value: "CERTIFICATE_SEEKER", label: "طلب شهادة" },
+];
+
+function AddStudentModal({ t, onClose, onSuccess }) {
+  const [form, setForm] = useState({ name: "", phone: "", password: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "الاسم مطلوب";
+    if (!form.phone.trim()) e.phone = "رقم الهاتف مطلوب";
+    else if (!/^09\d{8}$/.test(form.phone.trim())) e.phone = "رقم الهاتف غير صالح (مثال: 0991234567)";
+    if (!form.password) e.password = "كلمة المرور مطلوبة";
+    else if (form.password.length < 4) e.password = "كلمة المرور قصيرة جداً";
+    return e;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setServerError("");
+    const v = validate();
+    setErrors(v);
+    if (Object.keys(v).length) return;
+
+    setSubmitting(true);
+    try {
+      await studentsService.create({
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        password: form.password,
+      });
+      onSuccess();
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "حدث خطأ أثناء الإضافة");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const fieldStyle = (field) => ({
+    width: "100%", padding: "12px 14px", borderRadius: 10,
+    border: `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+    background: t.bgElevated, color: t.text, fontSize: 14,
+    outline: "none", transition: "border-color 0.2s",
+  });
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.45)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
+        width: "100%", maxWidth: 440, border: `1px solid ${t.borderCard}`,
+        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: t.text }}>إضافة طالب جديد</h3>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+
+        {serverError && (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+            fontSize: 13, color: "#c74848",
+          }}>{serverError}</div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>الاسم الكامل</label>
+            <input value={form.name} onChange={(ev) => { setForm({ ...form, name: ev.target.value }); setErrors({ ...errors, name: undefined }); }}
+              placeholder="مثال: أحمد محمد الحسن" style={fieldStyle("name")} />
+            {errors.name && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.name}</div>}
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>رقم الهاتف</label>
+            <input value={form.phone} onChange={(ev) => { setForm({ ...form, phone: ev.target.value }); setErrors({ ...errors, phone: undefined }); }}
+              placeholder="0991234567" dir="ltr" style={{ ...fieldStyle("phone"), textAlign: "left" }} />
+            {errors.phone && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.phone}</div>}
+          </div>
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>كلمة المرور</label>
+            <input type="password" value={form.password} onChange={(ev) => { setForm({ ...form, password: ev.target.value }); setErrors({ ...errors, password: undefined }); }}
+              placeholder="كلمة مرور الحساب" style={fieldStyle("password")} />
+            {errors.password && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.password}</div>}
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="submit" disabled={submitting} style={{
+              flex: 1, padding: "12px", borderRadius: 12,
+              background: submitting ? t.textMuted : "#778a3b",
+              color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
+              cursor: submitting ? "not-allowed" : "pointer",
+              transition: "background 0.2s",
+            }}>{submitting ? "جارٍ الحفظ..." : "حفظ الطالب"}</button>
+            <button type="button" onClick={onClose} style={{
+              padding: "12px 20px", borderRadius: 12,
+              background: t.bgElevated, color: t.textSec,
+              border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
+              cursor: "pointer",
+            }}>إلغاء</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function PageStudents({ t }) {
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission(P.STUDENTS_CREATE);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [showModal, setShowModal] = useState(false);
+
+  const fetchStudents = async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (search.trim()) params.search = search.trim();
+      if (statusFilter) params.status = statusFilter;
+      const { data } = await studentsService.getAll(params);
+      setStudents(Array.isArray(data) ? data : data.data || []);
+    } catch {
+      setStudents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const params = {};
+        if (search.trim()) params.search = search.trim();
+        if (statusFilter) params.status = statusFilter;
+        const { data } = await studentsService.getAll(params);
+        if (!cancelled) setStudents(Array.isArray(data) ? data : data.data || []);
+      } catch {
+        if (!cancelled) setStudents([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [search, statusFilter]);
+
+  const tableRows = students.map((s) => [
+    s.user?.name || s.name || "—",
+    s.user?.phone || s.phone || "—",
+    STUDENT_STATUS_MAP[s.studentStatus] || s.studentStatus || "—",
+    String(s.id),
+    "—",
+    "—",
+    "—",
+  ]);
+
   return (
     <div>
-      <SectionHeader title={userRole === "accountant" ? "الطلاب" : "إدارة الطلاب"} subtitle="١٢٤ طالب مسجل" action={userRole === "accountant" ? null : "+ إضافة طالب"} t={t} />
+      <SectionHeader
+        title={canCreate ? "إدارة الطلاب" : "الطلاب"}
+        subtitle={loading ? "جارٍ التحميل..." : `${students.length} طالب مسجل`}
+        action={canCreate ? "+ إضافة طالب" : null}
+        onAction={() => setShowModal(true)}
+        t={t}
+      />
+
       <div style={{
         background: t.bgSurface, borderRadius: 10, border: `0.5px solid ${t.borderCard}`,
         padding: "12px 16px", marginBottom: 16,
         display: "flex", gap: 10, alignItems: "center",
       }}>
-        <input placeholder="بحث بالاسم أو رقم الهاتف..." style={{
-          flex: 1, padding: "8px 12px", borderRadius: 7,
-          border: `0.5px solid ${t.border}`, background: t.bgElevated,
-          color: t.text, fontSize: 13,
-        }} />
-        <select style={{ padding: "8px 12px", borderRadius: 7, border: `0.5px solid ${t.border}`, background: t.bgElevated, color: t.text, fontSize: 12 }}>
-          <option>كل الحالات</option>
-          <option>جديد</option><option>نشط</option><option>قيد التدريب</option>
-          <option>أنهى التدريب</option><option>طلب شهادة</option><option>مؤرشف</option>
+        <input
+          placeholder="بحث بالاسم أو رقم الهاتف..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            flex: 1, padding: "8px 12px", borderRadius: 7,
+            border: `0.5px solid ${t.border}`, background: t.bgElevated,
+            color: t.text, fontSize: 13,
+          }}
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          style={{
+            padding: "8px 12px", borderRadius: 7,
+            border: `0.5px solid ${t.border}`, background: t.bgElevated,
+            color: t.text, fontSize: 12,
+          }}
+        >
+          {STUDENT_FILTER_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
         </select>
       </div>
-      <Table t={t}
-        headers={["الاسم الكامل", "رقم الهاتف", "الحالة", "رقم الهوية", "الحجوزات", "آخر درس", "الشهادة"]}
-        rows={[
-          ["أحمد محمد الحسن", "0991234567", "نشط", "١٢٣٤٥٦٧", "٥", "٣ يونيو", "لا"],
-          ["سارة خالد يوسف", "0997654321", "نشط", "٧٦٥٤٣٢١", "٣", "٢ يونيو", "لا"],
-          ["علي حسن محمود", "0994444444", "قيد التدريب", "٤٤٤٤٤٤٤", "٨", "٤ يونيو", "لا"],
-          ["منى العلي سالم", "0993333333", "قيد التدريب", "٣٣٣٣٣٣٣", "٦", "٤ يونيو", "لا"],
-          ["محمود سالم الزين", "0992222222", "نشط", "٢٢٢٢٢٢٢", "٢", "١ يونيو", "لا"],
-          ["نورا الأحمد", "0995555555", "أنهى التدريب", "٥٥٥٥٥٥٥", "١٢", "٢٨ مايو", "قيد المتابعة"],
-          ["كريم عبدو نصر", "0996666666", "طلب شهادة", "٦٦٦٦٦٦٦", "١٠", "٢٠ مايو", "قيد المتابعة"],
-          ["هناء الصالح خير", "0997777777", "نشط", "٧٧٧٧٧٧٧", "٤", "٣٠ مايو", "لا"],
-        ]}
-      />
 
-      {/* Student states explanation */}
+      {loading ? (
+        <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>
+          جارٍ تحميل بيانات الطلاب...
+        </div>
+      ) : students.length === 0 ? (
+        <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>
+          لا توجد نتائج
+        </div>
+      ) : (
+        <Table
+          t={t}
+          headers={["الاسم الكامل", "رقم الهاتف", "الحالة", "رقم الطالب", "الحجوزات", "آخر درس", "الشهادة"]}
+          rows={tableRows}
+        />
+      )}
+
       <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {["جديد","نشط","قيد التدريب","أنهى التدريب","طلب شهادة","مؤرشف"].map(s => (
-          <div key={s} style={{
+        {STUDENT_FILTER_OPTIONS.filter((o) => o.value).map((s) => (
+          <div key={s.value} style={{
             padding: "4px 12px", borderRadius: 20,
             background: t.bgSurface, color: t.textSec,
             fontSize: 12, border: `0.5px solid ${t.border}`,
-          }}>{s}</div>
+          }}>{s.label}</div>
         ))}
       </div>
+
+      {showModal && (
+        <AddStudentModal
+          t={t}
+          onClose={() => setShowModal(false)}
+          onSuccess={() => { setShowModal(false); fetchStudents(); }}
+        />
+      )}
     </div>
   );
 }
@@ -899,21 +1113,292 @@ function PageStudents({ t, userRole }) {
 // ═══════════════════════════════════════════════
 // PAGE: INSTRUCTORS
 // ═══════════════════════════════════════════════
-function PageInstructors({ t, userRole }) {
+const INSTRUCTOR_TYPE_MAP = {
+  MANUAL: "عادي",
+  AUTOMATIC: "أوتوماتيك",
+  BOTH: "عادي + أوتوماتيك",
+};
+
+const GENDER_MAP = { MALE: "ذكر", FEMALE: "أنثى" };
+
+const INSTRUCTOR_TYPE_OPTIONS = [
+  { value: "", label: "كل الأنواع" },
+  { value: "MANUAL", label: "عادي" },
+  { value: "AUTOMATIC", label: "أوتوماتيك" },
+  { value: "BOTH", label: "الكل" },
+];
+
+const GENDER_FILTER_OPTIONS = [
+  { value: "", label: "كل الجنسيات" },
+  { value: "MALE", label: "ذكر" },
+  { value: "FEMALE", label: "أنثى" },
+];
+
+function AddInstructorModal({ t, onClose, onSuccess }) {
+  const [form, setForm] = useState({ name: "", phone: "", password: "", gender: "", instructorType: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "الاسم مطلوب";
+    if (!form.phone.trim()) e.phone = "رقم الهاتف مطلوب";
+    else if (!/^09\d{8}$/.test(form.phone.trim())) e.phone = "رقم الهاتف غير صالح (مثال: 0991234567)";
+    if (!form.password) e.password = "كلمة المرور مطلوبة";
+    else if (form.password.length < 4) e.password = "كلمة المرور قصيرة جداً";
+    if (!form.gender) e.gender = "الجنس مطلوب";
+    if (!form.instructorType) e.instructorType = "نوع التدريب مطلوب";
+    return e;
+  };
+
+  const handleSubmit = async (ev) => {
+    ev.preventDefault();
+    setServerError("");
+    const v = validate();
+    setErrors(v);
+    if (Object.keys(v).length) return;
+
+    setSubmitting(true);
+    try {
+      await instructorsService.create({
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        password: form.password,
+        gender: form.gender,
+        instructorType: form.instructorType,
+      });
+      onSuccess();
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "حدث خطأ أثناء الإضافة");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const fieldStyle = (field) => ({
+    width: "100%", padding: "12px 14px", borderRadius: 10,
+    border: `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+    background: t.bgElevated, color: t.text, fontSize: 14,
+    outline: "none", transition: "border-color 0.2s",
+  });
+
+  const selectChipStyle = (field, value) => ({
+    flex: 1, padding: "10px 8px", borderRadius: 10, border: "none",
+    cursor: "pointer", fontSize: 13, fontWeight: 600, textAlign: "center",
+    transition: "all 0.15s",
+    background: form[field] === value ? "#778a3b" : t.bgElevated,
+    color: form[field] === value ? "#fff" : t.textSec,
+    outline: form[field] === value ? "none" : `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+  });
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.45)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
+        width: "100%", maxWidth: 480, border: `1px solid ${t.borderCard}`,
+        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+        maxHeight: "90vh", overflowY: "auto",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: t.text }}>إضافة مدرب جديد</h3>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+
+        {serverError && (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+            fontSize: 13, color: "#c74848",
+          }}>{serverError}</div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>الاسم الكامل</label>
+            <input value={form.name} onChange={(ev) => { setForm({ ...form, name: ev.target.value }); setErrors({ ...errors, name: undefined }); }}
+              placeholder="مثال: خالد عمر الزيد" style={fieldStyle("name")} />
+            {errors.name && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.name}</div>}
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>رقم الهاتف</label>
+            <input value={form.phone} onChange={(ev) => { setForm({ ...form, phone: ev.target.value }); setErrors({ ...errors, phone: undefined }); }}
+              placeholder="0991234567" dir="ltr" style={{ ...fieldStyle("phone"), textAlign: "left" }} />
+            {errors.phone && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.phone}</div>}
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>كلمة المرور</label>
+            <input type="password" value={form.password} onChange={(ev) => { setForm({ ...form, password: ev.target.value }); setErrors({ ...errors, password: undefined }); }}
+              placeholder="كلمة مرور الحساب" style={fieldStyle("password")} />
+            {errors.password && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.password}</div>}
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 8 }}>الجنس</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => { setForm({ ...form, gender: "MALE" }); setErrors({ ...errors, gender: undefined }); }} style={selectChipStyle("gender", "MALE")}>ذكر</button>
+              <button type="button" onClick={() => { setForm({ ...form, gender: "FEMALE" }); setErrors({ ...errors, gender: undefined }); }} style={selectChipStyle("gender", "FEMALE")}>أنثى</button>
+            </div>
+            {errors.gender && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.gender}</div>}
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 8 }}>نوع التدريب</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => { setForm({ ...form, instructorType: "MANUAL" }); setErrors({ ...errors, instructorType: undefined }); }} style={selectChipStyle("instructorType", "MANUAL")}>عادي</button>
+              <button type="button" onClick={() => { setForm({ ...form, instructorType: "AUTOMATIC" }); setErrors({ ...errors, instructorType: undefined }); }} style={selectChipStyle("instructorType", "AUTOMATIC")}>أوتوماتيك</button>
+              <button type="button" onClick={() => { setForm({ ...form, instructorType: "BOTH" }); setErrors({ ...errors, instructorType: undefined }); }} style={selectChipStyle("instructorType", "BOTH")}>كلاهما</button>
+            </div>
+            {errors.instructorType && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.instructorType}</div>}
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="submit" disabled={submitting} style={{
+              flex: 1, padding: "12px", borderRadius: 12,
+              background: submitting ? t.textMuted : "#778a3b",
+              color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
+              cursor: submitting ? "not-allowed" : "pointer",
+              transition: "background 0.2s",
+            }}>{submitting ? "جارٍ الحفظ..." : "حفظ المدرب"}</button>
+            <button type="button" onClick={onClose} style={{
+              padding: "12px 20px", borderRadius: 12,
+              background: t.bgElevated, color: t.textSec,
+              border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
+              cursor: "pointer",
+            }}>إلغاء</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function PageInstructors({ t }) {
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission(P.INSTRUCTORS_CREATE);
+  const [instructors, setInstructors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [genderFilter, setGenderFilter] = useState("");
+  const [showModal, setShowModal] = useState(false);
+
+  const fetchInstructors = async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (search.trim()) params.search = search.trim();
+      if (typeFilter) params.instructorType = typeFilter;
+      if (genderFilter) params.gender = genderFilter;
+      const { data } = await instructorsService.getAll(params);
+      setInstructors(Array.isArray(data) ? data : data.data || []);
+    } catch {
+      setInstructors([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const params = {};
+        if (search.trim()) params.search = search.trim();
+        if (typeFilter) params.instructorType = typeFilter;
+        if (genderFilter) params.gender = genderFilter;
+        const { data } = await instructorsService.getAll(params);
+        if (!cancelled) setInstructors(Array.isArray(data) ? data : data.data || []);
+      } catch {
+        if (!cancelled) setInstructors([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [search, typeFilter, genderFilter]);
+
+  const statusLabel = (instructor) => {
+    const acctStatus = instructor.user?.accountStatus || instructor.accountStatus;
+    if (acctStatus === "BLOCKED") return "غير نشط";
+    if (acctStatus === "ARCHIVED") return "غير نشط";
+    return "نشط";
+  };
+
+  const tableRows = instructors.map((ins) => [
+    ins.user?.name || ins.name || "—",
+    GENDER_MAP[ins.gender] || ins.gender || "—",
+    INSTRUCTOR_TYPE_MAP[ins.instructorType] || ins.instructorType || "—",
+    ins.user?.phone || ins.phone || "—",
+    statusLabel(ins),
+    String(ins.id),
+  ]);
+
   return (
     <div>
-      <SectionHeader title={userRole === "accountant" ? "المدربين" : "إدارة المدربين"} subtitle="٦ مدربين مسجلين" action={userRole === "accountant" ? null : "+ إضافة مدرب"} t={t} />
-      <Table t={t}
-        headers={["الاسم", "النوع", "الجنس", "القدرات", "أجر الجلسة", "الحالة", "دروس اليوم", "مستحقات اليوم"]}
-        rows={[
-          ["خالد عمر الزيد", "داخلي", "ذكر", "عادي + أوتوماتيك", "٥٠٠ ل.س", "نشط", "٣", "١٥٠٠ ل.س"],
-          ["ليلى سعد حمود", "داخلي", "أنثى", "أوتوماتيك", "٥٠٠ ل.س", "نشط", "٣", "١٥٠٠ ل.س"],
-          ["أحمد الزيد محمد", "خارجي", "ذكر", "عادي", "٤٥٠ ل.س", "نشط", "٢", "٩٠٠ ل.س"],
-          ["سمر يوسف", "داخلي", "أنثى", "عادي + أوتوماتيك", "٥٠٠ ل.س", "في إجازة", "٠", "٠"],
-          ["ماهر العلي", "خارجي", "ذكر", "عادي", "٤٥٠ ل.س", "نشط", "١", "٤٥٠ ل.س"],
-          ["ريم الحسن", "داخلي", "أنثى", "أوتوماتيك", "٥٠٠ ل.س", "غير نشط", "٠", "٠"],
-        ]}
+      <SectionHeader
+        title={canCreate ? "إدارة المدربين" : "المدربين"}
+        subtitle={loading ? "جارٍ التحميل..." : `${instructors.length} مدرب مسجل`}
+        action={canCreate ? "+ إضافة مدرب" : null}
+        onAction={() => setShowModal(true)}
+        t={t}
       />
+
+      <div style={{
+        background: t.bgSurface, borderRadius: 10, border: `0.5px solid ${t.borderCard}`,
+        padding: "12px 16px", marginBottom: 16,
+        display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap",
+      }}>
+        <input
+          placeholder="بحث بالاسم..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            flex: 1, minWidth: 160, padding: "8px 12px", borderRadius: 7,
+            border: `0.5px solid ${t.border}`, background: t.bgElevated,
+            color: t.text, fontSize: 13,
+          }}
+        />
+        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
+          style={{ padding: "8px 12px", borderRadius: 7, border: `0.5px solid ${t.border}`, background: t.bgElevated, color: t.text, fontSize: 12 }}>
+          {INSTRUCTOR_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+        <select value={genderFilter} onChange={(e) => setGenderFilter(e.target.value)}
+          style={{ padding: "8px 12px", borderRadius: 7, border: `0.5px solid ${t.border}`, background: t.bgElevated, color: t.text, fontSize: 12 }}>
+          {GENDER_FILTER_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {loading ? (
+        <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>
+          جارٍ تحميل بيانات المدربين...
+        </div>
+      ) : instructors.length === 0 ? (
+        <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>
+          لا توجد نتائج
+        </div>
+      ) : (
+        <Table
+          t={t}
+          headers={["الاسم", "الجنس", "القدرات", "رقم الهاتف", "الحالة", "رقم المدرب"]}
+          rows={tableRows}
+        />
+      )}
 
       {/* Instructor availability section */}
       <div style={{ marginTop: 20, background: t.bgSurface, borderRadius: 12, border: `0.5px solid ${t.borderCard}`, padding: 16 }}>
@@ -928,11 +1413,19 @@ function PageInstructors({ t, userRole }) {
               fontWeight: i < 5 ? 600 : 400,
             }}>
               <div>{day}</div>
-              {i < 5 && <div style={{ fontSize: 10, marginTop: 4 }}>08:00—17:00</div>}
+              {i < 5 && <div style={{ fontSize: 10, marginTop: 4 }}>08:00 — 17:00</div>}
             </div>
           ))}
         </div>
       </div>
+
+      {showModal && (
+        <AddInstructorModal
+          t={t}
+          onClose={() => setShowModal(false)}
+          onSuccess={() => { setShowModal(false); fetchInstructors(); }}
+        />
+      )}
     </div>
   );
 }
@@ -941,9 +1434,10 @@ function PageInstructors({ t, userRole }) {
 // PAGE: VEHICLES
 // ═══════════════════════════════════════════════
 function PageVehicles({ t }) {
+  const { hasPermission } = useAuth();
   return (
     <div>
-      <SectionHeader title="إدارة المركبات" subtitle="٤ مركبات — مدرسة القيادة" action="+ إضافة مركبة" t={t} />
+      <SectionHeader title="إدارة المركبات" subtitle="٤ مركبات — مدرسة القيادة" action={hasPermission(P.VEHICLES_CREATE) ? "+ إضافة مركبة" : null} t={t} />
       <Table t={t}
         headers={["رقم اللوحة", "الموديل", "النوع", "اللون", "الحالة", "حجوزات اليوم", "ملاحظات"]}
         rows={[
@@ -1655,9 +2149,10 @@ function PageReports({ t }) {
 // PAGE: USERS & PERMISSIONS
 // ═══════════════════════════════════════════════
 function PageUsers({ t }) {
+  const { hasPermission } = useAuth();
   return (
     <div>
-      <SectionHeader title="إدارة المستخدمين والصلاحيات" subtitle="للمدير فقط" action="+ إضافة مستخدم" t={t} />
+      <SectionHeader title="إدارة المستخدمين والصلاحيات" subtitle="للمدير فقط" action={hasPermission(P.USERS_CREATE) ? "+ إضافة مستخدم" : null} t={t} />
       <Table t={t}
         headers={["الاسم", "اسم المستخدم", "الدور", "الحالة", "آخر دخول", "ملاحظة"]}
         rows={[
@@ -1755,14 +2250,27 @@ function PlaceholderPage({ title, t }) {
 // ═══════════════════════════════════════════════
 // MAIN APP SHELL
 // ═══════════════════════════════════════════════
-export default function App() {
+export default function App({
+  embeddedMode,
+  activePage: externalPage,
+  onPageChange,
+  adminSubPage: externalAdminSub,
+  accountantSubPage: externalAccountantSub,
+  receptionistSubPage: externalReceptionistSub,
+}) {
+  const { hasPermission } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
-  const [activePage, setActivePage] = useState("Dashboard");
+  const [internalPage, setInternalPage] = useState("Dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [adminSubPage, setAdminSubPage] = useState("dash");
-  const [accountantSubPage, setAccountantSubPage] = useState("dash");
-  const [receptionistSubPage, setReceptionistSubPage] = useState("students");
-  const [userRole, setUserRole] = useState("manager"); // "manager" | "admin" (موظف إداري) | "accountant"
+  const [internalAdminSub, setInternalAdminSub] = useState("dash");
+  const [internalAccountantSub, setInternalAccountantSub] = useState("dash");
+  const [internalReceptionistSub, setInternalReceptionistSub] = useState("students");
+
+  const activePage = embeddedMode ? externalPage : internalPage;
+  const setActivePage = embeddedMode ? onPageChange : setInternalPage;
+  const adminSubPage = embeddedMode ? (externalAdminSub || "dash") : internalAdminSub;
+  const accountantSubPage = embeddedMode ? (externalAccountantSub || "dash") : internalAccountantSub;
+  const receptionistSubPage = embeddedMode ? (externalReceptionistSub || "students") : internalReceptionistSub;
 
   const t = tokens[darkMode ? "dark" : "light"];
   const sidebarWidth = sidebarCollapsed ? 84 : 324;
@@ -1770,8 +2278,8 @@ export default function App() {
   const pageComponents = {
     Dashboard: <PageDashboard t={t} />,
     Bookings: <PageBookings t={t} />,
-    Students: <PageStudents t={t} userRole={userRole} />,
-    Instructors: <PageInstructors t={t} userRole={userRole} />,
+    Students: <PageStudents t={t} />,
+    Instructors: <PageInstructors t={t} />,
     Vehicles: <PageVehicles t={t} />,
     Certificate: <PageCertificate t={t} />,
     Transport: <PageTransport t={t} />,
@@ -1785,6 +2293,12 @@ export default function App() {
     ReceptionistPage: <ReceptionistPro embedded={true} page={receptionistSubPage} darkMode={darkMode} />,
   };
 
+  // In embedded mode, render only the page content (layout is handled by MainLayout)
+  if (embeddedMode) {
+    return pageComponents[activePage] || <PlaceholderPage title={activePage} t={t} />;
+  }
+
+  // Standalone mode (legacy fallback)
   return (
     <div dir="rtl" className="app-shell" style={{
       display: "flex", minHeight: "100svh", overflow: "hidden", width: "100%",
@@ -1833,23 +2347,12 @@ export default function App() {
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "12px 10px" }}>
           {navItems
             .filter(item => {
-              // adminOnly pages only visible to manager (المدير)
-              if (item.adminOnly && userRole !== "manager") return false;
-              // hide specific items per role
-              const hiddenByRole = {
-                admin: ["AdminPro", "accounting", "AccountantPro"],
-                accountant: ["AdminPro", "Receptionist", "bookings", "vehicles"],
-                manager: [],
-              };
-              const hidden = hiddenByRole[userRole] || [];
-              if (hidden.includes(item.id)) return false;
+              if (item.permission) return hasPermission(item.permission);
               return true;
             })
             .map(item => {
               const isActive = activePage === item.page;
-              const displayLabel = (userRole === "accountant" && item.id === "students") ? "عرض الطلاب"
-                : (userRole === "accountant" && item.id === "instructors") ? "عرض المدربين"
-                : item.label;
+              const displayLabel = item.label;
               return (
                 <button key={item.id} onClick={() => setActivePage(item.page)} style={{
                   width: "100%", display: "flex", alignItems: "center",
@@ -1893,13 +2396,12 @@ export default function App() {
           display: "flex", alignItems: "center",
           padding: "0 20px", gap: 14, flexShrink: 0,
         }}>
-          {/* Embedded navigation for admin/accountant/receptionist */}
           {activePage === "AdminProPage" ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               {[{id:'dash',label:'لوحة التحكم'},{id:'employees',label:'الموظفون'},{id:'permissions',label:'الصلاحيات'},{id:'pricing',label:'الأسعار والرسوم'}].map(a=>{
                 const isActive = adminSubPage===a.id;
                 return (
-                  <button key={a.id} onClick={()=>setAdminSubPage(a.id)} style={{
+                  <button key={a.id} onClick={()=>setInternalAdminSub(a.id)} style={{
                     padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer",
                     background: isActive ? t.bgSidebarActive : "transparent",
                     color: isActive ? t.textSidebarActive : t.textMuted, fontWeight: isActive?700:600
@@ -1912,7 +2414,7 @@ export default function App() {
               {[{id:'dash',label:'لوحة الحسابات'},{id:'payments',label:'الدفعات'},{id:'invoices',label:'الفواتير'},{id:'payroll',label:'الرواتب'},{id:'revenues',label:'الإيرادات'},{id:'pricing',label:'الأسعار'}].map(a=>{
                 const isActive = accountantSubPage===a.id;
                 return (
-                  <button key={a.id} onClick={()=>setAccountantSubPage(a.id)} style={{
+                  <button key={a.id} onClick={()=>setInternalAccountantSub(a.id)} style={{
                     padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer",
                     background: isActive ? t.bgSidebarActive : "transparent",
                     color: isActive ? t.textSidebarActive : t.textMuted, fontWeight: isActive?700:600
@@ -1925,7 +2427,7 @@ export default function App() {
               {[{id:'students',label:'الطلاب'},{id:'bookings',label:'الحجوزات'},{id:'instructors',label:'المدربون'},{id:'certificate',label:'الشهادة'},{id:'transport',label:'النقل'}].map(a=>{
                 const isActive = receptionistSubPage===a.id;
                 return (
-                  <button key={a.id} onClick={()=>setReceptionistSubPage(a.id)} style={{
+                  <button key={a.id} onClick={()=>setInternalReceptionistSub(a.id)} style={{
                     padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer",
                     background: isActive ? t.bgSidebarActive : "transparent",
                     color: isActive ? t.textSidebarActive : t.textMuted, fontWeight: isActive?700:600
@@ -1934,51 +2436,19 @@ export default function App() {
               })}
             </div>
           ) : (
-            /* Breadcrumb */
             <div style={{ fontSize: 13, color: t.textMuted }}>
-              {(() => {
-                const nav = navItems.find(n => n.page === activePage);
-                if (!nav) return "—";
-                if (userRole === "accountant" && nav.id === "students") return "عرض الطلاب";
-                if (userRole === "accountant" && nav.id === "instructors") return "عرض المدربين";
-                return nav.label;
-              })()}
+              {navItems.find(n => n.page === activePage)?.label || "—"}
             </div>
           )}
 
           <div style={{ flex: 1 }} />
 
-            {/* Role Switcher (demo) */}
-            <div style={{ fontSize: 11, color: t.textMuted }}>دور:</div>
-            <select value={userRole} onChange={(e) => {
-              const next = e.target.value;
-              setUserRole(next);
-              // if current active page will be hidden for the new role, reset to dashboard
-              const hiddenByRole = {
-                admin: ["AdminPro", "accounting", "AccountantPro"],
-                accountant: ["AdminPro", "Receptionist", "bookings", "vehicles"],
-                manager: [],
-              };
-              const hiddenIds = hiddenByRole[next] || [];
-              const activeNav = navItems.find(n => n.page === activePage);
-              if (activeNav && hiddenIds.includes(activeNav.id)) setActivePage("Dashboard");
-            }} style={{
-              padding: "5px 10px", borderRadius: 6, fontSize: 12,
-              border: `0.5px solid ${t.border}`, background: t.bgElevated, color: t.text,
-            }}>
-              <option value="manager">مدير</option>
-              <option value="admin">موظف إداري</option>
-              <option value="accountant">محاسب</option>
-            </select>
-
-          {/* Dark mode */}
           <button onClick={() => setDarkMode(!darkMode)} style={{
             padding: "6px 14px", borderRadius: 7,
             background: t.accentLight, color: t.accentText,
             border: "none", fontSize: 12, cursor: "pointer", fontWeight: 600,
           }}>{darkMode ? "☀️ نهاري" : "🌙 ليلي"}</button>
 
-          {/* User avatar */}
           <div style={{
             width: 34, height: 34, borderRadius: "50%",
             background: t.accentLight, color: t.accentText,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TbBus } from "react-icons/tb";
 import { TbReceiptTax } from "react-icons/tb";
 import { PiChartLineDown } from "react-icons/pi";
@@ -12,8 +12,8 @@ import { TbReportMoney } from "react-icons/tb";
 import { PiUsersThin } from "react-icons/pi";
 import { IoDocumentTextOutline } from "react-icons/io5";
 import { MdOutlineAttachMoney } from "react-icons/md";
-
 import { PiMedalFill } from "react-icons/pi";
+import { employeesService } from "./api";
 
 
 
@@ -305,68 +305,245 @@ function PgDash({t}){
 }
 
 // ─── EMPLOYEES ───
-function PgEmployees({t}){
-  const [addModal,setAddModal]=useState(false);
-  const employees=[
-    {name:"محمد هاشم سرحان",user:"mhashm",roles:["مدير"],status:"نشط",last:"الآن"},
-    {name:"أم كمال الرشيد",user:"umkamal",roles:["موظف إداري","محاسب"],status:"نشط",last:"منذ ساعة"},
-    {name:"سلمى الأحمد",user:"salma.admin",roles:["موظف إداري"],status:"نشط",last:"منذ ساعتين"},
-    {name:"خالد عمر الزيد",user:"khalid.omar",roles:["مدرب"],status:"نشط",last:"أمس"},
-    {name:"ليلى سعد حمود",user:"layla.saad",roles:["مدرب"],status:"نشط",last:"أمس"},
-    {name:"أحمد محمد الحسن",user:"ahmed.student",roles:["طالب"],status:"نشط",last:"اليوم"},
-    {name:"سعد القديمي",user:"saad.old",roles:["موظف إداري"],status:"موقوف",last:"منذ ٦ أشهر"},
-  ];
-  const roleColors={"مدير":"#6B21A8","موظف إداري":"#1D4ED8","محاسب":"#92400E","مدرب":"#C2410C","طالب":"#166534"};
-  return(
-    <div style={{padding:"20px 24px",overflowY:"auto",flex:1}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <div><div style={{fontSize:20,fontWeight:700,color:t.text}}>الموظفون والمستخدمون</div><div style={{fontSize:13,color:t.textSec,marginTop:2}}>{employees.length} مستخدم مسجل</div></div>
-        <Btn label="+ إضافة موظف" onClick={()=>setAddModal(true)} t={t}/>
-      </div>
-      <div style={{borderRadius:11,border:`1px solid ${t.border}`,overflow:"hidden"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-          <thead><tr style={{background:t.bgElevated}}>{["الاسم","اسم المستخدم","الأدوار","الحالة","آخر دخول",""].map((h,i)=><th key={i} style={{padding:"10px 14px",textAlign:"right",color:t.textMuted,fontWeight:600,fontSize:11,borderBottom:`1px solid ${t.border}`}}>{h}</th>)}</tr></thead>
-          <tbody>
-            {employees.map((emp,i)=>(
-              <tr key={i} style={{background:i%2===0?t.bgSurface:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
-                <td style={{padding:"11px 14px",fontWeight:600,color:t.text}}>{emp.name}</td>
-                <td style={{padding:"11px 14px",color:t.textSec,fontSize:12}}>{emp.user}</td>
-                <td style={{padding:"11px 14px"}}>
-                  <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                    {emp.roles.map(r=><span key={r} style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:600,background:`${roleColors[r]}18`,color:roleColors[r]}}>{r}</span>)}
-                  </div>
-                </td>
-                <td style={{padding:"11px 14px"}}><Badge s={emp.status} t={t}/></td>
-                <td style={{padding:"11px 14px",color:t.textMuted,fontSize:12}}>{emp.last}</td>
-                <td style={{padding:"11px 14px"}}>
-                  <div style={{display:"flex",gap:5}}>
-                    <Btn label="تعديل" t={t} sz="sm" v="ghost"/>
-                    <Btn label={emp.status==="نشط"?"تعطيل":"تفعيل"} t={t} sz="sm" v={emp.status==="نشط"?"danger":"secondary"}/>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {addModal&&<Modal title="إضافة موظف جديد" onClose={()=>setAddModal(false)} t={t} width={500}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-          {[{l:"الاسم الكامل",type:"text",ph:"محمد أحمد..."},{l:"رقم الهاتف",type:"tel",ph:"09X XXX XXXX"},{l:"اسم المستخدم",type:"text",ph:"user.name"},{l:"كلمة المرور الابتدائية",type:"password",ph:"••••••••"}].map((f,i)=>(
-            <div key={i}><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>{f.l}</label><input type={f.type} placeholder={f.ph} style={{width:"100%",padding:"8px 10px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/></div>
-          ))}
-        </div>
-        <div style={{marginBottom:12}}><div style={{fontSize:11,fontWeight:600,color:t.textSec,marginBottom:8}}>الأدوار والصلاحيات</div>
-          <div style={{display:"flex",flexDirection:"column",gap:5}}>
-            {["موظف إداري","محاسب","مدرب"].map(role=>(
-              <div key={role} style={{display:"flex",gap:8,alignItems:"center",padding:"6px 10px",borderRadius:7,border:`1px solid ${t.border}`}}>
-                <input type="checkbox" style={{accentColor:t.accent}}/>
-                <span style={{fontSize:12,fontWeight:600,color:t.text}}>{role}</span>
-              </div>
-            ))}
+const ROLE_LABEL_MAP = { MANAGER: "مدير", RECEPTIONIST: "موظف إداري", ACCOUNTANT: "محاسب" };
+const ROLE_COLORS = { "مدير": "#6B21A8", "موظف إداري": "#1D4ED8", "محاسب": "#92400E" };
+const STATUS_LABEL = { ACTIVE: "نشط", BLOCKED: "موقوف", ARCHIVED: "مؤرشف" };
+
+function AddEmployeeModal({ t, onClose, onSuccess }) {
+  const [form, setForm] = useState({ name: "", phone: "", password: "", role: "", monthlySalary: "", hireDate: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+
+  const set = (field, value) => { setForm(prev => ({ ...prev, [field]: value })); setErrors(prev => ({ ...prev, [field]: undefined })); };
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "الاسم مطلوب";
+    if (!form.phone.trim()) e.phone = "رقم الهاتف مطلوب";
+    else if (!/^09\d{8}$/.test(form.phone.trim())) e.phone = "رقم هاتف غير صالح";
+    if (!form.password) e.password = "كلمة المرور مطلوبة";
+    else if (form.password.length < 4) e.password = "٤ أحرف على الأقل";
+    if (!form.role) e.role = "يجب اختيار الدور";
+    if (form.monthlySalary && isNaN(Number(form.monthlySalary))) e.monthlySalary = "يجب أن يكون رقم";
+    return e;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setServerError("");
+    const v = validate();
+    setErrors(v);
+    if (Object.keys(v).length) return;
+
+    const payload = {
+      name: form.name.trim(),
+      phone: form.phone.trim(),
+      password: form.password,
+      role: form.role,
+      monthlySalary: form.monthlySalary ? Number(form.monthlySalary) : 0,
+      hireDate: form.hireDate || new Date().toISOString().split("T")[0],
+    };
+
+    setSubmitting(true);
+    try {
+      const response = await employeesService.create(payload);
+      const body = response.data?.data || response.data;
+
+      // Guard: verify the server actually persisted the record
+      const hasError = body?.error || body?.statusCode >= 400;
+      const errorMsg = body?.message;
+      if (hasError) {
+        setServerError(Array.isArray(errorMsg) ? errorMsg.join("، ") : errorMsg || "فشل حفظ الموظف في قاعدة البيانات");
+        return;
+      }
+
+      onSuccess();
+    } catch (err) {
+      const data = err.response?.data?.data || err.response?.data;
+      const msg = data?.message || err.response?.data?.message || err.message;
+      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "حدث خطأ أثناء الإضافة");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const fieldStyle = (field) => ({
+    width: "100%", padding: "10px 12px", borderRadius: 9,
+    border: `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+    background: t.bgElevated, color: t.text, fontSize: 13,
+    fontFamily: "inherit", boxSizing: "border-box", outline: "none",
+  });
+
+  const chipStyle = (value) => ({
+    flex: 1, padding: "10px 8px", borderRadius: 10, border: "none",
+    cursor: "pointer", fontSize: 13, fontWeight: 600, textAlign: "center",
+    background: form.role === value ? "#778a3b" : t.bgElevated,
+    color: form.role === value ? "#fff" : t.textSec,
+    outline: form.role === value ? "none" : `1.5px solid ${errors.role ? "#c74848" : t.border}`,
+  });
+
+  return (
+    <Modal title="إضافة موظف جديد" onClose={onClose} t={t} width={480}>
+      {serverError && (
+        <div style={{ background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#c74848" }}>{serverError}</div>
+      )}
+      <form onSubmit={handleSubmit}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 4 }}>الاسم الكامل</label>
+            <input value={form.name} onChange={e => set("name", e.target.value)} placeholder="محمد أحمد..." style={fieldStyle("name")} />
+            {errors.name && <div style={{ fontSize: 11, color: "#c74848", marginTop: 3 }}>{errors.name}</div>}
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 4 }}>رقم الهاتف</label>
+            <input value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="0991234567" dir="ltr" style={{ ...fieldStyle("phone"), textAlign: "left" }} />
+            {errors.phone && <div style={{ fontSize: 11, color: "#c74848", marginTop: 3 }}>{errors.phone}</div>}
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 4 }}>كلمة المرور</label>
+            <input type="password" value={form.password} onChange={e => set("password", e.target.value)} placeholder="كلمة مرور الحساب" style={fieldStyle("password")} />
+            {errors.password && <div style={{ fontSize: 11, color: "#c74848", marginTop: 3 }}>{errors.password}</div>}
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 4 }}>الراتب الشهري (اختياري)</label>
+            <input type="number" value={form.monthlySalary} onChange={e => set("monthlySalary", e.target.value)} placeholder="100000" dir="ltr" style={{ ...fieldStyle("monthlySalary"), textAlign: "left" }} />
+            {errors.monthlySalary && <div style={{ fontSize: 11, color: "#c74848", marginTop: 3 }}>{errors.monthlySalary}</div>}
           </div>
         </div>
-        <div style={{display:"flex",gap:8}}><Btn label="✓ إنشاء الحساب" onClick={()=>setAddModal(false)} t={t} style={{flex:1}}/><Btn label="إلغاء" onClick={()=>setAddModal(false)} t={t} v="ghost"/></div>
-      </Modal>}
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 6 }}>تاريخ التعيين (اختياري)</label>
+          <input type="date" value={form.hireDate} onChange={e => set("hireDate", e.target.value)} style={{ ...fieldStyle("hireDate"), width: "100%" }} />
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 6 }}>الدور الوظيفي</label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" onClick={() => set("role", "RECEPTIONIST")} style={chipStyle("RECEPTIONIST")}>موظف إداري</button>
+            <button type="button" onClick={() => set("role", "ACCOUNTANT")} style={chipStyle("ACCOUNTANT")}>محاسب</button>
+          </div>
+          {errors.role && <div style={{ fontSize: 11, color: "#c74848", marginTop: 4 }}>{errors.role}</div>}
+        </div>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="submit" disabled={submitting} style={{
+            flex: 1, padding: "11px", borderRadius: 10, border: "none", cursor: submitting ? "not-allowed" : "pointer",
+            background: submitting ? t.textMuted : t.grad, color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: "inherit",
+          }}>{submitting ? "جارٍ الحفظ..." : "إنشاء الحساب"}</button>
+          <Btn label="إلغاء" onClick={onClose} t={t} v="ghost" />
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function PgEmployees({ t }) {
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [addModal, setAddModal] = useState(false);
+
+  const fetchEmployees = async () => {
+    setLoading(true);
+    try {
+      const response = await employeesService.getAll();
+      const body = response.data?.data || response.data;
+      setEmployees(Array.isArray(body) ? body : []);
+    } catch {
+      setEmployees([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const response = await employeesService.getAll();
+        const body = response.data?.data || response.data;
+        if (!cancelled) setEmployees(Array.isArray(body) ? body : []);
+      } catch {
+        if (!cancelled) setEmployees([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const mapRoles = (emp) => {
+    const role = emp.role || "";
+    if (!role) return [];
+    const label = ROLE_LABEL_MAP[role.toUpperCase()] || role;
+    return [label];
+  };
+
+  const mapStatus = (emp) => {
+    const s = emp.user?.accountStatus || emp.accountStatus || "ACTIVE";
+    return STATUS_LABEL[s.toUpperCase()] || s;
+  };
+
+  return (
+    <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: t.text }}>الموظفون والمستخدمون</div>
+          <div style={{ fontSize: 13, color: t.textSec, marginTop: 2 }}>
+            {loading ? "جارٍ التحميل..." : `${employees.length} موظف مسجل`}
+          </div>
+        </div>
+        <Btn label="+ إضافة موظف" onClick={() => setAddModal(true)} t={t} />
+      </div>
+
+      {loading ? (
+        <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>جارٍ تحميل بيانات الموظفين...</div>
+      ) : employees.length === 0 ? (
+        <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>لا يوجد موظفون مسجلون بعد</div>
+      ) : (
+        <div style={{ borderRadius: 11, border: `1px solid ${t.border}`, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: t.bgElevated }}>
+                {["الاسم", "رقم الهاتف", "الدور", "الحالة", "الراتب", "تاريخ التعيين"].map((h, i) => (
+                  <th key={i} style={{ padding: "10px 14px", textAlign: "right", color: t.textMuted, fontWeight: 600, fontSize: 11, borderBottom: `1px solid ${t.border}` }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {employees.map((emp, i) => {
+                const roleLabels = mapRoles(emp);
+                const status = mapStatus(emp);
+                return (
+                  <tr key={emp.id || i} style={{ background: i % 2 === 0 ? t.bgSurface : t.bgElevated, borderBottom: `1px solid ${t.border}` }}>
+                    <td style={{ padding: "11px 14px", fontWeight: 600, color: t.text }}>{emp.user?.name || emp.name || "—"}</td>
+                    <td style={{ padding: "11px 14px", color: t.textSec, fontSize: 12, direction: "ltr", textAlign: "right" }}>{emp.user?.phone || emp.phone || "—"}</td>
+                    <td style={{ padding: "11px 14px" }}>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {roleLabels.map(r => (
+                          <span key={r} style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 600, background: `${ROLE_COLORS[r] || "#747A70"}18`, color: ROLE_COLORS[r] || "#747A70" }}>{r}</span>
+                        ))}
+                      </div>
+                    </td>
+                    <td style={{ padding: "11px 14px" }}><Badge s={status} t={t} /></td>
+                    <td style={{ padding: "11px 14px", color: t.textSec, fontSize: 12 }}>{emp.monthlySalary ? `${Number(emp.monthlySalary).toLocaleString()} ل.س` : "—"}</td>
+                    <td style={{ padding: "11px 14px", color: t.textMuted, fontSize: 12 }}>{emp.hireDate || "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {addModal && (
+        <AddEmployeeModal
+          t={t}
+          onClose={() => setAddModal(false)}
+          onSuccess={() => { setAddModal(false); fetchEmployees(); }}
+        />
+      )}
     </div>
   );
 }
