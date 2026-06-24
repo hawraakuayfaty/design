@@ -2,37 +2,179 @@ import client from "./client";
 
 const vehiclesService = {
   getAll(params) {
-    return client.get("/vehicles", { params });
+    const url = "/vehicles";
+    const method = "GET";
+    console.log(`[API Request] ${method} ${url}`, { params });
+    return client
+      .get(url, { params })
+      .then((res) => {
+        console.log(`[API Response] ${method} ${url}`, {
+          status: res.status,
+          data: res.data,
+        });
+        return res;
+      })
+      .catch((err) => {
+        console.error(`[API Error] ${method} ${url}`, {
+          status: err.response?.status,
+          error: err.response?.data || err.message,
+        });
+        throw err;
+      });
   },
 
   getById(id) {
-    return client.get(`/vehicles/${id}`);
+    const url = `/vehicles/${id}`;
+    const method = "GET";
+    console.log(`[API Request] ${method} ${url}`);
+    return client
+      .get(url)
+      .then((res) => {
+        console.log(`[API Response] ${method} ${url}`, {
+          status: res.status,
+          data: res.data,
+        });
+        return res;
+      })
+      .catch((err) => {
+        console.error(`[API Error] ${method} ${url}`, {
+          status: err.response?.status,
+          error: err.response?.data || err.message,
+        });
+        throw err;
+      });
   },
 
   create(data) {
-    return client.post("/vehicles", data);
+    const url = "/vehicles";
+    const method = "POST";
+    console.log(`[API Request] ${method} ${url}`, { body: data });
+    return client
+      .post(url, data)
+      .then((res) => {
+        console.log(`[API Response] ${method} ${url}`, {
+          status: res.status,
+          data: res.data,
+        });
+        return res;
+      })
+      .catch((err) => {
+        console.error(`[API Error] ${method} ${url}`, {
+          status: err.response?.status,
+          error: err.response?.data || err.message,
+        });
+        throw err;
+      });
   },
 
   update(id, data) {
-    return client.patch(`/vehicles/${id}`, data);
+    const url = `/vehicles/${id}`;
+    const method = "PUT";
+    console.log(`[API Request] ${method} ${url}`, { body: data });
+    return client
+      .put(url, data)
+      .then((res) => {
+        console.log(`[API Response] ${method} ${url}`, {
+          status: res.status,
+          data: res.data,
+        });
+        return res;
+      })
+      .catch((err) => {
+        console.error(`[API Error] ${method} ${url}`, {
+          status: err.response?.status,
+          error: err.response?.data || err.message,
+        });
+        throw err;
+      });
   },
 
-  updateStatus(id, status) {
-    return client.patch(`/vehicles/${id}/status`, { status });
+  addFuel(id, data) {
+    const url = `/vehicles/${id}/fuel`;
+    const method = "POST";
+    console.log(`[API Request] ${method} ${url}`, { body: data });
+    return client
+      .post(url, data)
+      .then((res) => {
+        console.log(`[API Response] ${method} ${url}`, {
+          status: res.status,
+          data: res.data,
+        });
+        return res;
+      })
+      .catch((err) => {
+        console.error(`[API Error] ${method} ${url}`, {
+          status: err.response?.status,
+          error: err.response?.data || err.message,
+        });
+        throw err;
+      });
   },
 
-  getUnavailablePeriods(vehicleId, params) {
-    return client.get(`/vehicles/${vehicleId}/unavailable-periods`, { params });
+  sendToMaintenance(id) {
+    const url = `/vehicles/${id}/maintenance`;
+    const method = "POST";
+    console.log(`[API Request] ${method} ${url}`);
+    return client
+      .post(url)
+      .then((res) => {
+        console.log(`[API Response] ${method} ${url}`, {
+          status: res.status,
+          data: res.data,
+        });
+        return res;
+      })
+      .catch((err) => {
+        console.error(`[API Error] ${method} ${url}`, {
+          status: err.response?.status,
+          error: err.response?.data || err.message,
+        });
+        throw err;
+      });
   },
 
-  createUnavailablePeriod(vehicleId, data) {
-    return client.post(`/vehicles/${vehicleId}/unavailable-periods`, data);
+  returnFromMaintenance(id, data) {
+    const url = `/vehicles/${id}/return-from-maintenance`;
+    const method = "POST";
+    console.log(`[API Request] ${method} ${url}`, { body: data });
+    return client
+      .post(url, data)
+      .then((res) => {
+        console.log(`[API Response] ${method} ${url}`, {
+          status: res.status,
+          data: res.data,
+        });
+        return res;
+      })
+      .catch((err) => {
+        console.error(`[API Error] ${method} ${url}`, {
+          status: err.response?.status,
+          error: err.response?.data || err.message,
+        });
+        throw err;
+      });
   },
 
-  deleteUnavailablePeriod(vehicleId, periodId) {
-    return client.delete(
-      `/vehicles/${vehicleId}/unavailable-periods/${periodId}`
-    );
+  archive(id) {
+    const url = `/vehicles/${id}/archive`;
+    const method = "POST";
+    console.log(`[API Request] ${method} ${url}`);
+    return client
+      .post(url)
+      .then((res) => {
+        console.log(`[API Response] ${method} ${url}`, {
+          status: res.status,
+          data: res.data,
+        });
+        return res;
+      })
+      .catch((err) => {
+        console.error(`[API Error] ${method} ${url}`, {
+          status: err.response?.status,
+          error: err.response?.data || err.message,
+        });
+        throw err;
+      });
   },
 };
 

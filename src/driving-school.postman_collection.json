@@ -1,9 +1,10 @@
 {
   "info": {
-    "_postman_id": "8b80db61-6891-46c2-bfbc-810a60c0d0b2",
+    "_postman_id": "5051f4ed-e730-4b4e-adeb-08b30f12a701",
     "name": "driving-school",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "39834260"
+    "_exporter_id": "39834260",
+    "_collection_link": "https://go.postman.co/collection/39834260-5051f4ed-e730-4b4e-adeb-08b30f12a701?source=collection_link"
   },
   "item": [
     {
@@ -31,8 +32,13 @@
             },
             "url": {
               "raw": "{{url}}/auth/login",
-              "host": ["{{url}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
           },
           "response": []
@@ -59,8 +65,13 @@
             },
             "url": {
               "raw": "{{url}}/auth/refresh",
-              "host": ["{{url}}"],
-              "path": ["auth", "refresh"]
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
             }
           },
           "response": []
@@ -97,8 +108,13 @@
             },
             "url": {
               "raw": "{{url}}/auth/logout",
-              "host": ["{{url}}"],
-              "path": ["auth", "logout"]
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
             }
           },
           "response": []
@@ -126,8 +142,13 @@
             ],
             "url": {
               "raw": "{{url}}/auth/me",
-              "host": ["{{url}}"],
-              "path": ["auth", "me"]
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
             }
           },
           "response": []
@@ -155,8 +176,13 @@
             ],
             "url": {
               "raw": "{{url}}/auth/logout-all",
-              "host": ["{{url}}"],
-              "path": ["auth", "logout-all"]
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "logout-all"
+              ]
             }
           },
           "response": []
@@ -184,8 +210,13 @@
             ],
             "url": {
               "raw": "{{url}}/auth/me",
-              "host": ["{{url}}"],
-              "path": ["auth", "me"]
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
             }
           },
           "response": []
@@ -218,8 +249,12 @@
             ],
             "url": {
               "raw": "{{url}}/students?search=&status=PASSED",
-              "host": ["{{url}}"],
-              "path": ["students"],
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "students"
+              ],
               "query": [
                 {
                   "key": "search",
@@ -259,8 +294,13 @@
             ],
             "url": {
               "raw": "{{url}}/students/10",
-              "host": ["{{url}}"],
-              "path": ["students", "10"]
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "students",
+                "10"
+              ]
             }
           },
           "response": []
@@ -297,8 +337,13 @@
             },
             "url": {
               "raw": "{{url}}/users/students",
-              "host": ["{{url}}"],
-              "path": ["users", "students"]
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "users",
+                "students"
+              ]
             }
           },
           "response": []
@@ -331,8 +376,12 @@
             ],
             "url": {
               "raw": "{{url}}/instructors?search=&instructorType=BOTH&gender=FEMALE",
-              "host": ["{{url}}"],
-              "path": ["instructors"],
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "instructors"
+              ],
               "query": [
                 {
                   "key": "search",
@@ -377,8 +426,13 @@
             ],
             "url": {
               "raw": "{{url}}/instructors/5",
-              "host": ["{{url}}"],
-              "path": ["instructors", "5"]
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "instructors",
+                "5"
+              ]
             }
           },
           "response": []
@@ -415,8 +469,13 @@
             },
             "url": {
               "raw": "{{url}}/users/instructors",
-              "host": ["{{url}}"],
-              "path": ["users", "instructors"]
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "users",
+                "instructors"
+              ]
             }
           },
           "response": []
@@ -449,8 +508,13 @@
             ],
             "url": {
               "raw": "{{url}}/employees/?role=RECEPTIONIST",
-              "host": ["{{url}}"],
-              "path": ["employees", ""],
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "employees",
+                ""
+              ],
               "query": [
                 {
                   "key": "search",
@@ -491,8 +555,13 @@
             ],
             "url": {
               "raw": "{{url}}/employees/2",
-              "host": ["{{url}}"],
-              "path": ["employees", "2"]
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "employees",
+                "2"
+              ]
             }
           },
           "response": []
@@ -529,8 +598,358 @@
             },
             "url": {
               "raw": "{{url}}/users/employees",
-              "host": ["{{url}}"],
-              "path": ["users", "employees"]
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "users",
+                "employees"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Vehicles",
+      "item": [
+        {
+          "name": "get all vehicles",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIxOTg5NDQsImV4cCI6MTc4MjE5OTg0NH0.MDl7aFXyE_gsy3TjV9EZAyGq-0xJWbXtZ1apLxL7h2M",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/vehicles?status=ACTIVE&type=MANUAL&search=",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "vehicles"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "ACTIVE , INACTIVE , ARCHIVED"
+                },
+                {
+                  "key": "type",
+                  "value": "MANUAL",
+                  "description": "MANUAL , AUTOMATIC"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "by plateNumber"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get one vehicle",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIyMDM4NjYsImV4cCI6MTc4MjIwNDc2Nn0.Tcpv8uLhD9PEGnhk5T1FNwwKo76jv_rvfHQIJh7u0Nw",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/vehicles/11",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "vehicles",
+                "11"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "create vehicle",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIyMDM2MjgsImV4cCI6MTc4MjIwNDUyOH0.fHFpCAtz5Kl-hdhPkHES-o5EWMhvFUUPKD9PtH26W6E",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"plateNumber\" : \"123456789\" ,\r\n    \"model\" :\"kia rio\" , //  nullable\r\n    \"color\" :\"white\" , //  nullable\r\n    \"type\" : \"AUTOMATIC\", // AUTOMATIC ,MANUAL\r\n    \"adminNotes\" : null  // nullable\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/vehicles",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "vehicles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update vehicle info",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIyMDM4NjYsImV4cCI6MTc4MjIwNDc2Nn0.Tcpv8uLhD9PEGnhk5T1FNwwKo76jv_rvfHQIJh7u0Nw",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"plateNumber\" : \"2222\" \r\n    // \"model\" :\"kia rio\" , //  nullable\r\n    // \"color\" :\"white\" , //  nullable\r\n    // \"type\" : \"AUTOMATIC\", // AUTOMATIC ,MANUAL\r\n    // \"adminNotes\" : null  // nullable\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/vehicles/11",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "vehicles",
+                "11"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "add fuel",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIyMDM4NjYsImV4cCI6MTc4MjIwNDc2Nn0.Tcpv8uLhD9PEGnhk5T1FNwwKo76jv_rvfHQIJh7u0Nw",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"liters\" : 14 ,\r\n    \"pricePerLiter\" : 15.2 ,\r\n    \"note\" : null // nullable\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/vehicles/11/fuel",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "vehicles",
+                "11",
+                "fuel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "send to maintenance",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIyMDM4NjYsImV4cCI6MTc4MjIwNDc2Nn0.Tcpv8uLhD9PEGnhk5T1FNwwKo76jv_rvfHQIJh7u0Nw",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/vehicles/11/maintenance",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "vehicles",
+                "11",
+                "maintenance"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "return from Maintenance",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIyMDQ4MjIsImV4cCI6MTc4MjIwNTcyMn0.MnO4hqsZzHZoTDVsccKby4dyTRA6Z0Rzdqn3KzFU9R4",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"maintenanceCost\" : 142.2 ,\r\n    \"expenseStatus\"   : \"PAID\" , // \"PAID\" , \"UNPAID\"\r\n    \"notes\"            : null    // nullable\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/vehicles/11/return-from-maintenance",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "vehicles",
+                "11",
+                "return-from-maintenance"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "archive vehicle",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIyMDQ4MjIsImV4cCI6MTc4MjIwNTcyMn0.MnO4hqsZzHZoTDVsccKby4dyTRA6Z0Rzdqn3KzFU9R4",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{url}}/vehicles/1/archive",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "vehicles",
+                "1",
+                "archive"
+              ]
             }
           },
           "response": []
@@ -545,7 +964,9 @@
         "type": "text/javascript",
         "packages": {},
         "requests": {},
-        "exec": [""]
+        "exec": [
+          ""
+        ]
       }
     },
     {
@@ -554,7 +975,9 @@
         "type": "text/javascript",
         "packages": {},
         "requests": {},
-        "exec": [""]
+        "exec": [
+          ""
+        ]
       }
     }
   ],

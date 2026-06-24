@@ -3,7 +3,7 @@ import qeyadahLogo from "./assets/qeyadah-logo.jpg";
 import AdminPro from "./AdminPro";
 import AccountantPro from "./AccountantPro";
 import ReceptionistPro from "./ReceptionistPro";
-import { studentsService, instructorsService } from "./api";
+import { studentsService, instructorsService, vehiclesService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
 import { CiSettings } from "react-icons/ci";
@@ -1433,25 +1433,807 @@ function PageInstructors({ t }) {
 // ═══════════════════════════════════════════════
 // PAGE: VEHICLES
 // ═══════════════════════════════════════════════
+const VEHICLE_STATUS_MAP = {
+  ACTIVE: "متاحة",
+  INACTIVE: "في الصيانة",
+  ARCHIVED: "غير متاحة",
+};
+
+const VEHICLE_TYPE_MAP = {
+  MANUAL: "عادي",
+  AUTOMATIC: "أوتوماتيك",
+};
+
+const VEHICLE_STATUS_OPTIONS = [
+  { value: "", label: "كل الحالات" },
+  { value: "ACTIVE", label: "متاحة" },
+  { value: "INACTIVE", label: "في الصيانة" },
+  { value: "ARCHIVED", label: "مؤرشفة" },
+];
+
+const VEHICLE_TYPE_OPTIONS = [
+  { value: "", label: "كل الأنواع" },
+  { value: "MANUAL", label: "عادي" },
+  { value: "AUTOMATIC", label: "أوتوماتيك" },
+];
+
+function AddVehicleModal({ t, onClose, onSuccess }) {
+  const [form, setForm] = useState({ plateNumber: "", model: "", color: "", type: "", adminNotes: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+
+  const validate = () => {
+    const e = {};
+    if (!form.plateNumber.trim()) e.plateNumber = "رقم اللوحة مطلوب";
+    if (!form.type) e.type = "نوع المركبة مطلوب";
+    return e;
+  };
+
+  const handleSubmit = async (ev) => {
+    ev.preventDefault();
+    setServerError("");
+    const v = validate();
+    setErrors(v);
+    if (Object.keys(v).length) return;
+
+    setSubmitting(true);
+    try {
+      await vehiclesService.create({
+        plateNumber: form.plateNumber.trim(),
+        model: form.model.trim() || null,
+        color: form.color.trim() || null,
+        type: form.type,
+        adminNotes: form.adminNotes.trim() || null,
+      });
+      onSuccess();
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "حدث خطأ أثناء الإضافة");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const fieldStyle = (field) => ({
+    width: "100%", padding: "12px 14px", borderRadius: 10,
+    border: `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+    background: t.bgElevated, color: t.text, fontSize: 14,
+    outline: "none", transition: "border-color 0.2s",
+  });
+
+  const selectChipStyle = (value) => ({
+    flex: 1, padding: "10px 8px", borderRadius: 10, border: "none",
+    cursor: "pointer", fontSize: 13, fontWeight: 600, textAlign: "center",
+    transition: "all 0.15s",
+    background: form.type === value ? "#778a3b" : t.bgElevated,
+    color: form.type === value ? "#fff" : t.textSec,
+    outline: form.type === value ? "none" : `1.5px solid ${errors.type ? "#c74848" : t.border}`,
+  });
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.45)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
+        width: "100%", maxWidth: 480, border: `1px solid ${t.borderCard}`,
+        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+        maxHeight: "90vh", overflowY: "auto",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: t.text }}>إضافة مركبة جديدة</h3>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+
+        {serverError && (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+            fontSize: 13, color: "#c74848",
+          }}>{serverError}</div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>رقم اللوحة</label>
+            <input value={form.plateNumber} onChange={(ev) => { setForm({ ...form, plateNumber: ev.target.value }); setErrors({ ...errors, plateNumber: undefined }); }}
+              placeholder="مثال: أ ب ج 101" style={fieldStyle("plateNumber")} />
+            {errors.plateNumber && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.plateNumber}</div>}
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>الموديل (اختياري)</label>
+            <input value={form.model} onChange={(ev) => setForm({ ...form, model: ev.target.value })}
+              placeholder="مثال: تويوتا كورولا 2020" style={fieldStyle("model")} />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>اللون (اختياري)</label>
+            <input value={form.color} onChange={(ev) => setForm({ ...form, color: ev.target.value })}
+              placeholder="مثال: أبيض" style={fieldStyle("color")} />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 8 }}>نوع المركبة</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => { setForm({ ...form, type: "MANUAL" }); setErrors({ ...errors, type: undefined }); }} style={selectChipStyle("MANUAL")}>عادي</button>
+              <button type="button" onClick={() => { setForm({ ...form, type: "AUTOMATIC" }); setErrors({ ...errors, type: undefined }); }} style={selectChipStyle("AUTOMATIC")}>أوتوماتيك</button>
+            </div>
+            {errors.type && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.type}</div>}
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>ملاحظات (اختياري)</label>
+            <input value={form.adminNotes} onChange={(ev) => setForm({ ...form, adminNotes: ev.target.value })}
+              placeholder="ملاحظات إدارية" style={fieldStyle("adminNotes")} />
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="submit" disabled={submitting} style={{
+              flex: 1, padding: "12px", borderRadius: 12,
+              background: submitting ? t.textMuted : "#778a3b",
+              color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
+              cursor: submitting ? "not-allowed" : "pointer",
+              transition: "background 0.2s",
+            }}>{submitting ? "جارٍ الحفظ..." : "حفظ المركبة"}</button>
+            <button type="button" onClick={onClose} style={{
+              padding: "12px 20px", borderRadius: 12,
+              background: t.bgElevated, color: t.textSec,
+              border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
+              cursor: "pointer",
+            }}>إلغاء</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function EditVehicleModal({ t, vehicle, onClose, onSuccess }) {
+  const [form, setForm] = useState({
+    plateNumber: vehicle.plateNumber || "",
+    model: vehicle.model || "",
+    color: vehicle.color || "",
+    type: vehicle.type || "",
+    adminNotes: vehicle.adminNotes || "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+
+  const validate = () => {
+    const e = {};
+    if (!form.plateNumber.trim()) e.plateNumber = "رقم اللوحة مطلوب";
+    if (!form.type) e.type = "نوع المركبة مطلوب";
+    return e;
+  };
+
+  const handleSubmit = async (ev) => {
+    ev.preventDefault();
+    setServerError("");
+    const v = validate();
+    setErrors(v);
+    if (Object.keys(v).length) return;
+
+    setSubmitting(true);
+    try {
+      await vehiclesService.update(vehicle.id, {
+        plateNumber: form.plateNumber.trim(),
+        model: form.model.trim() || null,
+        color: form.color.trim() || null,
+        type: form.type,
+        adminNotes: form.adminNotes.trim() || null,
+      });
+      onSuccess();
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "حدث خطأ أثناء التعديل");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const fieldStyle = (field) => ({
+    width: "100%", padding: "12px 14px", borderRadius: 10,
+    border: `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+    background: t.bgElevated, color: t.text, fontSize: 14,
+    outline: "none", transition: "border-color 0.2s",
+  });
+
+  const selectChipStyle = (value) => ({
+    flex: 1, padding: "10px 8px", borderRadius: 10, border: "none",
+    cursor: "pointer", fontSize: 13, fontWeight: 600, textAlign: "center",
+    transition: "all 0.15s",
+    background: form.type === value ? "#778a3b" : t.bgElevated,
+    color: form.type === value ? "#fff" : t.textSec,
+    outline: form.type === value ? "none" : `1.5px solid ${errors.type ? "#c74848" : t.border}`,
+  });
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.45)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
+        width: "100%", maxWidth: 480, border: `1px solid ${t.borderCard}`,
+        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+        maxHeight: "90vh", overflowY: "auto",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: t.text }}>تعديل بيانات المركبة</h3>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+
+        {serverError && (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+            fontSize: 13, color: "#c74848",
+          }}>{serverError}</div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>رقم اللوحة</label>
+            <input value={form.plateNumber} onChange={(ev) => { setForm({ ...form, plateNumber: ev.target.value }); setErrors({ ...errors, plateNumber: undefined }); }}
+              style={fieldStyle("plateNumber")} />
+            {errors.plateNumber && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.plateNumber}</div>}
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>الموديل</label>
+            <input value={form.model} onChange={(ev) => setForm({ ...form, model: ev.target.value })}
+              style={fieldStyle("model")} />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>اللون</label>
+            <input value={form.color} onChange={(ev) => setForm({ ...form, color: ev.target.value })}
+              style={fieldStyle("color")} />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 8 }}>نوع المركبة</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => { setForm({ ...form, type: "MANUAL" }); setErrors({ ...errors, type: undefined }); }} style={selectChipStyle("MANUAL")}>عادي</button>
+              <button type="button" onClick={() => { setForm({ ...form, type: "AUTOMATIC" }); setErrors({ ...errors, type: undefined }); }} style={selectChipStyle("AUTOMATIC")}>أوتوماتيك</button>
+            </div>
+            {errors.type && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.type}</div>}
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>ملاحظات</label>
+            <input value={form.adminNotes} onChange={(ev) => setForm({ ...form, adminNotes: ev.target.value })}
+              style={fieldStyle("adminNotes")} />
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="submit" disabled={submitting} style={{
+              flex: 1, padding: "12px", borderRadius: 12,
+              background: submitting ? t.textMuted : "#778a3b",
+              color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
+              cursor: submitting ? "not-allowed" : "pointer",
+              transition: "background 0.2s",
+            }}>{submitting ? "جارٍ الحفظ..." : "حفظ التعديلات"}</button>
+            <button type="button" onClick={onClose} style={{
+              padding: "12px 20px", borderRadius: 12,
+              background: t.bgElevated, color: t.textSec,
+              border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
+              cursor: "pointer",
+            }}>إلغاء</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function FuelModal({ t, vehicle, onClose, onSuccess }) {
+  const [form, setForm] = useState({ liters: "", pricePerLiter: "", note: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+
+  const validate = () => {
+    const e = {};
+    if (!form.liters || isNaN(form.liters) || Number(form.liters) <= 0) e.liters = "عدد اللترات مطلوب";
+    if (!form.pricePerLiter || isNaN(form.pricePerLiter) || Number(form.pricePerLiter) <= 0) e.pricePerLiter = "سعر اللتر مطلوب";
+    return e;
+  };
+
+  const handleSubmit = async (ev) => {
+    ev.preventDefault();
+    setServerError("");
+    const v = validate();
+    setErrors(v);
+    if (Object.keys(v).length) return;
+
+    setSubmitting(true);
+    try {
+      await vehiclesService.addFuel(vehicle.id, {
+        liters: Number(form.liters),
+        pricePerLiter: Number(form.pricePerLiter),
+        note: form.note.trim() || null,
+      });
+      onSuccess();
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "حدث خطأ أثناء تسجيل الوقود");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const fieldStyle = (field) => ({
+    width: "100%", padding: "12px 14px", borderRadius: 10,
+    border: `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+    background: t.bgElevated, color: t.text, fontSize: 14,
+    outline: "none", transition: "border-color 0.2s",
+  });
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.45)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
+        width: "100%", maxWidth: 440, border: `1px solid ${t.borderCard}`,
+        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: t.text }}>تعبئة وقود — {vehicle.plateNumber}</h3>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+
+        {serverError && (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+            fontSize: 13, color: "#c74848",
+          }}>{serverError}</div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>عدد اللترات</label>
+            <input type="number" step="0.1" value={form.liters} onChange={(ev) => { setForm({ ...form, liters: ev.target.value }); setErrors({ ...errors, liters: undefined }); }}
+              placeholder="مثال: 14" dir="ltr" style={{ ...fieldStyle("liters"), textAlign: "left" }} />
+            {errors.liters && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.liters}</div>}
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>سعر اللتر</label>
+            <input type="number" step="0.1" value={form.pricePerLiter} onChange={(ev) => { setForm({ ...form, pricePerLiter: ev.target.value }); setErrors({ ...errors, pricePerLiter: undefined }); }}
+              placeholder="مثال: 15.2" dir="ltr" style={{ ...fieldStyle("pricePerLiter"), textAlign: "left" }} />
+            {errors.pricePerLiter && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.pricePerLiter}</div>}
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>ملاحظة (اختياري)</label>
+            <input value={form.note} onChange={(ev) => setForm({ ...form, note: ev.target.value })}
+              placeholder="ملاحظة عن التعبئة" style={fieldStyle("note")} />
+          </div>
+
+          {form.liters && form.pricePerLiter && !isNaN(form.liters) && !isNaN(form.pricePerLiter) && (
+            <div style={{
+              padding: "10px 14px", borderRadius: 10,
+              background: t.accentLight, marginBottom: 16,
+              fontSize: 13, fontWeight: 600, color: t.accentText,
+            }}>
+              الإجمالي: {(Number(form.liters) * Number(form.pricePerLiter)).toFixed(1)}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="submit" disabled={submitting} style={{
+              flex: 1, padding: "12px", borderRadius: 12,
+              background: submitting ? t.textMuted : "#778a3b",
+              color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
+              cursor: submitting ? "not-allowed" : "pointer",
+              transition: "background 0.2s",
+            }}>{submitting ? "جارٍ الحفظ..." : "تسجيل الوقود"}</button>
+            <button type="button" onClick={onClose} style={{
+              padding: "12px 20px", borderRadius: 12,
+              background: t.bgElevated, color: t.textSec,
+              border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
+              cursor: "pointer",
+            }}>إلغاء</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ReturnFromMaintenanceModal({ t, vehicle, onClose, onSuccess }) {
+  const [form, setForm] = useState({ maintenanceCost: "", expenseStatus: "PAID", notes: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+
+  const validate = () => {
+    const e = {};
+    if (!form.maintenanceCost || isNaN(form.maintenanceCost) || Number(form.maintenanceCost) < 0) e.maintenanceCost = "تكلفة الصيانة مطلوبة";
+    return e;
+  };
+
+  const handleSubmit = async (ev) => {
+    ev.preventDefault();
+    setServerError("");
+    const v = validate();
+    setErrors(v);
+    if (Object.keys(v).length) return;
+
+    setSubmitting(true);
+    try {
+      await vehiclesService.returnFromMaintenance(vehicle.id, {
+        maintenanceCost: Number(form.maintenanceCost),
+        expenseStatus: form.expenseStatus,
+        notes: form.notes.trim() || null,
+      });
+      onSuccess();
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "حدث خطأ");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const fieldStyle = (field) => ({
+    width: "100%", padding: "12px 14px", borderRadius: 10,
+    border: `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+    background: t.bgElevated, color: t.text, fontSize: 14,
+    outline: "none", transition: "border-color 0.2s",
+  });
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.45)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
+        width: "100%", maxWidth: 440, border: `1px solid ${t.borderCard}`,
+        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: t.text }}>إرجاع من الصيانة — {vehicle.plateNumber}</h3>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+
+        {serverError && (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+            fontSize: 13, color: "#c74848",
+          }}>{serverError}</div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>تكلفة الصيانة</label>
+            <input type="number" step="0.1" value={form.maintenanceCost} onChange={(ev) => { setForm({ ...form, maintenanceCost: ev.target.value }); setErrors({ ...errors, maintenanceCost: undefined }); }}
+              placeholder="مثال: 142.2" dir="ltr" style={{ ...fieldStyle("maintenanceCost"), textAlign: "left" }} />
+            {errors.maintenanceCost && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.maintenanceCost}</div>}
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 8 }}>حالة الدفع</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => setForm({ ...form, expenseStatus: "PAID" })} style={{
+                flex: 1, padding: "10px 8px", borderRadius: 10, border: "none",
+                cursor: "pointer", fontSize: 13, fontWeight: 600, textAlign: "center",
+                background: form.expenseStatus === "PAID" ? "#778a3b" : t.bgElevated,
+                color: form.expenseStatus === "PAID" ? "#fff" : t.textSec,
+                outline: form.expenseStatus === "PAID" ? "none" : `1.5px solid ${t.border}`,
+              }}>مدفوع</button>
+              <button type="button" onClick={() => setForm({ ...form, expenseStatus: "UNPAID" })} style={{
+                flex: 1, padding: "10px 8px", borderRadius: 10, border: "none",
+                cursor: "pointer", fontSize: 13, fontWeight: 600, textAlign: "center",
+                background: form.expenseStatus === "UNPAID" ? "#778a3b" : t.bgElevated,
+                color: form.expenseStatus === "UNPAID" ? "#fff" : t.textSec,
+                outline: form.expenseStatus === "UNPAID" ? "none" : `1.5px solid ${t.border}`,
+              }}>غير مدفوع</button>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>ملاحظات (اختياري)</label>
+            <input value={form.notes} onChange={(ev) => setForm({ ...form, notes: ev.target.value })}
+              placeholder="ملاحظات عن الصيانة" style={fieldStyle("notes")} />
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="submit" disabled={submitting} style={{
+              flex: 1, padding: "12px", borderRadius: 12,
+              background: submitting ? t.textMuted : "#778a3b",
+              color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
+              cursor: submitting ? "not-allowed" : "pointer",
+              transition: "background 0.2s",
+            }}>{submitting ? "جارٍ الحفظ..." : "تأكيد الإرجاع"}</button>
+            <button type="button" onClick={onClose} style={{
+              padding: "12px 20px", borderRadius: 12,
+              background: t.bgElevated, color: t.textSec,
+              border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
+              cursor: "pointer",
+            }}>إلغاء</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function PageVehicles({ t }) {
   const { hasPermission } = useAuth();
+  const canCreate = hasPermission(P.VEHICLES_CREATE);
+  const canUpdate = hasPermission(P.VEHICLES_UPDATE);
+
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editVehicle, setEditVehicle] = useState(null);
+  const [fuelVehicle, setFuelVehicle] = useState(null);
+  const [returnVehicle, setReturnVehicle] = useState(null);
+  const [actionLoading, setActionLoading] = useState(null);
+
+  const fetchVehicles = async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (statusFilter) params.status = statusFilter;
+      if (typeFilter) params.type = typeFilter;
+      if (search.trim()) params.search = search.trim();
+      const { data } = await vehiclesService.getAll(params);
+      setVehicles(Array.isArray(data) ? data : data.data || []);
+    } catch {
+      setVehicles([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const params = {};
+        if (statusFilter) params.status = statusFilter;
+        if (typeFilter) params.type = typeFilter;
+        if (search.trim()) params.search = search.trim();
+        const { data } = await vehiclesService.getAll(params);
+        if (!cancelled) setVehicles(Array.isArray(data) ? data : data.data || []);
+      } catch {
+        if (!cancelled) setVehicles([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [search, statusFilter, typeFilter]);
+
+  const handleSendToMaintenance = async (vehicle) => {
+    if (actionLoading) return;
+    setActionLoading(vehicle.id);
+    try {
+      await vehiclesService.sendToMaintenance(vehicle.id);
+      fetchVehicles();
+    } catch {
+      // error already logged by service
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleArchive = async (vehicle) => {
+    if (actionLoading) return;
+    setActionLoading(vehicle.id);
+    try {
+      await vehiclesService.archive(vehicle.id);
+      fetchVehicles();
+    } catch {
+      // error already logged by service
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const maintenanceVehicles = vehicles.filter((v) => v.status === "INACTIVE");
+
+  const tableRows = vehicles.map((v) => [
+    v.plateNumber || "—",
+    v.model || "—",
+    VEHICLE_TYPE_MAP[v.type] || v.type || "—",
+    v.color || "—",
+    VEHICLE_STATUS_MAP[v.status] || v.status || "—",
+    String(v.todayBookings ?? v._count?.bookings ?? "—"),
+    v.adminNotes || "—",
+    canUpdate ? v : null,
+  ]);
+
   return (
     <div>
-      <SectionHeader title="إدارة المركبات" subtitle="٤ مركبات — مدرسة القيادة" action={hasPermission(P.VEHICLES_CREATE) ? "+ إضافة مركبة" : null} t={t} />
-      <Table t={t}
-        headers={["رقم اللوحة", "الموديل", "النوع", "اللون", "الحالة", "حجوزات اليوم", "ملاحظات"]}
-        rows={[
-          ["أ ب ج 101", "تويوتا كورولا 2020", "عادي", "أبيض", "متاحة", "٣", "—"],
-          ["أ ب ج 102", "تويوتا كورولا 2019", "عادي", "رمادي", "في الصيانة", "٠", "تغيير زيت"],
-          ["أ ب ج 201", "هيونداي إلنترا 2021", "أوتوماتيك", "أسود", "متاحة", "٢", "—"],
-          ["أ ب ج 202", "هيونداي إلنترا 2022", "أوتوماتيك", "أبيض", "متاحة", "٣", "—"],
-        ]}
+      <SectionHeader
+        title="إدارة المركبات"
+        subtitle={loading ? "جارٍ التحميل..." : `${vehicles.length} مركبات — مدرسة القيادة`}
+        action={canCreate ? "+ إضافة مركبة" : null}
+        onAction={() => setShowAddModal(true)}
+        t={t}
       />
-      <div style={{ marginTop: 16, padding: "12px 16px", background: t.pending.bg, borderRadius: 10, border: `0.5px solid ${t.pending.text}30` }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: t.pending.text }}>
-          تنبيه: مركبة أ ب ج 102 في الصيانة — لن تظهر في أوقات الحجز المتاحة
-        </div>
+
+      <div style={{
+        background: t.bgSurface, borderRadius: 10, border: `0.5px solid ${t.borderCard}`,
+        padding: "12px 16px", marginBottom: 16,
+        display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap",
+      }}>
+        <input
+          placeholder="بحث برقم اللوحة..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            flex: 1, minWidth: 160, padding: "8px 12px", borderRadius: 7,
+            border: `0.5px solid ${t.border}`, background: t.bgElevated,
+            color: t.text, fontSize: 13,
+          }}
+        />
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+          style={{ padding: "8px 12px", borderRadius: 7, border: `0.5px solid ${t.border}`, background: t.bgElevated, color: t.text, fontSize: 12 }}>
+          {VEHICLE_STATUS_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
+          style={{ padding: "8px 12px", borderRadius: 7, border: `0.5px solid ${t.border}`, background: t.bgElevated, color: t.text, fontSize: 12 }}>
+          {VEHICLE_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
       </div>
+
+      {loading ? (
+        <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>
+          جارٍ تحميل بيانات المركبات...
+        </div>
+      ) : vehicles.length === 0 ? (
+        <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>
+          لا توجد مركبات
+        </div>
+      ) : (
+        <div style={{ borderRadius: 10, border: `0.5px solid ${t.border}`, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <thead>
+              <tr style={{ background: t.bgElevated }}>
+                {["رقم اللوحة", "الموديل", "النوع", "اللون", "الحالة", "حجوزات اليوم", "ملاحظات", ...(canUpdate ? ["إجراءات"] : [])].map((h, i) => (
+                  <th key={i} style={{
+                    padding: "10px 14px", textAlign: "right",
+                    color: t.textMuted, fontWeight: 600,
+                    fontSize: 12, borderBottom: `0.5px solid ${t.border}`,
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((row, ri) => (
+                <tr key={ri} style={{
+                  background: ri % 2 === 0 ? t.bgSurface : t.bgPage,
+                  borderBottom: `0.5px solid ${t.border}`,
+                }}>
+                  {row.slice(0, 7).map((cell, ci) => (
+                    <td key={ci} style={{ padding: "10px 14px", color: t.text, fontSize: 14 }}>
+                      {typeof cell === "string" && ["متاحة", "في الصيانة", "غير متاحة", "عادي", "أوتوماتيك"].includes(cell)
+                        ? <Badge status={cell} t={t} />
+                        : cell}
+                    </td>
+                  ))}
+                  {canUpdate && (
+                    <td style={{ padding: "10px 14px" }}>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        <button onClick={() => setEditVehicle(row[7])} style={{
+                          padding: "4px 10px", borderRadius: 6, background: t.accentLight,
+                          color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                        }}>تعديل</button>
+                        <button onClick={() => setFuelVehicle(row[7])} style={{
+                          padding: "4px 10px", borderRadius: 6, background: t.accentLight,
+                          color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                        }}>وقود</button>
+                        {row[7]?.status === "ACTIVE" && (
+                          <button onClick={() => handleSendToMaintenance(row[7])} disabled={actionLoading === row[7]?.id} style={{
+                            padding: "4px 10px", borderRadius: 6, background: t.pending.bg,
+                            color: t.pending.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                          }}>صيانة</button>
+                        )}
+                        {row[7]?.status === "INACTIVE" && (
+                          <button onClick={() => setReturnVehicle(row[7])} style={{
+                            padding: "4px 10px", borderRadius: 6, background: t.completed.bg,
+                            color: t.completed.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                          }}>إرجاع</button>
+                        )}
+                        {row[7]?.status !== "ARCHIVED" && (
+                          <button onClick={() => handleArchive(row[7])} disabled={actionLoading === row[7]?.id} style={{
+                            padding: "4px 10px", borderRadius: 6, background: t.cancelled.bg,
+                            color: t.cancelled.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                          }}>أرشفة</button>
+                        )}
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {maintenanceVehicles.length > 0 && (
+        <div style={{ marginTop: 16, padding: "12px 16px", background: t.pending.bg, borderRadius: 10, border: `0.5px solid ${t.pending.text}30` }}>
+          {maintenanceVehicles.map((mv) => (
+            <div key={mv.id} style={{ fontSize: 12, fontWeight: 700, color: t.pending.text, padding: "2px 0" }}>
+              تنبيه: مركبة {mv.plateNumber} في الصيانة — لن تظهر في أوقات الحجز المتاحة
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showAddModal && (
+        <AddVehicleModal
+          t={t}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={() => { setShowAddModal(false); fetchVehicles(); }}
+        />
+      )}
+
+      {editVehicle && (
+        <EditVehicleModal
+          t={t}
+          vehicle={editVehicle}
+          onClose={() => setEditVehicle(null)}
+          onSuccess={() => { setEditVehicle(null); fetchVehicles(); }}
+        />
+      )}
+
+      {fuelVehicle && (
+        <FuelModal
+          t={t}
+          vehicle={fuelVehicle}
+          onClose={() => setFuelVehicle(null)}
+          onSuccess={() => { setFuelVehicle(null); fetchVehicles(); }}
+        />
+      )}
+
+      {returnVehicle && (
+        <ReturnFromMaintenanceModal
+          t={t}
+          vehicle={returnVehicle}
+          onClose={() => setReturnVehicle(null)}
+          onSuccess={() => { setReturnVehicle(null); fetchVehicles(); }}
+        />
+      )}
     </div>
   );
 }
