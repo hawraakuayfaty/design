@@ -22,7 +22,7 @@ import { FaChartColumn } from "react-icons/fa6";
 import { FaBellConcierge } from "react-icons/fa6";
 import { FaRegCheckCircle } from "react-icons/fa";
 
-import { LuX } from "react-icons/lu";
+import { LuX, LuEye } from "react-icons/lu";
 
 import { MdAdminPanelSettings } from "react-icons/md";
 import { PiMedalFill } from "react-icons/pi";
@@ -1985,6 +1985,92 @@ function ReturnFromMaintenanceModal({ t, vehicle, onClose, onSuccess }) {
   );
 }
 
+function VehicleDetailsModal({ t, vehicleId, onClose }) {
+  const [details, setDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const { data } = await vehiclesService.getById(vehicleId);
+        if (!cancelled) setDetails(data.data || data);
+      } catch {
+        if (!cancelled) setError("حدث خطأ أثناء تحميل بيانات المركبة");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [vehicleId]);
+
+  const detailRow = (label, value) => (
+    <div style={{
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+      padding: "12px 0", borderBottom: `1px solid ${t.border}`,
+    }}>
+      <span style={{ fontSize: 13, fontWeight: 600, color: t.textSec }}>{label}</span>
+      <span style={{ fontSize: 14, fontWeight: 500, color: t.text, textAlign: "left", maxWidth: "60%" }}>{value || "—"}</span>
+    </div>
+  );
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.45)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
+        width: "100%", maxWidth: 480, border: `1px solid ${t.borderCard}`,
+        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+        maxHeight: "90vh", overflowY: "auto",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: t.text }}>تفاصيل المركبة</h3>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+
+        {loading ? (
+          <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>
+            جارٍ تحميل البيانات...
+          </div>
+        ) : error ? (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "14px 16px", fontSize: 13, color: "#c74848",
+          }}>{error}</div>
+        ) : details ? (
+          <div>
+            {detailRow("رقم اللوحة", details.plateNumber)}
+            {detailRow("الموديل", details.model)}
+            {detailRow("اللون", details.color)}
+            {detailRow("النوع", VEHICLE_TYPE_MAP[details.type] || details.type)}
+            {detailRow("الحالة", VEHICLE_STATUS_MAP[details.status] || details.status)}
+            {detailRow("ملاحظات الإدارة", details.adminNotes)}
+            {detailRow("تاريخ الإنشاء", details.createdAt ? new Date(details.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }) : null)}
+          </div>
+        ) : null}
+
+        <div style={{ marginTop: 24 }}>
+          <button onClick={onClose} style={{
+            width: "100%", padding: "12px", borderRadius: 12,
+            background: t.bgElevated, color: t.textSec,
+            border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
+            cursor: "pointer",
+          }}>إغلاق</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PageVehicles({ t }) {
   const { hasPermission } = useAuth();
   const canCreate = hasPermission(P.VEHICLES_CREATE);
@@ -2001,6 +2087,7 @@ function PageVehicles({ t }) {
   const [fuelVehicle, setFuelVehicle] = useState(null);
   const [returnVehicle, setReturnVehicle] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+  const [detailsVehicleId, setDetailsVehicleId] = useState(null);
 
   const fetchVehicles = async () => {
     setLoading(true);
@@ -2073,8 +2160,7 @@ function PageVehicles({ t }) {
     v.color || "—",
     VEHICLE_STATUS_MAP[v.status] || v.status || "—",
     String(v.todayBookings ?? v._count?.bookings ?? "—"),
-    v.adminNotes || "—",
-    canUpdate ? v : null,
+    v,
   ]);
 
   return (
@@ -2129,7 +2215,7 @@ function PageVehicles({ t }) {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
             <thead>
               <tr style={{ background: t.bgElevated }}>
-                {["رقم اللوحة", "الموديل", "النوع", "اللون", "الحالة", "حجوزات اليوم", "ملاحظات", ...(canUpdate ? ["إجراءات"] : [])].map((h, i) => (
+                {["رقم اللوحة", "الموديل", "النوع", "اللون", "الحالة", "حجوزات اليوم", "إجراءات"].map((h, i) => (
                   <th key={i} style={{
                     padding: "10px 14px", textAlign: "right",
                     color: t.textMuted, fontWeight: 600,
@@ -2139,52 +2225,62 @@ function PageVehicles({ t }) {
               </tr>
             </thead>
             <tbody>
-              {tableRows.map((row, ri) => (
+              {tableRows.map((row, ri) => {
+                const vehicle = row[6];
+                return (
                 <tr key={ri} style={{
                   background: ri % 2 === 0 ? t.bgSurface : t.bgPage,
                   borderBottom: `0.5px solid ${t.border}`,
                 }}>
-                  {row.slice(0, 7).map((cell, ci) => (
+                  {row.slice(0, 6).map((cell, ci) => (
                     <td key={ci} style={{ padding: "10px 14px", color: t.text, fontSize: 14 }}>
                       {typeof cell === "string" && ["متاحة", "في الصيانة", "غير متاحة", "عادي", "أوتوماتيك"].includes(cell)
                         ? <Badge status={cell} t={t} />
                         : cell}
                     </td>
                   ))}
-                  {canUpdate && (
-                    <td style={{ padding: "10px 14px" }}>
-                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                        <button onClick={() => setEditVehicle(row[7])} style={{
-                          padding: "4px 10px", borderRadius: 6, background: t.accentLight,
-                          color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                        }}>تعديل</button>
-                        <button onClick={() => setFuelVehicle(row[7])} style={{
-                          padding: "4px 10px", borderRadius: 6, background: t.accentLight,
-                          color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                        }}>وقود</button>
-                        {row[7]?.status === "ACTIVE" && (
-                          <button onClick={() => handleSendToMaintenance(row[7])} disabled={actionLoading === row[7]?.id} style={{
-                            padding: "4px 10px", borderRadius: 6, background: t.pending.bg,
-                            color: t.pending.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                          }}>صيانة</button>
-                        )}
-                        {row[7]?.status === "INACTIVE" && (
-                          <button onClick={() => setReturnVehicle(row[7])} style={{
-                            padding: "4px 10px", borderRadius: 6, background: t.completed.bg,
-                            color: t.completed.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                          }}>إرجاع</button>
-                        )}
-                        {row[7]?.status !== "ARCHIVED" && (
-                          <button onClick={() => handleArchive(row[7])} disabled={actionLoading === row[7]?.id} style={{
-                            padding: "4px 10px", borderRadius: 6, background: t.cancelled.bg,
-                            color: t.cancelled.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                          }}>أرشفة</button>
-                        )}
-                      </div>
-                    </td>
-                  )}
+                  <td style={{ padding: "10px 14px" }}>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      <button onClick={() => setDetailsVehicleId(vehicle?.id)} style={{
+                        padding: "4px 10px", borderRadius: 6, background: t.bgElevated,
+                        color: t.text, border: `1px solid ${t.border}`, fontSize: 11, cursor: "pointer", fontWeight: 600,
+                        display: "flex", alignItems: "center", gap: 4,
+                      }}><LuEye size={13} />تفاصيل</button>
+                      {canUpdate && (
+                        <>
+                          <button onClick={() => setEditVehicle(vehicle)} style={{
+                            padding: "4px 10px", borderRadius: 6, background: t.accentLight,
+                            color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                          }}>تعديل</button>
+                          <button onClick={() => setFuelVehicle(vehicle)} style={{
+                            padding: "4px 10px", borderRadius: 6, background: t.accentLight,
+                            color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                          }}>وقود</button>
+                          {vehicle?.status === "ACTIVE" && (
+                            <button onClick={() => handleSendToMaintenance(vehicle)} disabled={actionLoading === vehicle?.id} style={{
+                              padding: "4px 10px", borderRadius: 6, background: t.pending.bg,
+                              color: t.pending.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                            }}>صيانة</button>
+                          )}
+                          {vehicle?.status === "INACTIVE" && (
+                            <button onClick={() => setReturnVehicle(vehicle)} style={{
+                              padding: "4px 10px", borderRadius: 6, background: t.completed.bg,
+                              color: t.completed.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                            }}>إرجاع</button>
+                          )}
+                          {vehicle?.status !== "ARCHIVED" && (
+                            <button onClick={() => handleArchive(vehicle)} disabled={actionLoading === vehicle?.id} style={{
+                              padding: "4px 10px", borderRadius: 6, background: t.cancelled.bg,
+                              color: t.cancelled.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                            }}>أرشفة</button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -2232,6 +2328,14 @@ function PageVehicles({ t }) {
           vehicle={returnVehicle}
           onClose={() => setReturnVehicle(null)}
           onSuccess={() => { setReturnVehicle(null); fetchVehicles(); }}
+        />
+      )}
+
+      {detailsVehicleId && (
+        <VehicleDetailsModal
+          t={t}
+          vehicleId={detailsVehicleId}
+          onClose={() => setDetailsVehicleId(null)}
         />
       )}
     </div>
