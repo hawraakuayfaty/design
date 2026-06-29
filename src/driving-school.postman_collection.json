@@ -32,13 +32,8 @@
             },
             "url": {
               "raw": "{{url}}/auth/login",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
+              "host": ["{{url}}"],
+              "path": ["auth", "login"]
             }
           },
           "response": []
@@ -65,13 +60,8 @@
             },
             "url": {
               "raw": "{{url}}/auth/refresh",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "auth",
-                "refresh"
-              ]
+              "host": ["{{url}}"],
+              "path": ["auth", "refresh"]
             }
           },
           "response": []
@@ -108,13 +98,8 @@
             },
             "url": {
               "raw": "{{url}}/auth/logout",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "auth",
-                "logout"
-              ]
+              "host": ["{{url}}"],
+              "path": ["auth", "logout"]
             }
           },
           "response": []
@@ -142,13 +127,8 @@
             ],
             "url": {
               "raw": "{{url}}/auth/me",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "auth",
-                "me"
-              ]
+              "host": ["{{url}}"],
+              "path": ["auth", "me"]
             }
           },
           "response": []
@@ -176,13 +156,8 @@
             ],
             "url": {
               "raw": "{{url}}/auth/logout-all",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "auth",
-                "logout-all"
-              ]
+              "host": ["{{url}}"],
+              "path": ["auth", "logout-all"]
             }
           },
           "response": []
@@ -210,13 +185,8 @@
             ],
             "url": {
               "raw": "{{url}}/auth/me",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "auth",
-                "me"
-              ]
+              "host": ["{{url}}"],
+              "path": ["auth", "me"]
             }
           },
           "response": []
@@ -249,12 +219,8 @@
             ],
             "url": {
               "raw": "{{url}}/students?search=&status=PASSED",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "students"
-              ],
+              "host": ["{{url}}"],
+              "path": ["students"],
               "query": [
                 {
                   "key": "search",
@@ -294,13 +260,8 @@
             ],
             "url": {
               "raw": "{{url}}/students/10",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "students",
-                "10"
-              ]
+              "host": ["{{url}}"],
+              "path": ["students", "10"]
             }
           },
           "response": []
@@ -337,13 +298,8 @@
             },
             "url": {
               "raw": "{{url}}/users/students",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "users",
-                "students"
-              ]
+              "host": ["{{url}}"],
+              "path": ["users", "students"]
             }
           },
           "response": []
@@ -376,12 +332,8 @@
             ],
             "url": {
               "raw": "{{url}}/instructors?search=&instructorType=BOTH&gender=FEMALE",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "instructors"
-              ],
+              "host": ["{{url}}"],
+              "path": ["instructors"],
               "query": [
                 {
                   "key": "search",
@@ -426,13 +378,8 @@
             ],
             "url": {
               "raw": "{{url}}/instructors/5",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "instructors",
-                "5"
-              ]
+              "host": ["{{url}}"],
+              "path": ["instructors", "5"]
             }
           },
           "response": []
@@ -469,13 +416,8 @@
             },
             "url": {
               "raw": "{{url}}/users/instructors",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "users",
-                "instructors"
-              ]
+              "host": ["{{url}}"],
+              "path": ["users", "instructors"]
             }
           },
           "response": []
@@ -508,13 +450,8 @@
             ],
             "url": {
               "raw": "{{url}}/employees/?role=RECEPTIONIST",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "employees",
-                ""
-              ],
+              "host": ["{{url}}"],
+              "path": ["employees", ""],
               "query": [
                 {
                   "key": "search",
@@ -555,13 +492,8 @@
             ],
             "url": {
               "raw": "{{url}}/employees/2",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "employees",
-                "2"
-              ]
+              "host": ["{{url}}"],
+              "path": ["employees", "2"]
             }
           },
           "response": []
@@ -598,13 +530,8 @@
             },
             "url": {
               "raw": "{{url}}/users/employees",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "users",
-                "employees"
-              ]
+              "host": ["{{url}}"],
+              "path": ["users", "employees"]
             }
           },
           "response": []
@@ -637,12 +564,8 @@
             ],
             "url": {
               "raw": "{{url}}/vehicles?status=ACTIVE&type=MANUAL&search=",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "vehicles"
-              ],
+              "host": ["{{url}}"],
+              "path": ["vehicles"],
               "query": [
                 {
                   "key": "status",
@@ -687,13 +610,8 @@
             ],
             "url": {
               "raw": "{{url}}/vehicles/11",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "vehicles",
-                "11"
-              ]
+              "host": ["{{url}}"],
+              "path": ["vehicles", "11"]
             }
           },
           "response": []
@@ -730,12 +648,8 @@
             },
             "url": {
               "raw": "{{url}}/vehicles",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "vehicles"
-              ]
+              "host": ["{{url}}"],
+              "path": ["vehicles"]
             }
           },
           "response": []
@@ -772,13 +686,8 @@
             },
             "url": {
               "raw": "{{url}}/vehicles/11",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "vehicles",
-                "11"
-              ]
+              "host": ["{{url}}"],
+              "path": ["vehicles", "11"]
             }
           },
           "response": []
@@ -815,14 +724,8 @@
             },
             "url": {
               "raw": "{{url}}/vehicles/11/fuel",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "vehicles",
-                "11",
-                "fuel"
-              ]
+              "host": ["{{url}}"],
+              "path": ["vehicles", "11", "fuel"]
             }
           },
           "response": []
@@ -859,14 +762,8 @@
             },
             "url": {
               "raw": "{{url}}/vehicles/11/maintenance",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "vehicles",
-                "11",
-                "maintenance"
-              ]
+              "host": ["{{url}}"],
+              "path": ["vehicles", "11", "maintenance"]
             }
           },
           "response": []
@@ -903,14 +800,8 @@
             },
             "url": {
               "raw": "{{url}}/vehicles/11/return-from-maintenance",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "vehicles",
-                "11",
-                "return-from-maintenance"
-              ]
+              "host": ["{{url}}"],
+              "path": ["vehicles", "11", "return-from-maintenance"]
             }
           },
           "response": []
@@ -942,14 +833,276 @@
             },
             "url": {
               "raw": "{{url}}/vehicles/1/archive",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "vehicles",
-                "1",
-                "archive"
+              "host": ["{{url}}"],
+              "path": ["vehicles", "1", "archive"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Booking",
+      "item": [
+        {
+          "name": "get all available slote",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
               ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/reception/bookings/available-slots?trainingType=MANUAL&vehicleSource=SCHOOL_CAR&instructorGender=FEMALE",
+              "host": ["{{url}}"],
+              "path": ["reception", "bookings", "available-slots"],
+              "query": [
+                {
+                  "key": "trainingType",
+                  "value": "MANUAL",
+                  "description": "MANUAL , AUTOMATIC"
+                },
+                {
+                  "key": "vehicleSource",
+                  "value": "SCHOOL_CAR",
+                  "description": "SCHOOL_CAR ,STUDENT_CAR"
+                },
+                {
+                  "key": "instructorGender",
+                  "value": "FEMALE",
+                  "description": "MALE , FEMALE"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "manage booking",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/reception/bookings?bookingStatus=BOOKED&page=1&limit=11",
+              "host": ["{{url}}"],
+              "path": ["reception", "bookings"],
+              "query": [
+                {
+                  "key": "bookingStatus",
+                  "value": "BOOKED",
+                  "description": "PENDING_PAYMENT , BOOKED , COMPLETED, NO_SHOW, CANCELLED ,EXPIRED"
+                },
+                {
+                  "key": "search",
+                  "value": "طالب",
+                  "description": "by student name",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "11"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get one booking",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/reception/bookings/38",
+              "host": ["{{url}}"],
+              "path": ["reception", "bookings", "38"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "create booking from dashboard cach",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"studentId\": 4,\r\n  \"instructorId\": 3,\r\n  \"date\": \"2026-06-25\",\r\n  \"time\": \"08:00\", // انتبهي للوقت لازم يكون رقمين قبل النقطين و رقمين بعد النقطين\r\n  \"trainingType\": \"AUTOMATIC\", //  // AUTOMATIC , MANUAL \r\n  \"vehicleSource\": \"SCHOOL_CAR\", // // SCHOOL_CAR , STUDENT_CAR\r\n  \"collectedAmount\": 2000 //  محذوف عندما يكون للطالب عربون سابق بتعرف اذا في عبرون من الراوت student-credit\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/reception/bookings",
+              "host": ["{{url}}"],
+              "path": ["reception", "bookings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "pay remainder booking",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{url}}/reception/bookings/39/pay-remainder",
+              "host": ["{{url}}"],
+              "path": ["reception", "bookings", "39", "pay-remainder"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "student-credit",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/students/1/credit-check",
+              "host": ["{{url}}"],
+              "path": ["students", "1", "credit-check"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "cancel booking",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"cancellationParty\" : \"SCHOOL\",  // STUDENT , VEHICLE , INSTRUCTOR , SCHOOL\r\n    \"cancellationReason\" : \"Emergecy the boss go to hospital\" // reason  \r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/reception/bookings/41/cancel",
+              "host": ["{{url}}"],
+              "path": ["reception", "bookings", "41", "cancel"]
             }
           },
           "response": []
@@ -964,9 +1117,7 @@
         "type": "text/javascript",
         "packages": {},
         "requests": {},
-        "exec": [
-          ""
-        ]
+        "exec": [""]
       }
     },
     {
@@ -975,9 +1126,7 @@
         "type": "text/javascript",
         "packages": {},
         "requests": {},
-        "exec": [
-          ""
-        ]
+        "exec": [""]
       }
     }
   ],

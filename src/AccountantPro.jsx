@@ -442,7 +442,7 @@ function PgInvoices({t}){
       </Modal>}
       {viewModal&&<Modal title={`فاتورة ${viewModal.id}`} onClose={()=>setViewModal(null)} t={t} width={420}>
         <div style={{background:t.bgElevated,borderRadius:10,overflow:"hidden",marginBottom:14}}>
-          <div style={{background:t.grad,padding:"14px 18px",textAlign:"center"}}><div style={{fontSize:13,fontWeight:700,color:"#fff"}}> مدرسة القيادة — {viewModal.id}</div></div>
+          <div style={{background:t.grad,padding:"14px 18px",textAlign:"center"}}><div style={{fontSize:13,fontWeight:700,color:"#383636"}}> مدرسة القيادة — {viewModal.id}</div></div>
           <div style={{padding:"14px 16px"}}>
             <InfoRow k="الطالب" v={viewModal.student} t={t}/><InfoRow k="نوع الدفع" v={viewModal.type} t={t}/>
             <InfoRow k="العربون" v={viewModal.deposit} t={t}/><InfoRow k="الباقي" v={viewModal.remaining} t={t}/>

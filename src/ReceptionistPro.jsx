@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TbBus } from "react-icons/tb";
 import { IoIosCalendar } from "react-icons/io";
 
@@ -6,6 +6,7 @@ import { IoDocumentTextOutline } from "react-icons/io5";
 import {  PiUsersThin } from "react-icons/pi";
 import { FaUserTie } from "react-icons/fa";
 import { FaCar } from "react-icons/fa";
+import { bookingsService, studentsService } from "./api";
 
 
 const T = {
@@ -128,7 +129,7 @@ function Btn({label,onClick,v="primary",sz="md",t,style={},disabled=false}){
 }
 
 function Divider({t}){return <div style={{height:1,background:t.border,margin:"12px 0"}}/>;}
-function InfoRow({k,v,t}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${t.border}`,fontSize:13}}><span style={{color:t.textMuted}}>{k}</span><span style={{fontWeight:600,color:t.text}}>{SL.includes(v)?<Badge s={v} t={t}/>:v}</span></div>;}
+function InfoRow({k,v,t}){return <div style={{display:"flex",alignItems:"center",gap:6,padding:"7px 0",borderBottom:`1px solid ${t.border}`,fontSize:13}}><span style={{color:t.textMuted,whiteSpace:"nowrap"}}>{k}</span><span style={{color:t.textMuted}}>:</span><span style={{fontWeight:600,color:t.text}}>{SL.includes(v)?<Badge s={v} t={t}/>:v}</span></div>;}
 function SearchBar({placeholder,t,value,onChange}){return <div style={{position:"relative",flex:1}}><span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:14,color:t.textMuted}}>🔍</span><input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{width:"100%",padding:"8px 32px 8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/></div>;}
 // `Sel` component removed — it was defined but never used.
 
@@ -422,214 +423,722 @@ function SectionInstructors({t}){
   );
 }
 
-const ALL_BOOKINGS=[
-  {id:"#١٢٥٠",student:"أحمد محمد",inst:"خالد عمر",vehicle:"أ·ب·ج ١٠١",date:"١٠ يونيو",time:"٠٩:٠٠",type:"عادي",status:"مؤكد",pay:"معلق",remaining:1500},
-  {id:"#١٢٤٩",student:"منى العلي",inst:"ليلى سعد",vehicle:"أ·ب·ج ٢٠١",date:"٤ يونيو",time:"١٤:٠٠",type:"أوتوماتيك",status:"مؤكد",pay:"مدفوع",remaining:0},
-  {id:"#١٢٤٨",student:"علي حسن",inst:"خالد عمر",vehicle:"سيارة الطالب",date:"٤ يونيو",time:"١٢:٠٠",type:"عادي",status:"بانتظار العربون",pay:"معلق",remaining:1500},
-  {id:"#١٢٤٧",student:"سارة خالد",inst:"ليلى سعد",vehicle:"أ·ب·ج ٢٠١",date:"٤ يونيو",time:"١٠:٣٠",type:"أوتوماتيك",status:"مؤكد",pay:"تم الإثبات",remaining:1500},
-  {id:"#١٢٤٦",student:"محمود سالم",inst:"أحمد الزيد",vehicle:"أ·ب·ج ١٠١",date:"٣ يونيو",time:"١٥:٣٠",type:"عادي",status:"مكتمل",pay:"مدفوع",remaining:0},
-  {id:"#١٢٤٤",student:"كريم عبدو",inst:"خالد عمر",vehicle:"أ·ب·ج ١٠١",date:"٢ يونيو",time:"١١:٠٠",type:"عادي",status:"ملغي",pay:"معلق",remaining:0},
-  {id:"#١٢٤٣",student:"هناء الصالح",inst:"أحمد الزيد",vehicle:"أ·ب·ج ١٠١",date:"٢ يونيو",time:"١٤:٠٠",type:"عادي",status:"لم يحضر",pay:"معلق",remaining:0},
+const BOOKING_STATUS_MAP = {
+  BOOKED: "مؤكد", PENDING_PAYMENT: "بانتظار العربون", COMPLETED: "مكتمل",
+  CANCELLED: "ملغي", NO_SHOW: "لم يحضر", EXPIRED: "منتهي",
+};
+const PAYMENT_STATUS_MAP = {
+  DEPOSIT_PAID: "مدفوع", FULLY_PAID: "مدفوع", PENDING_DEPOSIT: "معلق",
+  DEPOSIT_NON_REFUNDABLE: "غير مسترد", DEPOSIT_AVAILABLE_FOR_REBOOKING: "قابل لإعادة الحجز",
+  DEPOSIT_USED_IN_REBOOKING: "مُستخدم",
+};
+const TRAINING_MAP = { MANUAL: "عادي", AUTOMATIC: "أوتوماتيك" };
+const BOOKING_STATUS_FILTER = [
+  { value: "", label: "الكل" }, { value: "BOOKED", label: "مؤكد" },
+  { value: "PENDING_PAYMENT", label: "بانتظار العربون" }, { value: "COMPLETED", label: "مكتمل" },
+  { value: "CANCELLED", label: "ملغي" }, { value: "NO_SHOW", label: "لم يحضر" },
 ];
 
-function SectionBookings({t}){
-  const [tab,setTab]=useState("الكل");
-  const [search,setSearch]=useState("");
-  const [invModal,setInvModal]=useState(null);
-  const [nsModal,setNsModal]=useState(null);
-  const tabs=["الكل","مؤكد","بانتظار العربون","تم الإثبات","مكتمل","ملغي","لم يحضر"];
-  const counts=Object.fromEntries(tabs.map(tb=>[tb,ALL_BOOKINGS.filter(b=>tb==="الكل"||b.status===tb).length]));
-  const filtered=ALL_BOOKINGS.filter(b=>(tab==="الكل"||b.status===tab)&&(b.student.includes(search)||b.id.includes(search)));
-  const dotColor=s=>s==="مكتمل"?t.completed.dot:s==="مؤكد"?t.confirmed.dot:s==="بانتظار العربون"?t.pending.dot:s==="تم الإثبات"?t.qualified.dot:s==="ملغي"?t.cancelled.dot:s==="لم يحضر"?t.noshow.dot:t.expired.dot;
+function formatBookingDate(b) {
+  if (b.dayName && b.date && b.startTime) {
+    const d = new Date(b.date);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = d.toLocaleDateString("ar-SY", { month: "long" });
+    return `${b.dayName} ${day} ${month} ${b.startTime}`;
+  }
+  if (b.startAt) {
+    const d = new Date(b.startAt);
+    return d.toLocaleDateString("ar-SY", { weekday: "long", day: "2-digit", month: "long" })
+      + " " + d.toLocaleTimeString("ar-SY", { hour: "2-digit", minute: "2-digit", hour12: false });
+  }
+  return "—";
+}
+
+const WIZARD_STEPS = [
+  { num: 1, label: "التفاصيل" },
+  { num: 2, label: "الموعد" },
+  { num: 3, label: "الدفع" },
+];
+
+function StepIndicator({ step, t }) {
   return (
-    <div style={{ padding: "18px 22px", overflowY: "auto", flex: 1 }}>
-      <div
-        style={{
-          display: "flex",
-          gap: 3,
-          marginBottom: 14,
-          background: t.bgElevated,
-          borderRadius: 9,
-          padding: 3,
-          overflowX: "auto",
-        }}
-      >
-        {tabs.map((tb) => (
-          <button
-            key={tb}
-            onClick={() => setTab(tb)}
-            style={{
-              padding: "7px 12px",
-              borderRadius: 7,
-              border: "none",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              fontSize: 11,
-              fontWeight: tab === tb ? 700 : 400,
-              whiteSpace: "nowrap",
-              background: tab === tb ? t.bgSurface : "transparent",
-              color: tab === tb ? t.text : t.textMuted,
-              boxShadow: tab === tb ? t.shadow : "none",
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            {tb}
-            <span
-              style={{
-                padding: "1px 6px",
-                borderRadius: 20,
-                fontSize: 9,
-                fontWeight: 700,
-                background: tab === tb ? t.accentLight : t.border,
-                color: tab === tb ? t.accentText : t.textMuted,
-              }}
-            >
-              {counts[tb]}
-            </span>
-          </button>
-        ))}
-      </div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        <SearchBar
-          placeholder="بحث باسم الطالب أو رقم الحجز..."
-          t={t}
-          value={search}
-          onChange={setSearch}
-        />
-        <Btn label="+ حجز جديد" t={t} />
-      </div>
-      {filtered.map((b) => (
-        <div
-          key={b.id}
-          style={{
-            background: t.bgSurface,
-            borderRadius: 11,
-            border: `1px solid ${t.borderCard}`,
-            padding: "13px 16px",
-            marginBottom: 7,
-            boxShadow: t.shadow,
-            borderRight: `4px solid ${dotColor(b.status)}`,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 7,
-                  alignItems: "center",
-                  marginBottom: 3,
-                }}
-              >
-                <span
-                  style={{ fontSize: 11, fontWeight: 700, color: t.textMuted }}
-                >
-                  {b.id}
-                </span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>
-                  {b.student}
-                </span>
-              </div>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: t.textSec,
-                  display: "flex",
-                  gap: 10,
-                }}
-              >
-                <span> {b.inst}</span>
-                <span>
-                  <IoIosCalendar /> {b.date} {b.time}
-                </span>
-                <span>  {b.vehicle}</span>
-                <span style={{ fontWeight: 600 }}>{b.type}</span>
-              </div>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginBottom: 22, padding: "0 10px" }}>
+      {WIZARD_STEPS.map((s, i) => {
+        const done = step > s.num;
+        const active = step === s.num;
+        const circleColor = done ? "#778a3b" : active ? "#778a3b" : t.border;
+        const textColor = done || active ? "#778a3b" : t.textMuted;
+        return (
+          <div key={s.num} style={{ display: "flex", alignItems: "center", flex: i < WIZARD_STEPS.length - 1 ? 1 : "none" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 56 }}>
+              <div style={{
+                width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                background: done || active ? "#778a3b" : t.bgElevated,
+                color: done || active ? "#fff" : t.textMuted,
+                fontSize: 13, fontWeight: 700, border: `2px solid ${circleColor}`,
+              }}>{done ? "✓" : s.num}</div>
+              <span style={{ fontSize: 10, fontWeight: 600, color: textColor, whiteSpace: "nowrap" }}>{s.label}</span>
             </div>
-            <div
-              style={{
-                display: "flex",
-                gap: 5,
-                alignItems: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Badge s={b.pay} t={t} />
-              <Badge s={b.status} t={t} />
+            {i < WIZARD_STEPS.length - 1 && (
+              <div style={{ flex: 1, height: 2, background: done ? "#778a3b" : t.border, margin: "0 6px", marginBottom: 18 }} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CreateBookingModal({ t, onClose, onSuccess }) {
+  const [step, setStep] = useState(1);
+  const [students, setStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+
+  // Step 1 state
+  const [studentId, setStudentId] = useState("");
+  const [studentLabel, setStudentLabel] = useState("");
+  const [studentQuery, setStudentQuery] = useState("");
+  const [studentOpen, setStudentOpen] = useState(false);
+  const [trainingType, setTrainingType] = useState("");
+  const [vehicleSource, setVehicleSource] = useState("");
+  const [genderFilter, setGenderFilter] = useState("");
+
+  // Step 2 state
+  const [slots, setSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedInstructorId, setSelectedInstructorId] = useState("");
+  const [selectedInstructorName, setSelectedInstructorName] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
+
+  // Step 3 state
+  const [credit, setCredit] = useState(null);
+  const [checkingCredit, setCheckingCredit] = useState(false);
+  const [collectedAmount, setCollectedAmount] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const sRes = await studentsService.getAll();
+        const sRaw = sRes.data?.data || sRes.data;
+        if (!cancelled) setStudents(Array.isArray(sRaw) ? sRaw : []);
+      } catch { /* empty */ }
+      finally { if (!cancelled) setLoadingStudents(false); }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const getSid = (s) => s.studentId ?? s.id;
+  const sName = (s) => s.user?.name || s.name || "";
+  const sPhone = (s) => s.user?.phone || s.phone || "";
+
+  const filteredStudents = students.filter(s => {
+    if (!studentQuery.trim()) return true;
+    const q = studentQuery.trim().toLowerCase();
+    return sName(s).toLowerCase().includes(q) || sPhone(s).includes(q);
+  });
+
+  const selectStudent = (s) => {
+    const rid = getSid(s);
+    setStudentId(String(rid));
+    setStudentLabel(sName(s));
+    setStudentQuery(sName(s));
+    setStudentOpen(false);
+    setErrors(prev => ({ ...prev, studentId: undefined }));
+  };
+
+  const clearStudent = () => {
+    setStudentId("");
+    setStudentLabel("");
+    setStudentQuery("");
+  };
+
+  const fieldStyle = (field) => ({
+    width: "100%", padding: "10px 12px", borderRadius: 9,
+    border: `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+    background: t.bgElevated, color: t.text, fontSize: 13,
+    fontFamily: "inherit", boxSizing: "border-box", outline: "none",
+  });
+
+  const chip = (active, hasErr) => ({
+    flex: 1, padding: "10px 6px", borderRadius: 9, border: "none",
+    cursor: "pointer", fontSize: 12, fontWeight: 600, textAlign: "center", fontFamily: "inherit",
+    background: active ? "#778a3b" : t.bgElevated,
+    color: active ? "#fff" : t.textSec,
+    outline: active ? "none" : `1.5px solid ${hasErr ? "#c74848" : t.border}`,
+    transition: "all 0.15s",
+  });
+
+  const errMsg = (field) => errors[field] ? <div style={{ fontSize: 11, color: "#c74848", marginTop: 4 }}>{errors[field]}</div> : null;
+
+  // ── Step 1 → 2 ──
+  const handleShowSlots = async () => {
+    setServerError("");
+    const e = {};
+    if (!studentId) e.studentId = "يجب اختيار الطالب";
+    if (!trainingType) e.trainingType = "يجب اختيار نوع التدريب";
+    if (!vehicleSource) e.vehicleSource = "يجب اختيار مصدر المركبة";
+    setErrors(e);
+    if (Object.keys(e).length) return;
+
+    setLoadingSlots(true);
+    try {
+      const params = { trainingType, vehicleSource };
+      if (genderFilter) params.instructorGender = genderFilter;
+      const res = await bookingsService.getAvailableSlots(params);
+      const body = res.data?.data || res.data;
+      setSlots(Array.isArray(body) ? body : body?.slots || body?.instructors || []);
+      setStep(2);
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.data?.message || err.message;
+      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "فشل تحميل الأوقات المتاحة");
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  // ── Step 2 → 3 ──
+  const handleCheckCredit = async () => {
+    setServerError("");
+    if (!selectedInstructorId || !selectedDate || !selectedTime) {
+      setServerError("يجب اختيار وقت من الأوقات المتاحة");
+      return;
+    }
+    setCheckingCredit(true);
+    try {
+      const res = await bookingsService.creditCheck(studentId);
+      const body = res.data?.data || res.data;
+      setCredit(body);
+    } catch {
+      setCredit(null);
+    } finally {
+      setCheckingCredit(false);
+      setStep(3);
+    }
+  };
+
+  const hasCredit = credit && (credit.hasCredit === true || credit.credit > 0 || credit.amount > 0);
+
+  // ── Step 3 submit ──
+  const handleSubmit = async () => {
+    setServerError(""); setSuccessMsg("");
+    if (!hasCredit) {
+      if (!collectedAmount || isNaN(Number(collectedAmount)) || Number(collectedAmount) <= 0) {
+        setErrors({ collectedAmount: "مبلغ العربون مطلوب" });
+        return;
+      }
+    }
+    setErrors({});
+    const payload = {
+      studentId: Number(studentId),
+      instructorId: Number(selectedInstructorId),
+      date: selectedDate,
+      time: selectedTime,
+      trainingType,
+      vehicleSource,
+    };
+    if (!hasCredit) payload.collectedAmount = Number(collectedAmount);
+
+    setSubmitting(true);
+    try {
+      const res = await bookingsService.create(payload);
+      const body = res.data?.data || res.data;
+      if (body?.error || body?.statusCode >= 400) {
+        setServerError(Array.isArray(body?.message) ? body.message.join("، ") : body?.message || "فشل إنشاء الحجز");
+        return;
+      }
+      setSuccessMsg("تم إنشاء الحجز بنجاح");
+      setTimeout(() => onSuccess(), 800);
+    } catch (err) {
+      const status = err.response?.status;
+      const data = err.response?.data?.data || err.response?.data;
+      const raw = data?.message || err.response?.data?.message || err.message;
+      const msg = Array.isArray(raw) ? raw.join("، ") : raw;
+      if (status === 409) setServerError(msg || "هذا الوقت محجوز مسبقاً للمدرب أو الطالب");
+      else if (status === 404) setServerError(msg || "الطالب أو المدرب غير موجود");
+      else if (status === 400) setServerError(msg || "بيانات الحجز غير صالحة");
+      else setServerError(msg || "حدث خطأ أثناء إنشاء الحجز");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const buildDayGroups = (instructorSlots) => {
+    const groups = {};
+    (Array.isArray(instructorSlots) ? instructorSlots : []).forEach(slot => {
+      if (typeof slot === "string") {
+        const d = slot.includes("T") ? slot.split("T")[0] : "";
+        const tm = slot.includes("T") ? slot.split("T")[1].substring(0, 5) : slot.substring(0, 5);
+        if (d && tm) { if (!groups[d]) groups[d] = []; if (!groups[d].includes(tm)) groups[d].push(tm); }
+        return;
+      }
+      const d = slot.date || (slot.startAt ? slot.startAt.split("T")[0] : "");
+      if (!d) return;
+      if (!groups[d]) groups[d] = [];
+      let timeStr = "";
+      if (slot.time) timeStr = slot.time;
+      else if (slot.startTime) timeStr = slot.startTime;
+      else if (slot.startAt && slot.startAt.includes("T")) timeStr = slot.startAt.split("T")[1].substring(0, 5);
+      else if (slot.startAt) timeStr = slot.startAt.substring(0, 5);
+      if (timeStr && !groups[d].includes(timeStr)) groups[d].push(timeStr);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  };
+
+  const formatDayHeader = (dateStr) => {
+    try {
+      const d = new Date(dateStr + "T00:00:00");
+      return d.toLocaleDateString("ar-SY", { weekday: "long", day: "numeric", month: "long" });
+    } catch { return dateStr; }
+  };
+
+  const labelStyle = { fontSize: 11, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 6 };
+
+  return (
+    <Modal title="حجز جلسة جديدة" onClose={onClose} t={t} width={560}>
+      <StepIndicator step={step} t={t} />
+
+      {successMsg && (
+        <div style={{ background: "rgba(80,90,50,0.12)", border: "1px solid rgba(80,90,50,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#505a32", fontWeight: 600 }}>{successMsg}</div>
+      )}
+      {serverError && (
+        <div style={{ background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#c74848" }}>{serverError}</div>
+      )}
+
+      {/* ════════ STEP 1: التفاصيل ════════ */}
+      {step === 1 && (
+        <div>
+          {/* Student search */}
+          <div style={{ marginBottom: 14, position: "relative" }}>
+            <label style={labelStyle}>الطالب</label>
+            <div style={{ position: "relative" }}>
+              <input value={studentQuery}
+                onChange={e => { setStudentQuery(e.target.value); setStudentOpen(true); if (studentId) clearStudent(); }}
+                onFocus={() => setStudentOpen(true)}
+                placeholder={loadingStudents ? "جارٍ التحميل..." : "ابحث باسم أو رقم الطالب..."}
+                disabled={loadingStudents} autoComplete="off" style={fieldStyle("studentId")} />
+              {studentId && (
+                <button type="button" onClick={clearStudent} style={{
+                  position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
+                  background: "none", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 16, padding: 2,
+                }}>✕</button>
+              )}
             </div>
-            <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-              {b.status === "مؤكد" && b.remaining > 0 && (
-                <Btn
-                  label={`دفع متبقٍ • ${b.remaining.toLocaleString()}`}
-                  onClick={() => setInvModal(b)}
-                  t={t}
-                  sz="sm"
-                />
-              )}
-              {b.status === "مؤكد" && (
-                <Btn
-                  label="لم يحضر"
-                  onClick={() => setNsModal(b)}
-                  t={t}
-                  sz="sm"
-                  v="danger"
-                />
-              )}
-              {b.status === "تم الإثبات" && (
-                <Btn label="تحقق" t={t} sz="sm" v="secondary" />
-              )}
-              <Btn label="تفاصيل" t={t} sz="sm" v="ghost" />
+            {studentOpen && !studentId && (
+              <div style={{
+                position: "absolute", top: "100%", right: 0, left: 0, zIndex: 20, marginTop: 2,
+                background: t.bgSurface, border: `1px solid ${t.border}`, borderRadius: 9,
+                boxShadow: t.shadowLg || t.shadow, maxHeight: 180, overflowY: "auto",
+              }}>
+                {filteredStudents.length === 0
+                  ? <div style={{ padding: "10px 12px", fontSize: 12, color: t.textMuted, textAlign: "center" }}>لا توجد نتائج</div>
+                  : filteredStudents.slice(0, 30).map(s => (
+                    <div key={getSid(s)} onClick={() => selectStudent(s)} style={{
+                      padding: "8px 12px", cursor: "pointer", fontSize: 12, borderBottom: `1px solid ${t.border}`,
+                      display: "flex", justifyContent: "space-between", alignItems: "center",
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.background = t.bgElevated}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <span style={{ fontWeight: 600, color: t.text }}>{sName(s)}</span>
+                      <span style={{ fontSize: 11, color: t.textMuted, direction: "ltr" }}>{sPhone(s)}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+            {errMsg("studentId")}
+          </div>
+
+          {/* Training type */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>نوع التدريب</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => { setTrainingType("MANUAL"); setErrors(p => ({ ...p, trainingType: undefined })); }} style={chip(trainingType === "MANUAL", errors.trainingType)}>عادي</button>
+              <button type="button" onClick={() => { setTrainingType("AUTOMATIC"); setErrors(p => ({ ...p, trainingType: undefined })); }} style={chip(trainingType === "AUTOMATIC", errors.trainingType)}>أوتوماتيك</button>
+            </div>
+            {errMsg("trainingType")}
+          </div>
+
+          {/* Vehicle source */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>مصدر المركبة</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => { setVehicleSource("SCHOOL_CAR"); setErrors(p => ({ ...p, vehicleSource: undefined })); }} style={chip(vehicleSource === "SCHOOL_CAR", errors.vehicleSource)}>سيارة المدرسة</button>
+              <button type="button" onClick={() => { setVehicleSource("STUDENT_CAR"); setErrors(p => ({ ...p, vehicleSource: undefined })); }} style={chip(vehicleSource === "STUDENT_CAR", errors.vehicleSource)}>سيارة الطالب</button>
+            </div>
+            {errMsg("vehicleSource")}
+          </div>
+
+          {/* Instructor gender */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={labelStyle}>جنس المدرب (اختياري)</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => setGenderFilter("MALE")} style={chip(genderFilter === "MALE", false)}>ذكر</button>
+              <button type="button" onClick={() => setGenderFilter("FEMALE")} style={chip(genderFilter === "FEMALE", false)}>أنثى</button>
             </div>
           </div>
+
+          <button type="button" disabled={loadingSlots} onClick={handleShowSlots} style={{
+            width: "100%", padding: "12px", borderRadius: 10, border: "none", fontFamily: "inherit",
+            cursor: loadingSlots ? "not-allowed" : "pointer",
+            background: loadingSlots ? t.textMuted : "#778a3b", color: "#fff", fontSize: 14, fontWeight: 700,
+          }}>{loadingSlots ? "جارٍ تحميل الأوقات..." : "عرض الأوقات المتاحة"}</button>
         </div>
-      ))}
-      {invModal && (
-        <InvoiceModal
-          booking={invModal}
-          t={t}
-          onClose={() => setInvModal(null)}
-        />
       )}
+
+      {/* ════════ STEP 2: الموعد ════════ */}
+      {step === 2 && (
+        <div>
+          {slots.length === 0 ? (
+            <div style={{ padding: 30, textAlign: "center", color: t.textMuted, fontSize: 14 }}>لا توجد أوقات متاحة بهذه المعايير</div>
+          ) : (
+            <div style={{ maxHeight: 380, overflowY: "auto", paddingLeft: 4 }}>
+              {slots.map((item, idx) => {
+                const instId = item.instructor?.id;
+                const instName = item.instructor?.name || "مدرب";
+                const instGender = item.instructor?.gender;
+                const dayGroups = buildDayGroups(item.slots || []);
+                if (dayGroups.length === 0) return null;
+                return (
+                  <div key={instId || idx} style={{ marginBottom: 16 }}>
+                    <div style={{
+                      fontSize: 14, fontWeight: 700, color: t.accent, marginBottom: 8,
+                      paddingBottom: 6, borderBottom: `2px solid ${t.accentLight}`,
+                      display: "flex", alignItems: "center", gap: 8,
+                    }}>
+                      <span style={{
+                        width: 26, height: 26, borderRadius: "50%", display: "inline-flex",
+                        alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700,
+                        background: t.accentLight, color: t.accent, flexShrink: 0,
+                      }}>{instName.charAt(0)}</span>
+                      {instName}
+                      {instGender && (
+                        <span style={{ fontSize: 10, color: t.textMuted, fontWeight: 400 }}>
+                          ({instGender === "MALE" ? "ذكر" : "أنثى"})
+                        </span>
+                      )}
+                    </div>
+                    {dayGroups.map(([dateStr, times]) => (
+                      <div key={dateStr} style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: t.textMuted, marginBottom: 6 }}>{formatDayHeader(dateStr)}</div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {times.map(time => {
+                            const isSelected = selectedInstructorId === String(instId) && selectedDate === dateStr && selectedTime === time;
+                            return (
+                              <button key={time} type="button" onClick={() => {
+                                setSelectedInstructorId(String(instId));
+                                setSelectedInstructorName(instName);
+                                setSelectedDate(dateStr);
+                                setSelectedTime(time);
+                                setServerError("");
+                              }} style={{
+                                padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                                fontFamily: "inherit", cursor: "pointer", border: "none", transition: "all 0.15s",
+                                background: isSelected ? "#778a3b" : t.bgElevated,
+                                color: isSelected ? "#fff" : t.text,
+                                outline: isSelected ? "none" : `1px solid ${t.border}`,
+                              }}>{time}</button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            <button type="button" disabled={checkingCredit} onClick={handleCheckCredit} style={{
+              flex: 1, padding: "12px", borderRadius: 10, border: "none", fontFamily: "inherit",
+              cursor: (!selectedTime || checkingCredit) ? "not-allowed" : "pointer",
+              background: (!selectedTime || checkingCredit) ? t.textMuted : "#778a3b", color: "#fff", fontSize: 14, fontWeight: 700,
+              opacity: !selectedTime ? 0.6 : 1,
+            }}>{checkingCredit ? "جارٍ التحقق..." : "التحقق من العربون"}</button>
+            <Btn label="رجوع" onClick={() => { setStep(1); setServerError(""); }} t={t} v="ghost" />
+          </div>
+        </div>
+      )}
+
+      {/* ════════ STEP 3: الدفع ════════ */}
+      {step === 3 && (
+        <div>
+          {/* Summary */}
+          <div style={{ background: t.bgElevated, borderRadius: 10, padding: 14, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 10 }}>ملخص الحجز</div>
+            <InfoRow k="الطالب" v={studentLabel} t={t} />
+            <InfoRow k="المدرب" v={selectedInstructorName} t={t} />
+            <InfoRow k="التاريخ" v={formatDayHeader(selectedDate)} t={t} />
+            <InfoRow k="الوقت" v={selectedTime} t={t} />
+            <InfoRow k="نوع التدريب" v={TRAINING_MAP[trainingType] || trainingType} t={t} />
+            <InfoRow k="المركبة" v={vehicleSource === "STUDENT_CAR" ? "سيارة الطالب" : "سيارة المدرسة"} t={t} />
+          </div>
+
+          {/* Credit / Amount */}
+          {hasCredit ? (
+            <div style={{ background: "rgba(80,90,50,0.1)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#505a32", fontWeight: 600 }}>
+              الطالب لديه رصيد سابق — سيتم خصم العربون تلقائياً
+            </div>
+          ) : (
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>مبلغ العربون المحصل</label>
+              <input type="number" value={collectedAmount} onChange={e => { setCollectedAmount(e.target.value); setErrors(p => ({ ...p, collectedAmount: undefined })); }}
+                placeholder="2000" dir="ltr" style={{ ...fieldStyle("collectedAmount"), textAlign: "left" }} />
+              {errMsg("collectedAmount")}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" disabled={submitting} onClick={handleSubmit} style={{
+              flex: 1, padding: "12px", borderRadius: 10, border: "none", fontFamily: "inherit",
+              cursor: submitting ? "not-allowed" : "pointer",
+              background: submitting ? t.textMuted : "#778a3b", color: "#fff", fontSize: 14, fontWeight: 700,
+            }}>{submitting ? "جارٍ الإنشاء..." : "إنشاء الحجز"}</button>
+            <Btn label="رجوع" onClick={() => { setStep(2); setServerError(""); setSuccessMsg(""); }} t={t} v="ghost" />
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function SectionBookings({ t }) {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("");
+  const [search, setSearch] = useState("");
+  const [createModal, setCreateModal] = useState(false);
+  const [invModal, setInvModal] = useState(null);
+  const [nsModal, setNsModal] = useState(null);
+  const [detailModal, setDetailModal] = useState(null);
+
+  const extractBookings = (responseData) => {
+    console.log("[Bookings] Raw response.data:", responseData);
+    if (!responseData) return [];
+    const body = responseData?.data ?? responseData;
+    if (Array.isArray(body)) return body;
+    if (body && typeof body === "object") {
+      for (const key of ["items", "bookings", "results", "rows", "data"]) {
+        if (Array.isArray(body[key])) return body[key];
+      }
+      const nested = body.data;
+      if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+        for (const key of ["items", "bookings", "results", "rows"]) {
+          if (Array.isArray(nested[key])) return nested[key];
+        }
+      }
+    }
+    return [];
+  };
+
+  const fetchBookings = async () => {
+    setLoading(true);
+    try {
+      const params = { page: 1, limit: 50 };
+      if (tab) params.bookingStatus = tab;
+      if (search.trim()) params.search = search.trim();
+      const res = await bookingsService.getAll(params);
+      setBookings(extractBookings(res.data));
+    } catch {
+      setBookings([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const params = { page: 1, limit: 50 };
+        if (tab) params.bookingStatus = tab;
+        if (search.trim()) params.search = search.trim();
+        const res = await bookingsService.getAll(params);
+        if (!cancelled) setBookings(extractBookings(res.data));
+      } catch {
+        if (!cancelled) setBookings([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tab, search]);
+
+  const mapBooking = (b) => {
+    const student = b.studentName || b.student?.user?.name || "—";
+    const inst = b.instructorName || b.instructor?.user?.name || "—";
+    const vehicle = b.vehicleSource === "STUDENT_CAR"
+      ? "سيارة الطالب"
+      : (b.vehiclePlate || b.vehicle?.plateNumber || "—");
+    const dateTime = formatBookingDate(b);
+    const type = TRAINING_MAP[b.trainingType] || b.trainingType || "—";
+    const status = BOOKING_STATUS_MAP[b.bookingStatus] || b.bookingStatus || "—";
+    const pay = PAYMENT_STATUS_MAP[b.paymentStatus] || b.paymentStatus || "—";
+    return {
+      id: b.id,
+      student,
+      inst,
+      vehicle,
+      dateTime,
+      type,
+      status,
+      pay,
+      rawStatus: b.bookingStatus,
+      rawPayment: b.paymentStatus,
+      raw: b,
+    };
+  };
+
+  const mapped = (Array.isArray(bookings) ? bookings : []).map(mapBooking);
+
+  const dotColor = (s) => {
+    if (s === "مكتمل") return t.completed.dot;
+    if (s === "مؤكد") return t.confirmed.dot;
+    if (s === "بانتظار العربون") return t.pending.dot;
+    if (s === "ملغي") return t.cancelled.dot;
+    if (s === "لم يحضر") return t.noshow.dot;
+    return t.expired.dot;
+  };
+
+  return (
+    <div style={{ padding: "18px 22px", overflowY: "auto", flex: 1 }}>
+      <div style={{ display: "flex", gap: 3, marginBottom: 14, background: t.bgElevated, borderRadius: 9, padding: 3, overflowX: "auto" }}>
+        {BOOKING_STATUS_FILTER.map((f) => (
+          <button key={f.value} onClick={() => setTab(f.value)} style={{
+            padding: "7px 12px", borderRadius: 7, border: "none", cursor: "pointer",
+            fontFamily: "inherit", fontSize: 11, fontWeight: tab === f.value ? 700 : 400,
+            whiteSpace: "nowrap", background: tab === f.value ? t.bgSurface : "transparent",
+            color: tab === f.value ? t.text : t.textMuted, boxShadow: tab === f.value ? t.shadow : "none",
+          }}>{f.label}</button>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+        <SearchBar placeholder="بحث باسم الطالب..." t={t} value={search} onChange={setSearch} />
+        <Btn label="+ حجز جديد" onClick={() => setCreateModal(true)} t={t} />
+      </div>
+
+      {loading ? (
+        <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>جارٍ تحميل الحجوزات...</div>
+      ) : mapped.length === 0 ? (
+        <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>لا توجد حجوزات</div>
+      ) : (
+        mapped.map((b) => (
+          <div key={b.id} style={{
+            background: t.bgSurface, borderRadius: 11, border: `1px solid ${t.borderCard}`,
+            padding: "13px 16px", marginBottom: 7, boxShadow: t.shadow,
+            borderRight: `4px solid ${dotColor(b.status)}`,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", gap: 6, alignItems: "baseline", marginBottom: 4 }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: t.text }}>{b.student}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: t.textMuted }}>#{b.id}</span>
+                </div>
+                <div style={{ fontSize: 12, color: t.textSec, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 600 }}>{b.inst}</span>
+                  <span style={{ color: t.border }}>|</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <IoIosCalendar style={{ fontSize: 13, flexShrink: 0 }} />
+                    {b.dateTime}
+                  </span>
+                  <span style={{ color: t.border }}>|</span>
+                  <span>{b.vehicle}</span>
+                  <span style={{ color: t.border }}>|</span>
+                  <span style={{ fontWeight: 600, color: t.accent }}>{b.type}</span>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 5, alignItems: "center", flexShrink: 0 }}>
+                <Badge s={b.pay} t={t} />
+                <Badge s={b.status} t={t} />
+              </div>
+              <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+                {b.rawStatus === "BOOKED" && b.rawPayment === "DEPOSIT_PAID" && (
+                  <Btn label="دفع المتبقي" onClick={() => setInvModal(b)} t={t} sz="sm" />
+                )}
+                {b.rawStatus === "BOOKED" && (
+                  <Btn label="لم يحضر" onClick={() => setNsModal(b)} t={t} sz="sm" v="danger" />
+                )}
+                <Btn label="تفاصيل" onClick={() => setDetailModal(b)} t={t} sz="sm" v="ghost" />
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+
+      {createModal && (
+        <CreateBookingModal t={t} onClose={() => setCreateModal(false)} onSuccess={() => { setCreateModal(false); fetchBookings(); }} />
+      )}
+      {invModal && <InvoiceModal booking={invModal} t={t} onClose={() => setInvModal(null)} />}
       {nsModal && (
-        <Modal
-          title="تأكيد: لم يحضر"
-          onClose={() => setNsModal(null)}
-          t={t}
-          width={370}
-        >
-          <div
-            style={{
-              padding: "10px 12px",
-              borderRadius: 9,
-              background: t.noshow.bg,
-              marginBottom: 12,
-              fontSize: 12,
-              color: t.noshow.text,
-            }}
-          >
+        <Modal title="تأكيد: لم يحضر" onClose={() => setNsModal(null)} t={t} width={370}>
+          <div style={{ padding: "10px 12px", borderRadius: 9, background: t.noshow.bg, marginBottom: 12, fontSize: 12, color: t.noshow.text }}>
             العربون غير مسترد — تُسجَّل الجلسة كـ No-Show
           </div>
           <InfoRow k="الطالب" v={nsModal.student} t={t} />
-          <InfoRow k="الجلسة" v={`${nsModal.date} • ${nsModal.time}`} t={t} />
+          <InfoRow k="الجلسة" v={nsModal.dateTime} t={t} />
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            <Btn
-              label="تأكيد No-Show"
-              onClick={() => setNsModal(null)}
-              t={t}
-              v="danger"
-              style={{ flex: 1 }}
-            />
-            <Btn
-              label="إلغاء"
-              onClick={() => setNsModal(null)}
-              t={t}
-              v="ghost"
-            />
+            <Btn label="تأكيد No-Show" onClick={() => setNsModal(null)} t={t} v="danger" style={{ flex: 1 }} />
+            <Btn label="إلغاء" onClick={() => setNsModal(null)} t={t} v="ghost" />
           </div>
         </Modal>
       )}
+      {detailModal && (() => {
+        const r = detailModal.raw;
+        const vehicle = r.vehicleSource === "STUDENT_CAR"
+          ? "سيارة الطالب"
+          : (r.vehiclePlate || "—");
+        const type = TRAINING_MAP[r.trainingType] || r.trainingType || "—";
+        const payLabel = PAYMENT_STATUS_MAP[r.paymentStatus] || r.paymentStatus || "—";
+        const statusLabel = BOOKING_STATUS_MAP[r.bookingStatus] || r.bookingStatus || "—";
+        const dateStr = r.dayName && r.date
+          ? `${r.dayName} ${r.date}`
+          : r.date || "—";
+        const timeStr = r.startTime && r.endTime
+          ? `من ${r.startTime} إلى ${r.endTime}`
+          : r.startTime || "—";
+        const remaining = r.remainingAmount != null
+          ? `${Number(r.remainingAmount).toLocaleString("ar-SY")} ل.س`
+          : "—";
+
+        const sectionTitle = (text) => (
+          <div style={{
+            fontSize: 13, fontWeight: 700, color: t.accent,
+            paddingBottom: 6, marginBottom: 10, marginTop: 16,
+            borderBottom: `2px solid ${t.accentLight}`,
+          }}>{text}</div>
+        );
+
+        return (
+          <Modal title={`تفاصيل الحجز كاملة #${r.id}`} onClose={() => setDetailModal(null)} t={t} width={480}>
+            {sectionTitle("معلومات الطالب والمدرب")}
+            <InfoRow k="اسم الطالب" v={r.studentName || detailModal.student} t={t} />
+            <InfoRow k="اسم المدرب" v={r.instructorName || detailModal.inst} t={t} />
+
+            {sectionTitle("تفاصيل التدريب والجدولة")}
+            <InfoRow k="نوع التدريب" v={type} t={t} />
+            <InfoRow k="تاريخ الجلسة" v={dateStr} t={t} />
+            <InfoRow k="وقت الجلسة" v={timeStr} t={t} />
+            <InfoRow k="المركبة" v={vehicle} t={t} />
+
+            {sectionTitle("التفاصيل المالية")}
+            <InfoRow k="حالة الدفع" v={payLabel} t={t} />
+            <InfoRow k="حالة الحجز" v={statusLabel} t={t} />
+            <InfoRow k="المبلغ المتبقي" v={remaining} t={t} />
+
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
+              <Btn label="إغلاق" onClick={() => setDetailModal(null)} t={t} v="ghost" style={{ minWidth: 100 }} />
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

@@ -12,7 +12,6 @@ import { FaRegAddressCard, FaCar, FaUserTie } from "react-icons/fa";
 import { CiCreditCard1 } from "react-icons/ci";
 import { TbBus } from "react-icons/tb";
 import { PiStudent } from "react-icons/pi";
-import { GrSchedules } from "react-icons/gr";
 import { FaChartLine, FaChartColumn, FaBellConcierge } from "react-icons/fa6";
 import { MdAdminPanelSettings } from "react-icons/md";
 import { FiLogOut } from "react-icons/fi";
@@ -46,13 +45,6 @@ const navItems = [
     icon: <FaChartLine />,
     page: "AccountantProPage",
     permission: P.PAYMENTS_READ,
-  },
-  {
-    id: "bookings",
-    label: "الحجز والجدولة",
-    icon: <GrSchedules />,
-    page: "Bookings",
-    permission: P.BOOKINGS_READ,
   },
   {
     id: "students",
@@ -252,7 +244,7 @@ export default function MainLayout({
                 style={{
                   fontSize: 15,
                   fontWeight: 800,
-                  color: "#fff7d4",
+                  color: "#2c2c2a",
                   lineHeight: 1.2,
                 }}
               >

@@ -2,43 +2,31 @@ import client from "./client";
 
 const bookingsService = {
   getAll(params) {
-    return client.get("/bookings", { params });
+    return client.get("/reception/bookings", { params });
   },
 
   getById(id) {
-    return client.get(`/bookings/${id}`);
+    return client.get(`/reception/bookings/${id}`);
   },
 
   create(data) {
-    return client.post("/bookings", data);
+    return client.post("/reception/bookings", data);
   },
 
   cancel(id, data) {
-    return client.post(`/bookings/${id}/cancel`, data);
+    return client.post(`/reception/bookings/${id}/cancel`, data);
   },
 
-  complete(id) {
-    return client.post(`/bookings/${id}/complete`);
-  },
-
-  markNoShow(id) {
-    return client.post(`/bookings/${id}/no-show`);
+  payRemainder(id) {
+    return client.post(`/reception/bookings/${id}/pay-remainder`);
   },
 
   getAvailableSlots(params) {
-    return client.get("/bookings/available-slots", { params });
+    return client.get("/reception/bookings/available-slots", { params });
   },
 
-  getCancellation(bookingId) {
-    return client.get(`/bookings/${bookingId}/cancellation`);
-  },
-
-  getLessonPrices(params) {
-    return client.get("/lesson-prices", { params });
-  },
-
-  createLessonPrice(data) {
-    return client.post("/lesson-prices", data);
+  creditCheck(studentId) {
+    return client.get(`/students/${studentId}/credit-check`);
   },
 };
 
