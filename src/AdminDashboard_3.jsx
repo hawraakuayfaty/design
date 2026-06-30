@@ -22,7 +22,7 @@ import { FaChartColumn } from "react-icons/fa6";
 import { FaBellConcierge } from "react-icons/fa6";
 import { FaRegCheckCircle } from "react-icons/fa";
 
-import { LuX, LuEye } from "react-icons/lu";
+import { LuX, LuEye, LuEyeOff } from "react-icons/lu";
 
 import { MdAdminPanelSettings } from "react-icons/md";
 import { PiMedalFill } from "react-icons/pi";
@@ -79,33 +79,33 @@ const tokens = {
   },
 
   dark: {
-    bgPage: "#20241d",
-    bgSurface: "#2b3127",
-    bgElevated: "#353d31",
-    bgSidebar: "linear-gradient(180deg, #2b3127 0%, #2b3127 52%, #2b3127 100%)",
+    bgPage: "#18181b",
+    bgSurface: "#27272a",
+    bgElevated: "#2d2d32",
+    bgSidebar: "#1f1f23",
     bgSidebarActive: "#778a3b",
-    bgHeader: "#2b3127",
-    text: "#f4f5ef",
-    textSec: "#dde1d7",
-    textMuted: "#b7bdb2",
-    textSidebar: "#f8f9f5",
+    bgHeader: "#27272a",
+    text: "#f4f4f5",
+    textSec: "#d4d4d8",
+    textMuted: "#a1a1aa",
+    textSidebar: "#f4f4f5",
     textSidebarActive: "#FFFFFF",
     border: "rgba(255,255,255,0.08)",
-    borderCard: "rgba(221,225,215,0.12)",
-    accent: "#e7bc65",
-    accentLight: "rgba(119, 124, 59, 0.18)",
-    accentText: "#eef2e4",
+    borderCard: "rgba(255,255,255,0.10)",
+    accent: "#a3c45a",
+    accentLight: "rgba(119,138,59,0.22)",
+    accentText: "#d4edaa",
     accentGradient: "linear-gradient(135deg,#778a3b 0%,#5f702d 100%)",
     accentGradientSoft:
-      "linear-gradient(135deg, rgba(119,124,59,0.20) 0%, rgba(95,112,45,0.12) 100%)",
+      "linear-gradient(135deg, rgba(119,138,59,0.22) 0%, rgba(95,112,45,0.12) 100%)",
 
-    confirmed: { bg: "rgba(119,124,59,0.20)", text: "#eef2e4" },
-    pending: { bg: "rgba(201,124,40,0.20)", text: "#f0cb8c" },
-    cancelled: { bg: "rgba(199,72,72,0.20)", text: "#f2b1b1" },
-    submitted: { bg: "rgba(119,124,59,0.18)", text: "#eef2e4" },
-    completed: { bg: "rgba(63,107,58,0.24)", text: "#b8d4b5" },
-    expired: { bg: "rgba(183,189,178,0.14)", text: "#d0d5cb" },
-    noshow: { bg: "rgba(199,72,72,0.18)", text: "#f0b0b0" },
+    confirmed: { bg: "rgba(119,138,59,0.22)", text: "#d4edaa" },
+    pending: { bg: "rgba(201,138,40,0.22)", text: "#f0cb8c" },
+    cancelled: { bg: "rgba(199,72,72,0.22)", text: "#fca5a5" },
+    submitted: { bg: "rgba(119,138,59,0.18)", text: "#d4edaa" },
+    completed: { bg: "rgba(63,107,58,0.26)", text: "#86efac" },
+    expired: { bg: "rgba(161,161,170,0.14)", text: "#a1a1aa" },
+    noshow: { bg: "rgba(199,72,72,0.20)", text: "#fca5a5" },
     inprogress: { bg: "rgba(119,124,59,0.18)", text: "#eef2e4" },
   },
 };
@@ -868,6 +868,7 @@ const STUDENT_FILTER_OPTIONS = [
 
 function AddStudentModal({ t, onClose, onSuccess }) {
   const [form, setForm] = useState({ name: "", phone: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
@@ -954,8 +955,13 @@ function AddStudentModal({ t, onClose, onSuccess }) {
           </div>
           <div style={{ marginBottom: 24 }}>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>كلمة المرور</label>
-            <input type="password" value={form.password} onChange={(ev) => { setForm({ ...form, password: ev.target.value }); setErrors({ ...errors, password: undefined }); }}
-              placeholder="كلمة مرور الحساب" style={fieldStyle("password")} />
+            <div style={{ position: "relative" }}>
+              <input type={showPassword ? "text" : "password"} value={form.password} onChange={(ev) => { setForm({ ...form, password: ev.target.value }); setErrors({ ...errors, password: undefined }); }}
+                placeholder="كلمة مرور الحساب" style={{ ...fieldStyle("password"), paddingLeft: 36 }} />
+              <button type="button" onClick={() => setShowPassword(v => !v)} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: t.textMuted, display: "flex", alignItems: "center", padding: 0, fontSize: 16 }}>
+                {showPassword ? <LuEyeOff /> : <LuEye />}
+              </button>
+            </div>
             {errors.password && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.password}</div>}
           </div>
 
@@ -1136,6 +1142,7 @@ const GENDER_FILTER_OPTIONS = [
 
 function AddInstructorModal({ t, onClose, onSuccess }) {
   const [form, setForm] = useState({ name: "", phone: "", password: "", gender: "", instructorType: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
@@ -1238,8 +1245,13 @@ function AddInstructorModal({ t, onClose, onSuccess }) {
 
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>كلمة المرور</label>
-            <input type="password" value={form.password} onChange={(ev) => { setForm({ ...form, password: ev.target.value }); setErrors({ ...errors, password: undefined }); }}
-              placeholder="كلمة مرور الحساب" style={fieldStyle("password")} />
+            <div style={{ position: "relative" }}>
+              <input type={showPassword ? "text" : "password"} value={form.password} onChange={(ev) => { setForm({ ...form, password: ev.target.value }); setErrors({ ...errors, password: undefined }); }}
+                placeholder="كلمة مرور الحساب" style={{ ...fieldStyle("password"), paddingLeft: 36 }} />
+              <button type="button" onClick={() => setShowPassword(v => !v)} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: t.textMuted, display: "flex", alignItems: "center", padding: 0, fontSize: 16 }}>
+                {showPassword ? <LuEyeOff /> : <LuEye />}
+              </button>
+            </div>
             {errors.password && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.password}</div>}
           </div>
 
@@ -3143,9 +3155,11 @@ export default function App({
   adminSubPage: externalAdminSub,
   accountantSubPage: externalAccountantSub,
   receptionistSubPage: externalReceptionistSub,
+  darkMode: externalDarkMode,
 }) {
   const { hasPermission } = useAuth();
-  const [darkMode, setDarkMode] = useState(false);
+  const [internalDarkMode, setDarkMode] = useState(false);
+  const darkMode = embeddedMode ? (externalDarkMode ?? false) : internalDarkMode;
   const [internalPage, setInternalPage] = useState("Dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [internalAdminSub, setInternalAdminSub] = useState("dash");

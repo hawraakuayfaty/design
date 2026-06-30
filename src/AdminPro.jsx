@@ -14,6 +14,7 @@ import { IoDocumentTextOutline } from "react-icons/io5";
 import { MdOutlineAttachMoney } from "react-icons/md";
 import { PiMedalFill } from "react-icons/pi";
 import { employeesService } from "./api";
+import { LuEye, LuEyeOff } from "react-icons/lu";
 
 
 
@@ -45,30 +46,30 @@ const T = {
     shadowLg: "0 20px 48px rgba(119,124,59,0.16)",
   },
   dark: {
-    bgApp: "#20241D",
-    bgSurface: "#2B3127",
-    bgElevated: "#353D31",
-    bgSidebar: "linear-gradient(180deg,#5F702D 0%,#4F5F29 52%,#414E24 100%)",
+    bgApp: "#18181b",
+    bgSurface: "#27272a",
+    bgElevated: "#2d2d32",
+    bgSidebar: "#1f1f23",
     bgSidebarActive: "#778A3B",
-    text: "#F4F5EF",
-    textSec: "#DDE1D7",
-    textMuted: "#B7BDB2",
-    textSidebar: "#F8F9F5",
+    text: "#F4F4F5",
+    textSec: "#D4D4D8",
+    textMuted: "#A1A1AA",
+    textSidebar: "#F4F4F5",
     textSidebarActive: "#FFFFFF",
     border: "rgba(255,255,255,0.08)",
-    borderCard: "rgba(221,225,215,0.12)",
-    accent: "#778A3B",
-    accentLight: "rgba(119,124,59,0.18)",
-    accentText: "#EEF2E4",
+    borderCard: "rgba(255,255,255,0.10)",
+    accent: "#A3C45A",
+    accentLight: "rgba(119,138,59,0.22)",
+    accentText: "#D4EDAA",
     grad: "linear-gradient(135deg,#778A3B 0%,#5F702D 100%)",
-    completed: { bg: "rgba(63,107,58,0.24)", text: "#B8D4B5", dot: "#B8D4B5" },
-    pending: { bg: "rgba(201,124,40,0.20)", text: "#F0CB8C", dot: "#F0CB8C" },
-    cancelled: { bg: "rgba(199,72,72,0.20)", text: "#F2B1B1", dot: "#F2B1B1" },
-    confirmed: { bg: "rgba(119,124,59,0.20)", text: "#EEF2E4", dot: "#EEF2E4" },
-    expired: { bg: "rgba(183,189,178,0.14)", text: "#D0D5CB", dot: "#D0D5CB" },
-    admin: { bg: "rgba(119,124,59,0.18)", text: "#EEF2E4", dot: "#EEF2E4" },
-    shadow: "0 12px 28px rgba(28,31,24,0.30)",
-    shadowLg: "0 20px 48px rgba(28,31,24,0.40)",
+    completed: { bg: "rgba(63,107,58,0.26)", text: "#86EFAC", dot: "#86EFAC" },
+    pending: { bg: "rgba(201,138,40,0.22)", text: "#F0CB8C", dot: "#F0CB8C" },
+    cancelled: { bg: "rgba(199,72,72,0.22)", text: "#FCA5A5", dot: "#FCA5A5" },
+    confirmed: { bg: "rgba(119,138,59,0.22)", text: "#D4EDAA", dot: "#D4EDAA" },
+    expired: { bg: "rgba(161,161,170,0.14)", text: "#A1A1AA", dot: "#A1A1AA" },
+    admin: { bg: "rgba(119,138,59,0.20)", text: "#D4EDAA", dot: "#D4EDAA" },
+    shadow: "0 12px 28px rgba(0,0,0,0.40)",
+    shadowLg: "0 20px 48px rgba(0,0,0,0.50)",
   },
 };
 
@@ -312,6 +313,7 @@ const STATUS_LABEL = { ACTIVE: "نشط", BLOCKED: "موقوف", ARCHIVED: "مؤ�
 function AddEmployeeModal({ t, onClose, onSuccess }) {
   const [form, setForm] = useState({ name: "", phone: "", password: "", role: "", monthlySalary: "", hireDate: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
 
@@ -402,7 +404,12 @@ function AddEmployeeModal({ t, onClose, onSuccess }) {
           </div>
           <div>
             <label style={{ fontSize: 11, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 4 }}>كلمة المرور</label>
-            <input type="password" value={form.password} onChange={e => set("password", e.target.value)} placeholder="كلمة مرور الحساب" style={fieldStyle("password")} />
+            <div style={{ position: "relative" }}>
+              <input type={showPassword ? "text" : "password"} value={form.password} onChange={e => set("password", e.target.value)} placeholder="كلمة مرور الحساب" style={{ ...fieldStyle("password"), paddingLeft: 36 }} />
+              <button type="button" onClick={() => setShowPassword(v => !v)} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: t.textMuted, display: "flex", alignItems: "center", padding: 0, fontSize: 16 }}>
+                {showPassword ? <LuEyeOff /> : <LuEye />}
+              </button>
+            </div>
             {errors.password && <div style={{ fontSize: 11, color: "#c74848", marginTop: 3 }}>{errors.password}</div>}
           </div>
           <div>

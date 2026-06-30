@@ -7,6 +7,7 @@ export default function DashboardShell() {
   const [adminSubPage, setAdminSubPage] = useState("dash");
   const [accountantSubPage, setAccountantSubPage] = useState("dash");
   const [receptionistSubPage, setReceptionistSubPage] = useState("students");
+  const [darkMode, setDarkMode] = useState(false);
 
   return (
     <MainLayout
@@ -18,6 +19,8 @@ export default function DashboardShell() {
       onAccountantSubPageChange={setAccountantSubPage}
       receptionistSubPage={receptionistSubPage}
       onReceptionistSubPageChange={setReceptionistSubPage}
+      darkMode={darkMode}
+      onDarkModeToggle={() => setDarkMode(v => !v)}
     >
       <AdminDashboard
         embeddedMode
@@ -26,6 +29,7 @@ export default function DashboardShell() {
         adminSubPage={adminSubPage}
         accountantSubPage={accountantSubPage}
         receptionistSubPage={receptionistSubPage}
+        darkMode={darkMode}
       />
     </MainLayout>
   );

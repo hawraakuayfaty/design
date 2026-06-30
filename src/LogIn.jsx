@@ -12,6 +12,8 @@ import {
   FiUser,
   FiShield,
   FiDollarSign,
+  FiEye,
+  FiEyeOff,
 } from "react-icons/fi";
 
 const GlobalStyle = createGlobalStyle`
@@ -256,6 +258,7 @@ export default function LogIn() {
   const [devRole, setDevRole] = useState("admin");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { login, devLogin, isAuthenticated } = useAuth();
 
@@ -365,7 +368,7 @@ export default function LogIn() {
 
             <InputGroup>
               <StyledInput
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -374,6 +377,18 @@ export default function LogIn() {
               <InputIcon>
                 <FiLock />
               </InputIcon>
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                style={{
+                  position: "absolute", left: 14, top: "50%",
+                  transform: "translateY(-50%)", background: "none",
+                  border: "none", cursor: "pointer", color: "#a89b6c",
+                  display: "flex", alignItems: "center", padding: 0, fontSize: 17,
+                }}
+              >
+                {showPassword ? <FiEyeOff /> : <FiEye />}
+              </button>
             </InputGroup>
 
             <SubmitButton type="submit" disabled={loading}>

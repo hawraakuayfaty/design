@@ -93,7 +93,6 @@ const navItems = [
     label: "التقارير",
     icon: <TbReport />,
     page: "Reports",
-    permission: P.REPORTS_READ,
   },
   {
     id: "users",
@@ -145,8 +144,9 @@ export default function MainLayout({
   onAccountantSubPageChange,
   receptionistSubPage,
   onReceptionistSubPageChange,
+  darkMode = false,
+  onDarkModeToggle,
 }) {
-  const [darkMode, setDarkMode] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { user, hasPermission, logout } = useAuth();
   const navigate = useNavigate();
@@ -434,7 +434,7 @@ export default function MainLayout({
 
           {/* Dark mode */}
           <button
-            onClick={() => setDarkMode(!darkMode)}
+            onClick={onDarkModeToggle}
             style={{
               padding: "6px 14px",
               borderRadius: 7,
