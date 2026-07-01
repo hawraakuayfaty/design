@@ -6,7 +6,7 @@ import { IoDocumentTextOutline } from "react-icons/io5";
 import {  PiUsersThin } from "react-icons/pi";
 import { FaUserTie } from "react-icons/fa";
 import { FaCar } from "react-icons/fa";
-import { bookingsService, studentsService } from "./api";
+import { bookingsService, studentsService, instructorsService } from "./api";
 
 
 const T = {
@@ -419,129 +419,811 @@ function SectionStudents({t}){
   );
 }
 
-const INSTRUCTORS=[
-  {id:1,name:"خالد عمر الزيد",phone:"0991111111",gender:"ذكر",type:"داخلي",caps:"عادي + أوتوماتيك",fee:500,status:"نشط",lessons:3,rating:4.8},
-  {id:2,name:"ليلى سعد حمود",phone:"0992222222",gender:"أنثى",type:"داخلي",caps:"أوتوماتيك",fee:500,status:"نشط",lessons:3,rating:4.7},
-  {id:3,name:"أحمد الزيد محمد",phone:"0993333333",gender:"ذكر",type:"خارجي",caps:"عادي",fee:450,status:"نشط",lessons:2,rating:4.6},
-  {id:4,name:"سمر يوسف سالم",phone:"0994444444",gender:"أنثى",type:"داخلي",caps:"عادي + أوتوماتيك",fee:500,status:"في إجازة",lessons:0,rating:4.5},
-  {id:5,name:"ماهر العلي",phone:"0995555555",gender:"ذكر",type:"خارجي",caps:"عادي",fee:450,status:"نشط",lessons:1,rating:4.4},
+const GENDER_MAP = { MALE: "ذكر", FEMALE: "أنثى" };
+const INSTRUCTOR_TYPE_MAP = { MANUAL: "عادي", AUTOMATIC: "أوتوماتيك", BOTH: "عادي + أوتوماتيك" };
+const INSTRUCTOR_TYPE_FILTER = [
+  { value: "", label: "الكل" },
+  { value: "MANUAL", label: "عادي" },
+  { value: "AUTOMATIC", label: "أوتوماتيك" },
+  { value: "BOTH", label: "كلاهما" },
 ];
-const DAYS=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
-const HOURS=["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"];
-const AVAIL={0:[2,3,4,5,6],1:[2,3,4,5,6],2:[2,3,4,5,6],3:[2,3,4,5,6],4:[2,3,4,5,6]};
+const GENDER_FILTER = [
+  { value: "", label: "الكل" },
+  { value: "MALE", label: "ذكر" },
+  { value: "FEMALE", label: "أنثى" },
+];
+const DAY_OF_WEEK_ORDER = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const DAY_OF_WEEK_LABELS = { SUN: "الأحد", MON: "الاثنين", TUE: "الثلاثاء", WED: "الأربعاء", THU: "الخميس", FRI: "الجمعة", SAT: "السبت" };
 
-function SectionInstructors({t}){
-  const [search,setSearch]=useState("");
-  const [gF,setGF]=useState("الكل");
-  const [sel,setSel]=useState(INSTRUCTORS[0]);
-  const [dTab,setDTab]=useState("info");
-  const [avModal,setAvModal]=useState(false);
-  const filtered=INSTRUCTORS.filter(i=>(gF==="الكل"||i.gender===gF)&&(i.name.includes(search)||i.phone.includes(search)));
-  return(
-    <div style={{display:"flex",height:"100%"}}>
-      <div className="hide-scrollbar" style={{width:290,height:"100%",flexShrink:0,display:"flex",flexDirection:"column",overflow:"hidden",borderLeft:`1px solid ${t.border}`}}>
-        <div style={{padding:"12px 12px 8px",borderBottom:`1px solid ${t.border}`}}>
-          <SearchBar placeholder="بحث عن مدرب..." t={t} value={search} onChange={setSearch}/>
-          <div style={{display:"flex",gap:3,marginTop:8}}>
-            {["الكل","ذكر","أنثى"].map(g=><button key={g} onClick={()=>setGF(g)} style={{flex:1,padding:"5px",borderRadius:7,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:gF===g?700:400,background:gF===g?t.accent:"transparent",color:gF===g?"#fff":t.textMuted}}>{g}</button>)}
-          </div>
-        </div>
-        <div style={{flex:1,overflowY:"auto"}}>
-          {filtered.map(inst=>(
-            <div key={inst.id} onClick={()=>setSel(inst)} style={{padding:"11px 13px",cursor:"pointer",display:"flex",alignItems:"center",gap:9,borderBottom:`1px solid ${t.border}`,background:sel?.id===inst.id?t.accentLight:t.bgSurface,borderRight:sel?.id===inst.id?`3px solid ${t.accent}`:"3px solid transparent"}}>
-              <div style={{width:36,height:36,borderRadius:"50%",background:inst.gender==="ذكر"?t.confirmed.bg:t.noshow.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,color:inst.gender==="ذكر"?t.confirmed.text:t.noshow.text,fontWeight:700,flexShrink:0}}>{inst.name[0]}</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:13,fontWeight:600,color:t.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{inst.name}</div>
-                <div style={{fontSize:11,color:t.textMuted,marginTop:1}}>{inst.caps} • {inst.lessons} دروس</div>
-              </div>
-              <Badge s={inst.status} t={t}/>
-            </div>
-          ))}
-        </div>
-        <div style={{padding:"10px 12px",borderTop:`1px solid ${t.border}`,background:t.bgElevated}}>
-          <Btn label="+ إضافة مدرب" t={t} sz="sm" style={{width:"100%"}}/>
-        </div>
-      </div>
-      {sel&&(
-        <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-          <div style={{padding:"16px 22px",borderBottom:`1px solid ${t.border}`,display:"flex",alignItems:"center",gap:14,background:t.bgSurface,flexShrink:0}}>
-            <div style={{width:50,height:50,borderRadius:"50%",background:sel.gender==="ذكر"?t.confirmed.bg:t.noshow.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:sel.gender==="ذكر"?t.confirmed.text:t.noshow.text,fontWeight:700}}>{sel.name[0]}</div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:17,fontWeight:700,color:t.text}}>{sel.name}</div>
-              <div style={{fontSize:12,color:t.textSec,marginTop:2}}>⭐ {sel.rating} • {sel.phone}</div>
-              <div style={{marginTop:5,display:"flex",gap:5}}><Badge s={sel.status} t={t}/><Badge s={sel.gender} t={t}/><Badge s={sel.type} t={t}/></div>
-            </div>
-            <div style={{display:"flex",gap:7}}>
-              <Btn label="إجازة" t={t} sz="sm" v="ghost"/>
-              <Btn label="غياب اليوم" t={t} sz="sm" v="danger"/>
-            </div>
-          </div>
-          <div style={{display:"flex",borderBottom:`1px solid ${t.border}`,background:t.bgSurface,padding:"0 22px",flexShrink:0}}>
-            {[["info","البيانات"],["schedule","جدول اليوم"],["availability","أوقات التوفر"]].map(([id,label])=>(
-              <button key={id} onClick={()=>setDTab(id)} style={{padding:"11px 14px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:dTab===id?700:400,background:"transparent",color:dTab===id?t.accent:t.textSec,borderBottom:`2px solid ${dTab===id?t.accent:"transparent"}`,marginBottom:-1}}>{label}</button>
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+// dayOfWeek/periods come back from GET /instructors/{id}/schedule as e.g. { dayOfWeek: "SAT", periods: [{ startTime: "08:00:00", endTime: "14:00:00" }] }
+// the update endpoint expects "HH:MM" (no seconds), so times are normalized on read.
+function hhmm(v) { return typeof v === "string" ? v.slice(0, 5) : v; }
+
+// Instructor's own account status; leaveStatus (from GET .../profile) is non-null only while currently on leave.
+function instructorStatusLabel(entity) {
+  if (entity?.leaveStatus) return "في إجازة";
+  const acct = entity?.accountStatus;
+  if (acct === "BLOCKED" || acct === "ARCHIVED") return "غير نشط";
+  return "نشط";
+}
+
+// GET /instructors -> { data: [...] }; GET .../bookings -> { data: { data: [...], meta } }; GET .../leaves -> { data: { leaves: [...] } }
+function extractList(body, keys) {
+  if (!body) return [];
+  const b = body?.data ?? body;
+  if (Array.isArray(b)) return b;
+  if (b && typeof b === "object") {
+    if (Array.isArray(b.data)) return b.data;
+    for (const k of keys) if (Array.isArray(b[k])) return b[k];
+  }
+  return [];
+}
+
+function formatMoney(v) {
+  if (v == null || v === "") return "—";
+  const n = Number(v);
+  return isNaN(n) ? String(v) : `${n.toLocaleString("ar-SY")} ل.س`;
+}
+
+function formatLeaveRange(l) {
+  try {
+    if (l.date) {
+      const d = new Date(l.date + "T00:00:00");
+      return d.toLocaleDateString("ar-SY", { weekday: "long", day: "numeric", month: "long" }) + " — يوم كامل";
+    }
+    if (l.startAt && l.endAt) {
+      const s = new Date(l.startAt), e = new Date(l.endAt);
+      const day = s.toLocaleDateString("ar-SY", { weekday: "long", day: "numeric", month: "long" });
+      const st = s.toLocaleTimeString("ar-SY", { hour: "2-digit", minute: "2-digit", hour12: false });
+      const et = e.toLocaleTimeString("ar-SY", { hour: "2-digit", minute: "2-digit", hour12: false });
+      return `${day} — من ${st} إلى ${et}`;
+    }
+  } catch { /* empty */ }
+  return "—";
+}
+
+function SectionInstructors({ t }) {
+  // The list/profile "id" field is the instructor's *user* id — routes are keyed by "instructorId".
+  const iId = (i) => i?.instructorId;
+  const iName = (i) => i?.name || "—";
+  const iPhone = (i) => i?.phone || "—";
+  const iGender = (i) => i?.gender;
+
+  const [instructors, setInstructors] = useState([]);
+  const [loadingList, setLoadingList] = useState(true);
+  const [search, setSearch] = useState("");
+  const [genderFilter, setGenderFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [sel, setSel] = useState(null);
+  const [dTab, setDTab] = useState("info");
+
+  const [detail, setDetail] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  const [schedule, setSchedule] = useState([]);
+  const [loadingSchedule, setLoadingSchedule] = useState(false);
+  const [scheduleModal, setScheduleModal] = useState(null);
+
+  const [bookingDate, setBookingDate] = useState(todayStr());
+  const [bookingStatusFilter, setBookingStatusFilter] = useState("");
+  const [bookings, setBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
+
+  const [leaves, setLeaves] = useState([]);
+  const [loadingLeaves, setLoadingLeaves] = useState(false);
+  const [leaveModal, setLeaveModal] = useState(null);
+  const [leaveBusyId, setLeaveBusyId] = useState(null);
+  const [deleteLeaveTarget, setDeleteLeaveTarget] = useState(null);
+
+  const [addModal, setAddModal] = useState(false);
+
+  // ── Fetch instructors list (search + filters) ──
+  const fetchInstructors = async () => {
+    setLoadingList(true);
+    try {
+      const params = {};
+      if (search.trim()) params.search = search.trim();
+      if (genderFilter) params.gender = genderFilter;
+      if (typeFilter) params.instructorType = typeFilter;
+      const res = await instructorsService.getAll(params);
+      const arr = extractList(res.data, ["items", "instructors", "results", "rows"]);
+      setInstructors(arr);
+      setSel(prev => (prev && arr.some(i => String(iId(i)) === String(iId(prev)))) ? prev : (arr[0] || null));
+    } catch {
+      setInstructors([]);
+      setSel(null);
+    } finally {
+      setLoadingList(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingList(true);
+      try {
+        const params = {};
+        if (search.trim()) params.search = search.trim();
+        if (genderFilter) params.gender = genderFilter;
+        if (typeFilter) params.instructorType = typeFilter;
+        const res = await instructorsService.getAll(params);
+        const arr = extractList(res.data, ["items", "instructors", "results", "rows"]);
+        if (!cancelled) {
+          setInstructors(arr);
+          setSel(prev => (prev && arr.some(i => String(iId(i)) === String(iId(prev)))) ? prev : (arr[0] || null));
+        }
+      } catch {
+        if (!cancelled) { setInstructors([]); setSel(null); }
+      } finally {
+        if (!cancelled) setLoadingList(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [search, genderFilter, typeFilter]);
+
+  // ── Fetch selected instructor's profile + stats ──
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!sel) { setDetail(null); setStats(null); return; }
+      setLoadingDetail(true);
+      try {
+        const [baseRes, profileRes] = await Promise.allSettled([
+          instructorsService.getById(iId(sel)),
+          instructorsService.getProfile(iId(sel)),
+        ]);
+        const base = baseRes.status === "fulfilled" ? (baseRes.value.data?.data ?? baseRes.value.data) : null;
+        const profile = profileRes.status === "fulfilled" ? (profileRes.value.data?.data ?? profileRes.value.data) : null;
+        if (!cancelled) {
+          // profile (GET .../profile, confirmed shape) always wins over the plain get-one response.
+          setDetail({
+            ...(base && typeof base === "object" ? base : {}),
+            ...(profile && typeof profile === "object" ? profile : {}),
+          });
+        }
+      } catch {
+        if (!cancelled) setDetail(null);
+      } finally {
+        if (!cancelled) setLoadingDetail(false);
+      }
+
+      setLoadingStats(true);
+      try {
+        const res = await instructorsService.getStats(iId(sel));
+        const body = res.data?.data ?? res.data;
+        if (!cancelled) setStats(body && typeof body === "object" ? body : {});
+      } catch {
+        if (!cancelled) setStats(null);
+      } finally {
+        if (!cancelled) setLoadingStats(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sel]);
+
+  // ── Fetch selected instructor's weekly schedule ──
+  const fetchSchedule = async () => {
+    if (!sel) { setSchedule([]); return; }
+    setLoadingSchedule(true);
+    try {
+      const res = await instructorsService.getSchedule(iId(sel));
+      const body = res.data?.data ?? res.data;
+      const arr = Array.isArray(body?.schedule) ? body.schedule : (Array.isArray(body) ? body : []);
+      setSchedule(arr);
+    } catch {
+      setSchedule([]);
+    } finally {
+      setLoadingSchedule(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!sel) { setSchedule([]); return; }
+      setLoadingSchedule(true);
+      try {
+        const res = await instructorsService.getSchedule(iId(sel));
+        const body = res.data?.data ?? res.data;
+        const arr = Array.isArray(body?.schedule) ? body.schedule : (Array.isArray(body) ? body : []);
+        if (!cancelled) setSchedule(arr);
+      } catch {
+        if (!cancelled) setSchedule([]);
+      } finally {
+        if (!cancelled) setLoadingSchedule(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sel]);
+
+  // ── Fetch selected instructor's leaves ──
+  const fetchLeaves = async () => {
+    if (!sel) { setLeaves([]); return; }
+    setLoadingLeaves(true);
+    try {
+      const res = await instructorsService.getLeaves(iId(sel));
+      const arr = extractList(res.data, ["leaves", "items", "results"]);
+      setLeaves(arr);
+    } catch {
+      setLeaves([]);
+    } finally {
+      setLoadingLeaves(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!sel) { setLeaves([]); return; }
+      setLoadingLeaves(true);
+      try {
+        const res = await instructorsService.getLeaves(iId(sel));
+        const arr = extractList(res.data, ["leaves", "items", "results"]);
+        if (!cancelled) setLeaves(arr);
+      } catch {
+        if (!cancelled) setLeaves([]);
+      } finally {
+        if (!cancelled) setLoadingLeaves(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sel]);
+
+  // ── Fetch selected instructor's daily bookings ──
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!sel) { setBookings([]); return; }
+      setLoadingBookings(true);
+      try {
+        const params = { viewMode: "day", date: bookingDate, page: 1, limit: 20 };
+        if (bookingStatusFilter) params.bookingStatus = bookingStatusFilter;
+        const res = await instructorsService.getBookings(iId(sel), params);
+        const arr = extractList(res.data, ["items", "bookings", "results", "rows"]);
+        if (!cancelled) setBookings(arr);
+      } catch {
+        if (!cancelled) setBookings([]);
+      } finally {
+        if (!cancelled) setLoadingBookings(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sel, bookingDate, bookingStatusFilter]);
+
+  const handleDeleteLeave = async () => {
+    if (!deleteLeaveTarget || !sel) return;
+    setLeaveBusyId(deleteLeaveTarget.id);
+    try {
+      await instructorsService.deleteLeave(iId(sel), deleteLeaveTarget.id);
+      setDeleteLeaveTarget(null);
+      await fetchLeaves();
+    } catch { /* silent */ }
+    finally { setLeaveBusyId(null); }
+  };
+
+  const display = { ...(sel || {}), ...(detail || {}) };
+  const instructorType = INSTRUCTOR_TYPE_MAP[display.instructorType] || display.instructorType || "—";
+  const statusLabel = instructorStatusLabel(display);
+  const sessionWage = display.sessionWage ?? stats?.sessionWage;
+  const todayLessonsCount = display.todayLessonsCount ?? stats?.todayLessonsCount;
+
+  const st = stats || {};
+  const sessionsThisMonth = st.sessionsThisMonth;
+  const noShowsThisMonth = st.noShowsThisMonth;
+  const completionRate = st.completionRate;
+  const dueToday = st.dueToday;
+  const totalOutstanding = st.totalOutstanding;
+
+  const scheduleByDay = {};
+  DAY_OF_WEEK_ORDER.forEach(d => { scheduleByDay[d] = []; });
+  (Array.isArray(schedule) ? schedule : []).forEach(row => {
+    const day = row.dayOfWeek;
+    if (day && scheduleByDay[day] !== undefined) {
+      scheduleByDay[day] = (Array.isArray(row.periods) ? row.periods : []).map(p => ({ startTime: hhmm(p.startTime), endTime: hhmm(p.endTime) }));
+    }
+  });
+
+  const shiftBookingDate = (delta) => {
+    const d = new Date(bookingDate + "T00:00:00");
+    d.setDate(d.getDate() + delta);
+    setBookingDate(d.toISOString().slice(0, 10));
+  };
+
+  const formatDayHeader = (dateStr) => {
+    try {
+      const d = new Date(dateStr + "T00:00:00");
+      return d.toLocaleDateString("ar-SY", { weekday: "long", day: "numeric", month: "long" });
+    } catch { return dateStr; }
+  };
+
+  const mapLessonBooking = (b) => ({
+    id: b.id,
+    student: b.student?.name || "—",
+    timeLabel: b.startTime && b.endTime ? `${b.startTime}–${b.endTime}` : "—",
+    vehicle: b.vehicleSource === "STUDENT_CAR" ? "سيارة الطالب" : "سيارة المدرسة",
+    type: TRAINING_MAP[b.trainingType] || b.trainingType || "—",
+    status: BOOKING_STATUS_MAP[b.bookingStatus] || b.bookingStatus || "—",
+    pay: PAYMENT_STATUS_MAP[b.paymentStatus] || b.paymentStatus || "—",
+    rawStatus: b.bookingStatus,
+  });
+  const mappedBookings = (Array.isArray(bookings) ? bookings : []).map(mapLessonBooking);
+
+  const dotColor = (raw) => {
+    if (raw === "COMPLETED") return t.completed.dot;
+    if (raw === "BOOKED") return t.confirmed.dot;
+    if (raw === "PENDING_PAYMENT") return t.pending.dot;
+    if (raw === "CANCELLED") return t.cancelled.dot;
+    if (raw === "NO_SHOW") return t.noshow.dot;
+    return t.expired.dot;
+  };
+
+  return (
+    <div style={{ display: "flex", height: "100%" }}>
+      {/* ── Left list panel ── */}
+      <div className="hide-scrollbar" style={{ width: 290, height: "100%", flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden", borderLeft: `1px solid ${t.border}` }}>
+        <div style={{ padding: "12px 12px 8px", borderBottom: `1px solid ${t.border}` }}>
+          <SearchBar placeholder="بحث عن مدرب..." t={t} value={search} onChange={setSearch} />
+          <div style={{ display: "flex", gap: 3, marginTop: 8 }}>
+            {GENDER_FILTER.map(g => (
+              <button key={g.value} onClick={() => setGenderFilter(g.value)} style={{ flex: 1, padding: "5px", borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: genderFilter === g.value ? 700 : 400, background: genderFilter === g.value ? t.accent : "transparent", color: genderFilter === g.value ? "#fff" : t.textMuted }}>{g.label}</button>
             ))}
           </div>
-          <div style={{flex:1,overflowY:"hidden",padding:"18px 22px"}}>
-            {dTab==="info"&&(
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div style={{ display: "flex", gap: 3, marginTop: 5, flexWrap: "wrap" }}>
+            {INSTRUCTOR_TYPE_FILTER.map(f => (
+              <button key={f.value} onClick={() => setTypeFilter(f.value)} style={{ padding: "3px 9px", borderRadius: 20, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 10, fontWeight: typeFilter === f.value ? 700 : 400, background: typeFilter === f.value ? t.accent : "transparent", color: typeFilter === f.value ? "#fff" : t.textMuted }}>{f.label}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          {loadingList ? (
+            <div style={{ padding: 24, textAlign: "center", color: t.textMuted, fontSize: 12 }}>جارٍ التحميل...</div>
+          ) : instructors.length === 0 ? (
+            <div style={{ padding: 24, textAlign: "center", color: t.textMuted, fontSize: 12 }}>لا يوجد مدربون</div>
+          ) : instructors.map(inst => {
+            const isSel = sel && String(iId(sel)) === String(iId(inst));
+            const male = iGender(inst) === "MALE";
+            return (
+              <div key={iId(inst)} onClick={() => { setSel(inst); setDTab("info"); setBookingDate(todayStr()); setBookingStatusFilter(""); }} style={{ padding: "11px 13px", cursor: "pointer", display: "flex", alignItems: "center", gap: 9, borderBottom: `1px solid ${t.border}`, background: isSel ? t.accentLight : t.bgSurface, borderRight: isSel ? `3px solid ${t.accent}` : "3px solid transparent" }}>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", background: male ? t.confirmed.bg : t.noshow.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: male ? t.confirmed.text : t.noshow.text, fontWeight: 700, flexShrink: 0 }}>{iName(inst).charAt(0)}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{iName(inst)}</div>
+                  <div style={{ fontSize: 11, color: t.textMuted, marginTop: 1, direction: "ltr", textAlign: "right" }}>{iPhone(inst)}</div>
+                </div>
+                <Badge s={instructorStatusLabel(inst)} t={t} />
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ padding: "10px 12px", borderTop: `1px solid ${t.border}`, background: t.bgElevated }}>
+          <Btn label="+ إضافة مدرب" onClick={() => setAddModal(true)} t={t} sz="sm" style={{ width: "100%" }} />
+        </div>
+      </div>
+
+      {/* ── Right detail panel ── */}
+      {sel && (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ padding: "16px 22px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", gap: 14, background: t.bgSurface, flexShrink: 0 }}>
+            <div style={{ width: 50, height: 50, borderRadius: "50%", background: iGender(display) === "MALE" ? t.confirmed.bg : t.noshow.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: iGender(display) === "MALE" ? t.confirmed.text : t.noshow.text, fontWeight: 700 }}>{iName(display).charAt(0)}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: t.text }}>{iName(display)}</div>
+              <div style={{ fontSize: 12, color: t.textSec, marginTop: 2, direction: "ltr", textAlign: "right" }}>{iPhone(display)}</div>
+              <div style={{ marginTop: 5, display: "flex", gap: 5 }}>
+                <Badge s={statusLabel} t={t} />
+                {iGender(display) && <Badge s={GENDER_MAP[iGender(display)] || iGender(display)} t={t} />}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 7 }}>
+              <Btn label="+ تسجيل إجازة" onClick={() => setLeaveModal({})} t={t} sz="sm" v="secondary" />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", borderBottom: `1px solid ${t.border}`, background: t.bgSurface, padding: "0 22px", flexShrink: 0 }}>
+            {[["info", "البيانات"], ["schedule", "جدول اليوم"], ["availability", "أوقات التوفر"], ["leaves", "الإجازات"]].map(([id, label]) => (
+              <button key={id} onClick={() => setDTab(id)} style={{ padding: "11px 14px", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: dTab === id ? 700 : 400, background: "transparent", color: dTab === id ? t.accent : t.textSec, borderBottom: `2px solid ${dTab === id ? t.accent : "transparent"}`, marginBottom: -1 }}>{label}</button>
+            ))}
+          </div>
+
+          <div className="hide-scrollbar" style={{ flex: 1, overflowY: "auto", padding: "18px 22px" }}>
+            {dTab === "info" && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 <Card t={t} p={16}>
-                  <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:10}}>بيانات المدرب</div>
-                  <InfoRow k="الهاتف" v={sel.phone} t={t}/><InfoRow k="الجنس" v={sel.gender} t={t}/>
-                  <InfoRow k="نوع التعاقد" v={sel.type} t={t}/><InfoRow k="القدرات" v={sel.caps} t={t}/>
-                  <InfoRow k="أجر الجلسة" v={`${sel.fee} ل.س`} t={t}/><InfoRow k="دروس اليوم" v={`${sel.lessons}`} t={t}/>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 10 }}>بيانات المدرب</div>
+                  {loadingDetail && <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 6 }}>جارٍ تحميل البيانات...</div>}
+                  <InfoRow k="الهاتف" v={iPhone(display)} t={t} />
+                  <InfoRow k="الجنس" v={GENDER_MAP[iGender(display)] || iGender(display) || "—"} t={t} />
+                  <InfoRow k="نوع التدريب" v={instructorType} t={t} />
+                  <InfoRow k="الحالة" v={statusLabel} t={t} />
+                  <InfoRow k="أجر الجلسة" v={formatMoney(sessionWage)} t={t} />
+                  <InfoRow k="دروس اليوم" v={todayLessonsCount != null ? String(todayLessonsCount) : "—"} t={t} />
                 </Card>
                 <Card t={t} p={16}>
-                  <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:10}}>الإحصاءات</div>
-                  {[["جلسات الشهر","٤٢"],["معدل الإتمام","٩٢٪"],["No-Show الشهر","٢"],["مستحق اليوم",`${sel.lessons*sel.fee} ل.س`]].map(([k,v])=><InfoRow key={k} k={k} v={v} t={t}/>)}
+                  <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 10 }}>الإحصاءات</div>
+                  {loadingStats && <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 6 }}>جارٍ تحميل الإحصاءات...</div>}
+                  <InfoRow k="جلسات الشهر" v={sessionsThisMonth != null ? String(sessionsThisMonth) : "—"} t={t} />
+                  <InfoRow k="معدل الإتمام" v={completionRate != null ? `${completionRate}٪` : "—"} t={t} />
+                  <InfoRow k="حالات عدم الحضور (الشهر)" v={noShowsThisMonth != null ? String(noShowsThisMonth) : "—"} t={t} />
+                  <InfoRow k="المستحق اليوم" v={formatMoney(dueToday)} t={t} />
+                  <InfoRow k="إجمالي المستحقات" v={formatMoney(totalOutstanding)} t={t} />
                 </Card>
               </div>
             )}
-            {dTab==="schedule"&&(
+
+            {dTab === "schedule" && (
               <div>
-                <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:10}}>الخميس ٤ يونيو</div>
-                {[{time:"٠٩:٠٠–١٠:٣٠",student:"أحمد محمد",type:"عادي",vehicle:"أ·ب·ج ١٠١",status:"مكتمل"},{time:"١٢:٠٠–١٣:٣٠",student:"علي حسن",type:"عادي",vehicle:"سيارة الطالب",status:"جاري"},{time:"١٥:٣٠–١٧:٠٠",student:"محمود سالم",type:"عادي",vehicle:"أ·ب·ج ١٠١",status:"مؤكد"}].map((l,i)=>(
-                  <div key={i} style={{background:t.bgSurface,borderRadius:9,border:`1px solid ${t.borderCard}`,padding:"12px 14px",marginBottom:7,display:"flex",alignItems:"center",gap:12,borderRight:`3px solid ${l.status==="مكتمل"?t.completed.dot:l.status==="جاري"?t.inprogress.dot:t.confirmed.dot}`}}>
-                    <div style={{textAlign:"center",minWidth:65}}><div style={{fontSize:12,fontWeight:700,color:t.accent}}>{l.time}</div></div>
-                    <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:t.text}}>{l.student}</div><div style={{fontSize:11,color:t.textSec,marginTop:2}}>{l.type} • {l.vehicle}</div></div>
-                    <Badge s={l.status} t={t}/>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <button onClick={() => shiftBookingDate(-1)} style={{ width: 28, height: 28, borderRadius: 7, border: `1px solid ${t.border}`, background: t.bgElevated, cursor: "pointer", color: t.text }}>‹</button>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: t.text, minWidth: 150, textAlign: "center" }}>{formatDayHeader(bookingDate)}</div>
+                    <button onClick={() => shiftBookingDate(1)} style={{ width: 28, height: 28, borderRadius: 7, border: `1px solid ${t.border}`, background: t.bgElevated, cursor: "pointer", color: t.text }}>›</button>
+                    <Btn label="اليوم" onClick={() => setBookingDate(todayStr())} t={t} sz="sm" v="ghost" />
+                  </div>
+                  <input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} style={{ padding: "6px 9px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.bgElevated, color: t.text, fontSize: 12, fontFamily: "inherit" }} />
+                </div>
+                <div style={{ display: "flex", gap: 3, marginBottom: 12, background: t.bgElevated, borderRadius: 8, padding: 3, overflowX: "auto" }}>
+                  {BOOKING_STATUS_FILTER.map(f => (
+                    <button key={f.value} onClick={() => setBookingStatusFilter(f.value)} style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: bookingStatusFilter === f.value ? 700 : 400, whiteSpace: "nowrap", background: bookingStatusFilter === f.value ? t.bgSurface : "transparent", color: bookingStatusFilter === f.value ? t.text : t.textMuted, boxShadow: bookingStatusFilter === f.value ? t.shadow : "none" }}>{f.label}</button>
+                  ))}
+                </div>
+                {loadingBookings ? (
+                  <div style={{ padding: 30, textAlign: "center", color: t.textMuted, fontSize: 13 }}>جارٍ تحميل الجلسات...</div>
+                ) : mappedBookings.length === 0 ? (
+                  <div style={{ padding: 30, textAlign: "center", color: t.textMuted, fontSize: 13 }}>لا توجد جلسات في هذا اليوم</div>
+                ) : mappedBookings.map(b => (
+                  <div key={b.id} style={{ background: t.bgSurface, borderRadius: 9, border: `1px solid ${t.borderCard}`, padding: "12px 14px", marginBottom: 7, display: "flex", alignItems: "center", gap: 12, borderRight: `3px solid ${dotColor(b.rawStatus)}` }}>
+                    <div style={{ textAlign: "center", minWidth: 90 }}><div style={{ fontSize: 12, fontWeight: 700, color: t.accent }}>{b.timeLabel}</div></div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{b.student}</div>
+                      <div style={{ fontSize: 11, color: t.textSec, marginTop: 2 }}>{b.type} • {b.vehicle}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 5, alignItems: "center", flexShrink: 0 }}>
+                      <Badge s={b.pay} t={t} />
+                      <Badge s={b.status} t={t} />
+                    </div>
                   </div>
                 ))}
               </div>
             )}
-            {dTab==="availability"&&(
+
+            {dTab === "availability" && (
               <div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                  <div style={{fontSize:13,fontWeight:700,color:t.text}}>الجدول الأسبوعي</div>
-                  <Btn label="+ إضافة وقت توفر" onClick={()=>setAvModal(true)} t={t} sz="sm"/>
-                </div>
-                <Card t={t} p={0} style={{overflow:"hidden"}}>
-                  <div style={{display:"grid",gridTemplateColumns:"55px repeat(7,1fr)",borderBottom:`1px solid ${t.border}`}}>
-                    <div style={{padding:"7px 5px"}}/>
-                    {DAYS.map(d=><div key={d} style={{padding:"7px 4px",textAlign:"center",fontSize:10,fontWeight:600,color:t.text,borderRight:`1px solid ${t.border}`}}>{d}</div>)}
-                  </div>
-                  {HOURS.map((h,hi)=>(
-                    <div key={h} style={{display:"grid",gridTemplateColumns:"55px repeat(7,1fr)",borderBottom:`1px solid ${t.border}`}}>
-                      <div style={{padding:"5px",textAlign:"center",fontSize:10,color:t.textMuted,background:t.bgElevated}}>{h}</div>
-                      {DAYS.map((_,di)=>{const a=AVAIL[di]?.includes(hi)||false;return <div key={di} style={{height:28,borderRight:`1px solid ${t.border}`,background:a?t.accentLight:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{a&&<div style={{width:7,height:7,borderRadius:"50%",background:t.accent}}/>}</div>;})}
+                <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 12 }}>الجدول الأسبوعي</div>
+                {loadingSchedule ? (
+                  <div style={{ padding: 30, textAlign: "center", color: t.textMuted, fontSize: 13 }}>جارٍ تحميل الجدول...</div>
+                ) : DAY_OF_WEEK_ORDER.map(day => {
+                  const periods = scheduleByDay[day] || [];
+                  return (
+                    <div key={day} style={{ background: t.bgSurface, borderRadius: 9, border: `1px solid ${t.borderCard}`, padding: "11px 14px", marginBottom: 7, display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ minWidth: 70, fontSize: 13, fontWeight: 700, color: t.text }}>{DAY_OF_WEEK_LABELS[day]}</div>
+                      <div style={{ flex: 1, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {periods.length ? periods.map((p, i) => (
+                          <span key={i} style={{ padding: "3px 9px", borderRadius: 20, background: t.accentLight, color: t.accentText, fontSize: 11, fontWeight: 600 }}>{p.startTime}–{p.endTime}</span>
+                        )) : <span style={{ fontSize: 12, color: t.textMuted }}>غير متاح</span>}
+                      </div>
+                      <Btn label="تعديل" onClick={() => setScheduleModal({ dayOfWeek: day, periods: periods.length ? periods : [{ startTime: "09:00", endTime: "12:00" }] })} t={t} sz="sm" v="ghost" />
                     </div>
-                  ))}
-                </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            {dTab === "leaves" && (
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>الإجازات المسجلة</div>
+                  <Btn label="+ تسجيل إجازة" onClick={() => setLeaveModal({})} t={t} sz="sm" />
+                </div>
+                {loadingLeaves ? (
+                  <div style={{ padding: 30, textAlign: "center", color: t.textMuted, fontSize: 13 }}>جارٍ تحميل الإجازات...</div>
+                ) : leaves.length === 0 ? (
+                  <div style={{ padding: 30, textAlign: "center", color: t.textMuted, fontSize: 13 }}>لا توجد إجازات مسجلة</div>
+                ) : leaves.map(l => (
+                  <div key={l.id} style={{ background: t.bgSurface, borderRadius: 9, border: `1px solid ${t.borderCard}`, padding: "12px 14px", marginBottom: 7 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{formatLeaveRange(l)}</div>
+                        {l.reason && <div style={{ fontSize: 12, color: t.textSec, marginTop: 3 }}>{l.reason}</div>}
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                        <Btn label="تعديل" onClick={() => setLeaveModal(l)} t={t} sz="sm" v="ghost" disabled={leaveBusyId === l.id} />
+                        <Btn label="حذف" onClick={() => setDeleteLeaveTarget(l)} t={t} sz="sm" v="danger" disabled={leaveBusyId === l.id} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </div>
       )}
-      {avModal&&<Modal title="إضافة وقت توفر" onClose={()=>setAvModal(false)} t={t} width={380}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          {[{l:"اليوم",t2:"select",opts:DAYS},{l:"من",t2:"time"},{l:"إلى",t2:"time"},{l:"النوع",t2:"select",opts:["يوم عمل ثابت","استثناء ليوم واحد"]}].map((f,i)=>(
-            <div key={i}><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>{f.l}</label>
-            {f.t2==="select"?<select style={{width:"100%",padding:"8px 9px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:12,fontFamily:"inherit"}}>{f.opts.map(o=><option key={o}>{o}</option>)}</select>
-            :<input type={f.t2} defaultValue={f.l==="من"?"08:00":"17:00"} style={{width:"100%",padding:"8px 9px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>}</div>
-          ))}
-        </div>
-        <div style={{display:"flex",gap:8,marginTop:14}}><Btn label="حفظ" onClick={()=>setAvModal(false)} t={t} style={{flex:1}}/><Btn label="إلغاء" onClick={()=>setAvModal(false)} t={t} v="ghost"/></div>
-      </Modal>}
+
+      {scheduleModal && sel && (
+        <ScheduleModal
+          t={t}
+          instructorId={iId(sel)}
+          initialDay={scheduleModal.dayOfWeek}
+          initialPeriods={scheduleModal.periods}
+          scheduleByDay={scheduleByDay}
+          onClose={() => setScheduleModal(null)}
+          onSaved={fetchSchedule}
+        />
+      )}
+
+      {leaveModal && sel && (
+        <LeaveModal
+          t={t}
+          instructorId={iId(sel)}
+          existing={leaveModal.id ? leaveModal : null}
+          onClose={() => setLeaveModal(null)}
+          onSuccess={() => { setLeaveModal(null); fetchLeaves(); }}
+        />
+      )}
+
+      {deleteLeaveTarget && (
+        <Modal title="حذف الإجازة" onClose={() => setDeleteLeaveTarget(null)} t={t} width={380}>
+          <div style={{ padding: "10px 12px", borderRadius: 9, background: t.cancelled.bg, marginBottom: 12, fontSize: 12, color: t.cancelled.text }}>هل أنت متأكد من حذف هذه الإجازة؟</div>
+          <InfoRow k="الإجازة" v={formatLeaveRange(deleteLeaveTarget)} t={t} />
+          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            <Btn label={leaveBusyId === deleteLeaveTarget.id ? "جارٍ الحذف..." : "تأكيد الحذف"} onClick={handleDeleteLeave} t={t} v="danger" style={{ flex: 1 }} disabled={leaveBusyId === deleteLeaveTarget.id} />
+            <Btn label="إلغاء" onClick={() => setDeleteLeaveTarget(null)} t={t} v="ghost" />
+          </div>
+        </Modal>
+      )}
+
+      {addModal && (
+        <AddInstructorModal t={t} onClose={() => setAddModal(false)} onSuccess={() => { setAddModal(false); fetchInstructors(); }} />
+      )}
     </div>
+  );
+}
+
+function AddInstructorModal({ t, onClose, onSuccess }) {
+  const [form, setForm] = useState({ name: "", phone: "", password: "", gender: "", instructorType: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+
+  const set = (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(p => ({ ...p, [k]: undefined })); };
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "الاسم مطلوب";
+    if (!form.phone.trim()) e.phone = "رقم الهاتف مطلوب";
+    else if (!/^09\d{8}$/.test(form.phone.trim())) e.phone = "رقم الهاتف غير صالح (مثال: 0991234567)";
+    if (!form.password) e.password = "كلمة المرور مطلوبة";
+    else if (form.password.length < 4) e.password = "كلمة المرور قصيرة جداً";
+    if (!form.gender) e.gender = "الجنس مطلوب";
+    if (!form.instructorType) e.instructorType = "نوع التدريب مطلوب";
+    return e;
+  };
+
+  const handleSubmit = async () => {
+    setServerError("");
+    const e = validate();
+    setErrors(e);
+    if (Object.keys(e).length) return;
+    setSubmitting(true);
+    try {
+      await instructorsService.create({
+        name: form.name.trim(), phone: form.phone.trim(), password: form.password,
+        gender: form.gender, instructorType: form.instructorType,
+      });
+      onSuccess();
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "حدث خطأ أثناء إضافة المدرب");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const fieldStyle = (field) => ({
+    width: "100%", padding: "9px 12px", borderRadius: 9,
+    border: `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+    background: t.bgElevated, color: t.text, fontSize: 13,
+    fontFamily: "inherit", boxSizing: "border-box", outline: "none",
+  });
+  const chip = (active, hasErr) => ({
+    flex: 1, padding: "9px 6px", borderRadius: 9, border: "none",
+    cursor: "pointer", fontSize: 12, fontWeight: 600, textAlign: "center", fontFamily: "inherit",
+    background: active ? "#778a3b" : t.bgElevated,
+    color: active ? "#fff" : t.textSec,
+    outline: active ? "none" : `1.5px solid ${hasErr ? "#c74848" : t.border}`,
+  });
+  const labelStyle = { fontSize: 11, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 4 };
+  const errMsg = (field) => errors[field] ? <div style={{ fontSize: 11, color: "#c74848", marginTop: 4 }}>{errors[field]}</div> : null;
+
+  return (
+    <Modal title="إضافة مدرب جديد" onClose={onClose} t={t} width={420}>
+      {serverError && <div style={{ background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#c74848" }}>{serverError}</div>}
+      <div style={{ marginBottom: 12 }}>
+        <label style={labelStyle}>الاسم الكامل</label>
+        <input value={form.name} onChange={e => set("name", e.target.value)} placeholder="مثال: خالد عمر الزيد" style={fieldStyle("name")} />
+        {errMsg("name")}
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label style={labelStyle}>رقم الهاتف</label>
+        <input value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="0991234567" dir="ltr" style={{ ...fieldStyle("phone"), textAlign: "left" }} />
+        {errMsg("phone")}
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label style={labelStyle}>كلمة المرور</label>
+        <input type="password" value={form.password} onChange={e => set("password", e.target.value)} placeholder="كلمة مرور الحساب" style={fieldStyle("password")} />
+        {errMsg("password")}
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label style={labelStyle}>الجنس</label>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={() => set("gender", "MALE")} style={chip(form.gender === "MALE", errors.gender)}>ذكر</button>
+          <button type="button" onClick={() => set("gender", "FEMALE")} style={chip(form.gender === "FEMALE", errors.gender)}>أنثى</button>
+        </div>
+        {errMsg("gender")}
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <label style={labelStyle}>نوع التدريب</label>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={() => set("instructorType", "MANUAL")} style={chip(form.instructorType === "MANUAL", errors.instructorType)}>عادي</button>
+          <button type="button" onClick={() => set("instructorType", "AUTOMATIC")} style={chip(form.instructorType === "AUTOMATIC", errors.instructorType)}>أوتوماتيك</button>
+          <button type="button" onClick={() => set("instructorType", "BOTH")} style={chip(form.instructorType === "BOTH", errors.instructorType)}>كلاهما</button>
+        </div>
+        {errMsg("instructorType")}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <Btn label={submitting ? "جارٍ الحفظ..." : "حفظ المدرب"} onClick={handleSubmit} t={t} style={{ flex: 1 }} disabled={submitting} />
+        <Btn label="إلغاء" onClick={onClose} t={t} v="ghost" />
+      </div>
+    </Modal>
+  );
+}
+
+function ScheduleModal({ t, instructorId, initialDay, initialPeriods, scheduleByDay, onClose, onSaved }) {
+  const [day, setDay] = useState(initialDay);
+  const [periods, setPeriods] = useState(initialPeriods && initialPeriods.length ? initialPeriods : [{ startTime: "09:00", endTime: "12:00" }]);
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  const changeDay = (d) => {
+    setDay(d);
+    setServerError(""); setSuccessMsg("");
+    const existing = scheduleByDay?.[d] || [];
+    setPeriods(existing.length ? existing.map(p => ({ startTime: p.startTime, endTime: p.endTime })) : [{ startTime: "09:00", endTime: "12:00" }]);
+  };
+
+  const updateRow = (idx, key, val) => setPeriods(p => p.map((row, i) => i === idx ? { ...row, [key]: val } : row));
+  const addRow = () => setPeriods(p => [...p, { startTime: "09:00", endTime: "12:00" }]);
+  const removeRow = (idx) => setPeriods(p => p.filter((_, i) => i !== idx));
+
+  const handleSave = async () => {
+    setServerError(""); setSuccessMsg("");
+    setSubmitting(true);
+    try {
+      await instructorsService.updateSchedule(instructorId, { dayOfWeek: day, periods });
+      setSuccessMsg("تم حفظ جدول اليوم بنجاح");
+      onSaved();
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "فشل حفظ الجدول");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal title="تعديل أوقات التوفر" onClose={onClose} t={t} width={420}>
+      {successMsg && <div style={{ background: "rgba(80,90,50,0.12)", border: "1px solid rgba(80,90,50,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#505a32", fontWeight: 600 }}>{successMsg}</div>}
+      {serverError && <div style={{ background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#c74848" }}>{serverError}</div>}
+
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ fontSize: 11, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 4 }}>اليوم</label>
+        <select value={day} onChange={e => changeDay(e.target.value)} style={{ width: "100%", padding: "8px 9px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.bgElevated, color: t.text, fontSize: 13, fontFamily: "inherit" }}>
+          {DAY_OF_WEEK_ORDER.map(d => <option key={d} value={d}>{DAY_OF_WEEK_LABELS[d]}</option>)}
+        </select>
+      </div>
+
+      <div style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <label style={{ fontSize: 11, fontWeight: 600, color: t.textSec }}>الفترات (يمكن إضافة أكثر من فترة لليوم الواحد)</label>
+        <Btn label="+ فترة" onClick={addRow} t={t} sz="sm" v="ghost" />
+      </div>
+      {periods.length === 0 && (
+        <div style={{ padding: "9px 12px", borderRadius: 9, background: t.bgElevated, fontSize: 12, color: t.textMuted, marginBottom: 10 }}>لا توجد أوقات توفر لهذا اليوم — سيُعتبر يوم إجازة أسبوعية</div>
+      )}
+      {periods.map((p, i) => (
+        <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+          <input type="time" value={p.startTime} onChange={e => updateRow(i, "startTime", e.target.value)} style={{ flex: 1, padding: "8px 9px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.bgElevated, color: t.text, fontSize: 12, fontFamily: "inherit", boxSizing: "border-box" }} />
+          <span style={{ color: t.textMuted, fontSize: 12 }}>إلى</span>
+          <input type="time" value={p.endTime} onChange={e => updateRow(i, "endTime", e.target.value)} style={{ flex: 1, padding: "8px 9px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.bgElevated, color: t.text, fontSize: 12, fontFamily: "inherit", boxSizing: "border-box" }} />
+          <button type="button" onClick={() => removeRow(i)} style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: t.cancelled.bg, color: t.cancelled.text, cursor: "pointer", fontSize: 13, flexShrink: 0 }}>✕</button>
+        </div>
+      ))}
+
+      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+        <Btn label={submitting ? "جارٍ الحفظ..." : "حفظ"} onClick={handleSave} t={t} style={{ flex: 1 }} disabled={submitting} />
+        <Btn label="إغلاق" onClick={onClose} t={t} v="ghost" />
+      </div>
+    </Modal>
+  );
+}
+
+function LeaveModal({ t, instructorId, existing, onClose, onSuccess }) {
+  const isEdit = Boolean(existing?.id);
+  const [mode, setMode] = useState(existing?.startAt ? "range" : "full");
+  const [date, setDate] = useState(existing?.date || todayStr());
+  const [startAt, setStartAt] = useState(existing?.startAt ? existing.startAt.slice(0, 16) : "");
+  const [endAt, setEndAt] = useState(existing?.endAt ? existing.endAt.slice(0, 16) : "");
+  const [reason, setReason] = useState(existing?.reason || "");
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState("");
+
+  const handleSubmit = async () => {
+    setServerError("");
+    if (mode === "full" && !date) { setServerError("يجب تحديد التاريخ"); return; }
+    if (mode === "range" && (!startAt || !endAt)) { setServerError("يجب تحديد وقتي البداية والنهاية"); return; }
+
+    const payload = { reason: reason.trim() || null };
+    if (mode === "full") payload.date = date;
+    else { payload.startAt = startAt; payload.endAt = endAt; }
+
+    setSubmitting(true);
+    try {
+      if (isEdit) await instructorsService.updateLeave(instructorId, existing.id, payload);
+      else await instructorsService.requestLeave(instructorId, payload);
+      onSuccess();
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "فشل تسجيل الإجازة");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const labelStyle = { fontSize: 11, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 4 };
+  const fieldStyle = { width: "100%", padding: "9px 12px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.bgElevated, color: t.text, fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" };
+  const chip = (active) => ({ flex: 1, padding: "9px 6px", borderRadius: 9, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, textAlign: "center", fontFamily: "inherit", background: active ? "#778a3b" : t.bgElevated, color: active ? "#fff" : t.textSec, outline: active ? "none" : `1.5px solid ${t.border}` });
+
+  return (
+    <Modal title={isEdit ? "تعديل الإجازة" : "تسجيل إجازة جديدة"} onClose={onClose} t={t} width={420}>
+      {serverError && <div style={{ background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#c74848" }}>{serverError}</div>}
+
+      <div style={{ marginBottom: 14 }}>
+        <label style={labelStyle}>نوع الإجازة</label>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={() => setMode("full")} style={chip(mode === "full")}>يوم كامل</button>
+          <button type="button" onClick={() => setMode("range")} style={chip(mode === "range")}>فترة زمنية محددة</button>
+        </div>
+      </div>
+
+      {mode === "full" ? (
+        <div style={{ marginBottom: 14 }}>
+          <label style={labelStyle}>التاريخ</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={fieldStyle} />
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+          <div>
+            <label style={labelStyle}>من</label>
+            <input type="datetime-local" value={startAt} onChange={e => setStartAt(e.target.value)} style={fieldStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>إلى</label>
+            <input type="datetime-local" value={endAt} onChange={e => setEndAt(e.target.value)} style={fieldStyle} />
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={labelStyle}>السبب (اختياري)</label>
+        <input type="text" value={reason} onChange={e => setReason(e.target.value)} placeholder="سبب الإجازة" style={fieldStyle} />
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <Btn label={submitting ? "جارٍ الحفظ..." : "✓ تسجيل الإجازة"} onClick={handleSubmit} t={t} style={{ flex: 1 }} disabled={submitting} />
+        <Btn label="إلغاء" onClick={onClose} t={t} v="ghost" />
+      </div>
+    </Modal>
   );
 }
 

@@ -13,37 +13,40 @@ const instructorsService = {
     return client.post("/users/instructors", data);
   },
 
-  getWeeklyAvailabilities(instructorId) {
-    return client.get(`/instructors/${instructorId}/availabilities`);
+  getProfile(id) {
+    return client.get(`/instructors/${id}/profile`);
   },
 
-  setWeeklyAvailability(instructorId, data) {
-    return client.post(`/instructors/${instructorId}/availabilities`, data);
+  getStats(id) {
+    return client.get(`/instructors/${id}/stats`);
   },
 
-  deleteWeeklyAvailability(instructorId, availabilityId) {
-    return client.delete(
-      `/instructors/${instructorId}/availabilities/${availabilityId}`
-    );
+  getBookings(id, params) {
+    return client.get(`/instructors/${id}/bookings`, { params });
   },
 
-  getUnavailablePeriods(instructorId, params) {
-    return client.get(`/instructors/${instructorId}/unavailable-periods`, {
-      params,
-    });
+  getSchedule(id) {
+    return client.get(`/instructors/${id}/schedule`);
   },
 
-  createUnavailablePeriod(instructorId, data) {
-    return client.post(
-      `/instructors/${instructorId}/unavailable-periods`,
-      data
-    );
+  updateSchedule(id, data) {
+    return client.put(`/instructors/${id}/schedule`, data);
   },
 
-  deleteUnavailablePeriod(instructorId, periodId) {
-    return client.delete(
-      `/instructors/${instructorId}/unavailable-periods/${periodId}`
-    );
+  getLeaves(id) {
+    return client.get(`/instructors/${id}/leaves`);
+  },
+
+  requestLeave(id, data) {
+    return client.post(`/instructors/${id}/leaves`, data);
+  },
+
+  updateLeave(id, leaveId, data) {
+    return client.put(`/instructors/${id}/leaves/${leaveId}`, data);
+  },
+
+  deleteLeave(id, leaveId) {
+    return client.delete(`/instructors/${id}/leaves/${leaveId}`);
   },
 };
 
