@@ -17,6 +17,10 @@ const bookingsService = {
     return client.post(`/reception/bookings/${id}/cancel`, data);
   },
 
+  updateStatus(id, status) {
+    return client.put(`/reception/bookings/${id}/status`, { status });
+  },
+
   payRemainder(id) {
     return client.post(`/reception/bookings/${id}/pay-remainder`);
   },

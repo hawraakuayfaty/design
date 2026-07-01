@@ -124,7 +124,6 @@ function Btn({label,onClick,v="primary",sz="md",t,style={},disabled=false}){
   return <button disabled={disabled} onClick={onClick} style={{...base,...vs[v],...style}}>{label}</button>;
 }
 
-function Divider({t}){return <div style={{height:1,background:t.border,margin:"12px 0"}}/>;}
 function InfoRow({k,v,t}){return <div style={{display:"flex",alignItems:"center",gap:6,padding:"7px 0",borderBottom:`1px solid ${t.border}`,fontSize:13}}><span style={{color:t.textMuted,whiteSpace:"nowrap"}}>{k}</span><span style={{color:t.textMuted}}>:</span><span style={{fontWeight:600,color:t.text}}>{SL.includes(v)?<Badge s={v} t={t}/>:v}</span></div>;}
 function SearchBar({placeholder,t,value,onChange}){return <div style={{position:"relative",flex:1}}><span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:14,color:t.textMuted}}>🔍</span><input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{width:"100%",padding:"8px 32px 8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/></div>;}
 // `Sel` component removed — it was defined but never used.
@@ -166,129 +165,256 @@ const STUDENTS=[
   {id:7,name:"هناء الصالح",phone:"0997777777",status:"جديد",gender:"أنثى",type:"عادي",id_num:"٧٧٧٧٧٧٧",bookings:0,last:"—",cert:"لا"},
 ];
 
-const ST_BOOKINGS=[
-  {id:"#١٢٥٠",date:"١٠ يونيو",time:"٠٩:٠٠",inst:"خالد عمر",type:"عادي",status:"مؤكد",pay:"معلق",remaining:1500},
-  {id:"#١٢٤٥",date:"٤ يونيو",time:"٠٩:٠٠",inst:"خالد عمر",type:"عادي",status:"مكتمل",pay:"مدفوع",remaining:0},
-  {id:"#١٢٤٠",date:"٢٨ مايو",time:"٠٩:٠٠",inst:"أحمد الزيد",type:"عادي",status:"مكتمل",pay:"مدفوع",remaining:0},
-  {id:"#١٢٣٥",date:"٢٠ مايو",time:"١٠:٣٠",inst:"خالد عمر",type:"عادي",status:"ملغي",pay:"معلق",remaining:0},
-  {id:"#١٢٣٠",date:"١٢ مايو",time:"٠٩:٠٠",inst:"خالد عمر",type:"عادي",status:"لم يحضر",pay:"معلق",remaining:0},
+const STUDENT_STATUS_MAP = {
+  IN_TRAINING: "قيد التدريب",
+  PASSED: "ناجح",
+  FAILED: "راسب",
+  CERTIFICATE_SEEKER: "طلب شهادة",
+};
+const STUDENT_STATUS_FILTER = [
+  { value: "", label: "الكل" },
+  { value: "IN_TRAINING", label: "قيد التدريب" },
+  { value: "PASSED", label: "ناجح" },
+  { value: "FAILED", label: "راسب" },
+  { value: "CERTIFICATE_SEEKER", label: "طلب شهادة" },
 ];
 
 function SectionStudents({t}){
-  const [search,setSearch]=useState("");
-  const [fSt,setFSt]=useState("الكل");
-  const [sel,setSel]=useState(STUDENTS[0]);
-  const [dTab,setDTab]=useState("info");
-  const [bFilt,setBFilt]=useState("الكل");
-  const [invModal,setInvModal]=useState(null);
-  const [nsModal,setNsModal]=useState(null);
-  const statuses=["الكل","جديد","نشط","قيد التدريب","أنهى التدريب","طلب شهادة"];
-  const filtered=STUDENTS.filter(s=>(fSt==="الكل"||s.status===fSt)&&(s.name.includes(search)||s.phone.includes(search)));
-  const bFilters=["الكل","مؤكد","مكتمل","ملغي","لم يحضر"];
-  const fBookings=ST_BOOKINGS.filter(b=>bFilt==="الكل"||b.status===bFilt);
-  return(
-    <div style={{display:"flex",height:"100%"}}>
-      <div className="hide-scrollbar" style={{width:290,flexShrink:0,display:"flex",flexDirection:"column",borderLeft:`1px solid ${t.border}`}}>
-        <div style={{padding:"12px 12px 8px",borderBottom:`1px solid ${t.border}`}}>
-          <SearchBar placeholder="بحث..." t={t} value={search} onChange={setSearch}/>
-          <div style={{display:"flex",gap:3,marginTop:8,flexWrap:"wrap"}}>
-            {statuses.map(s=><button key={s} onClick={()=>setFSt(s)} style={{padding:"3px 9px",borderRadius:20,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:10,fontWeight:fSt===s?700:400,background:fSt===s?t.accent:"transparent",color:fSt===s?"#fff":t.textMuted}}>{s}</button>)}
-          </div>
-        </div>
-        <div style={{flex:1,overflowY:"auto"}}>
-            {filtered.map(s=>(
-            <div key={s.id} onClick={()=>setSel(s)} style={{padding:"11px 13px",cursor:"pointer",display:"flex",alignItems:"center",gap:9,borderBottom:`1px solid ${t.border}`,background:sel?.id===s.id?t.accentLight:t.bgSurface,borderRight:sel?.id===s.id?`3px solid ${t.accent}`:"3px solid transparent"}}>
-              <div style={{width:34,height:34,borderRadius:"50%",background:"#778a3b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"#fff",fontWeight:700,flexShrink:0}}>{s.name[0]}</div>
+  const sId = (s) => s?.studentId ?? s?.id;
+  const sName = (s) => s?.user?.name || s?.name || "—";
+  const sPhone = (s) => s?.user?.phone || s?.phone || "—";
+  const sStatus = (s) => STUDENT_STATUS_MAP[s?.studentStatus] || s?.studentStatus || "—";
 
-              <div style={{flex:1,minWidth:0}}>
+  const [students, setStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+  const [search, setSearch] = useState("");
+  const [fSt, setFSt] = useState("");
+  const [sel, setSel] = useState(null);
 
-                <div style={{fontSize:13,fontWeight:600,color:t.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div>
-                <div style={{fontSize:11,color:t.textMuted,marginTop:1}}>{s.phone}</div>
-              </div>
-              <Badge s={s.status} t={t}/>
-            </div>
-          ))}
-        </div>
-        <div style={{padding:"10px 12px",borderTop:`1px solid ${t.border}`,background:t.bgElevated}}>
-          <Btn label="+ تسجيل طالب جديد" t={t} sz="sm" style={{width:"100%"}}/>
-        </div>
-      </div>
-      {sel&&(
-        <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-            <div style={{padding:"16px 22px",borderBottom:`1px solid ${t.border}`,display:"flex",alignItems:"center",gap:14,background:t.bgSurface,flexShrink:0}}>
-            <div style={{width:50,height:50,borderRadius:"50%",background:"#778a3b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:"#fff",fontWeight:700}}>{sel.name[0]}</div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:17,fontWeight:700,color:t.text}}>{sel.name}</div>
-              <div style={{fontSize:12,color:t.textSec,marginTop:2}}>{sel.phone}</div>
-              <div style={{marginTop:5,display:"flex",gap:5}}><Badge s={sel.status} t={t}/><Badge s={sel.gender} t={t}/><Badge s={sel.type} t={t}/></div>
-            </div>
-            <div style={{display:"flex",gap:7}}><Btn label="+ حجز جديد" t={t} sz="sm"/><Btn label="تعديل" t={t} sz="sm" v="ghost"/></div>
-          </div>
-          <div style={{display:"flex",borderBottom:`1px solid ${t.border}`,background:t.bgSurface,padding:"0 22px",flexShrink:0}}>
-            {[["info","البيانات"],["bookings","الحجوزات"],["docs","الوثائق"]].map(([id,label])=>(
-              <button key={id} onClick={()=>setDTab(id)} style={{padding:"11px 15px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:dTab===id?700:400,background:"transparent",color:dTab===id?t.accent:t.textSec,borderBottom:`2px solid ${dTab===id?t.accent:"transparent"}`,marginBottom:-1}}>{label}</button>
+  const [dTab, setDTab] = useState("bookings");
+
+  const [bookings, setBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
+  const [bFilt, setBFilt] = useState("");
+  const [statusBusyId, setStatusBusyId] = useState(null);
+
+  const [createModal, setCreateModal] = useState(false);
+
+  // ── Fetch students (search + status filter) ──
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingStudents(true);
+      try {
+        const params = {};
+        if (search.trim()) params.search = search.trim();
+        if (fSt) params.status = fSt;
+        const res = await studentsService.getAll(params);
+        const body = res.data?.data ?? res.data;
+        const arr = Array.isArray(body) ? body : (body?.items || body?.students || body?.data || []);
+        if (!cancelled) {
+          setStudents(arr);
+          setSel(prev => (prev && arr.some(s => String(sId(s)) === String(sId(prev)))) ? prev : (arr[0] || null));
+        }
+      } catch {
+        if (!cancelled) { setStudents([]); setSel(null); }
+      } finally {
+        if (!cancelled) setLoadingStudents(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [search, fSt]);
+
+  // ── Fetch selected student's bookings (reception route, filtered by name) ──
+  const fetchBookings = async () => {
+    if (!sel) { setBookings([]); return; }
+    setLoadingBookings(true);
+    try {
+      const res = await bookingsService.getAll({ search: sName(sel), limit: 50 });
+      const body = res.data?.data ?? res.data;
+      const arr = Array.isArray(body) ? body : (body?.bookings || body?.items || body?.data || []);
+      const mine = arr.filter(b => (b.studentName || "").trim() === sName(sel).trim());
+      setBookings(mine.length ? mine : arr);
+    } catch {
+      setBookings([]);
+    } finally {
+      setLoadingBookings(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!sel) { setBookings([]); return; }
+      setLoadingBookings(true);
+      try {
+        const res = await bookingsService.getAll({ search: sName(sel), limit: 50 });
+        const body = res.data?.data ?? res.data;
+        const arr = Array.isArray(body) ? body : (body?.bookings || body?.items || body?.data || []);
+        const mine = arr.filter(b => (b.studentName || "").trim() === sName(sel).trim());
+        if (!cancelled) setBookings(mine.length ? mine : arr);
+      } catch {
+        if (!cancelled) setBookings([]);
+      } finally {
+        if (!cancelled) setLoadingBookings(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sel]);
+
+  // ── Update booking status (COMPLETED / NO_SHOW) ──
+  const handleUpdateStatus = async (bookingId, status) => {
+    setStatusBusyId(bookingId);
+    try {
+      await bookingsService.updateStatus(bookingId, status);
+      await fetchBookings();
+    } catch { /* silent — reception route may reject invalid transitions */ }
+    finally { setStatusBusyId(null); }
+  };
+
+  const mappedBookings = (Array.isArray(bookings) ? bookings : []).map(b => ({
+    id: b.id,
+    dateTime: formatBookingDate(b),
+    inst: b.instructorName || b.instructor?.name || "—",
+    type: TRAINING_MAP[b.trainingType] || b.trainingType || "—",
+    status: BOOKING_STATUS_MAP[b.bookingStatus] || b.bookingStatus || "—",
+    pay: PAYMENT_STATUS_MAP[b.paymentStatus] || b.paymentStatus || "—",
+    rawStatus: b.bookingStatus,
+  }));
+  const shownBookings = mappedBookings.filter(b => !bFilt || b.rawStatus === bFilt);
+
+  const dotColor = (raw) => {
+    if (raw === "COMPLETED") return t.completed.dot;
+    if (raw === "BOOKED") return t.confirmed.dot;
+    if (raw === "PENDING_PAYMENT") return t.pending.dot;
+    if (raw === "CANCELLED") return t.cancelled.dot;
+    if (raw === "NO_SHOW") return t.noshow.dot;
+    return t.expired.dot;
+  };
+
+  return (
+    <div style={{ display: "flex", height: "100%" }}>
+      {/* ── Left list panel ── */}
+      <div className="hide-scrollbar" style={{ width: 290, height: "100%", flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden", borderLeft: `1px solid ${t.border}` }}>
+        <div style={{ padding: "12px 12px 8px", borderBottom: `1px solid ${t.border}` }}>
+          <SearchBar placeholder="بحث بالاسم أو الهاتف..." t={t} value={search} onChange={setSearch} />
+          <div style={{ display: "flex", gap: 3, marginTop: 8, flexWrap: "wrap" }}>
+            {STUDENT_STATUS_FILTER.map(f => (
+              <button key={f.value} onClick={() => setFSt(f.value)} style={{ padding: "3px 9px", borderRadius: 20, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 10, fontWeight: fSt === f.value ? 700 : 400, background: fSt === f.value ? t.accent : "transparent", color: fSt === f.value ? "#fff" : t.textMuted }}>{f.label}</button>
             ))}
           </div>
-          <div style={{flex:1,overflowY:"hidden",padding:"18px 22px"}}>
-            {dTab==="info"&&(
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-                <Card t={t} p={16}>
-                  <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:10}}>البيانات الشخصية</div>
-                  <InfoRow k="رقم الهوية" v={sel.id_num} t={t}/><InfoRow k="رقم الهاتف" v={sel.phone} t={t}/>
-                  <InfoRow k="الجنس" v={sel.gender} t={t}/><InfoRow k="التدريب المفضل" v={sel.type} t={t}/>
-                  <InfoRow k="عدد الحجوزات" v={`${sel.bookings} جلسات`} t={t}/><InfoRow k="آخر درس" v={sel.last} t={t}/>
-                </Card>
-                <Card t={t} p={16}>
-                  <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:10}}>الشهادة والإجراءات</div>
-                  {sel.cert!=="لا"?<InfoRow k="حالة الشهادة" v={sel.cert} t={t}/>:<div style={{fontSize:12,color:t.textMuted,marginBottom:10}}>لا يوجد طلب شهادة</div>}
-                  <Divider t={t}/>
-                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    <Btn label="تغيير الحالة" t={t} sz="sm" v="ghost" style={{width:"100%"}}/>
-                    <Btn label="أرشفة الطالب" t={t} sz="sm" v="danger" style={{width:"100%"}}/>
-                  </div>
-                </Card>
-              </div>
-            )}
-            {dTab==="bookings"&&(
-              <div>
-                <div style={{display:"flex",gap:3,marginBottom:12,background:t.bgElevated,borderRadius:8,padding:3}}>
-                  {bFilters.map(f=><button key={f} onClick={()=>setBFilt(f)} style={{flex:1,padding:"6px",borderRadius:6,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:bFilt===f?700:400,background:bFilt===f?t.bgSurface:"transparent",color:bFilt===f?t.text:t.textMuted,boxShadow:bFilt===f?t.shadow:"none"}}>{f}</button>)}
+        </div>
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          {loadingStudents ? (
+            <div style={{ padding: 24, textAlign: "center", color: t.textMuted, fontSize: 12 }}>جارٍ التحميل...</div>
+          ) : students.length === 0 ? (
+            <div style={{ padding: 24, textAlign: "center", color: t.textMuted, fontSize: 12 }}>لا يوجد طلاب</div>
+          ) : students.map(s => {
+            const isSel = sel && String(sId(sel)) === String(sId(s));
+            return (
+              <div key={sId(s)} onClick={() => { setSel(s); setDTab("bookings"); setBFilt(""); }} style={{ padding: "11px 13px", cursor: "pointer", display: "flex", alignItems: "center", gap: 9, borderBottom: `1px solid ${t.border}`, background: isSel ? t.accentLight : t.bgSurface, borderRight: isSel ? `3px solid ${t.accent}` : "3px solid transparent" }}>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#778a3b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#fff", fontWeight: 700, flexShrink: 0 }}>{sName(s).charAt(0)}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sName(s)}</div>
+                  <div style={{ fontSize: 11, color: t.textMuted, marginTop: 1, direction: "ltr", textAlign: "right" }}>{sPhone(s)}</div>
                 </div>
-                {fBookings.map(b=>(
-                  <div key={b.id} style={{background:t.bgSurface,borderRadius:10,border:`1px solid ${t.borderCard}`,padding:"12px 14px",marginBottom:7,borderRight:`3px solid ${b.status==="مكتمل"?t.completed.dot:b.status==="مؤكد"?t.confirmed.dot:b.status==="ملغي"?t.cancelled.dot:b.status==="لم يحضر"?t.noshow.dot:t.expired.dot}`}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                      <div><span style={{fontSize:13,fontWeight:700,color:t.text}}>{b.date}</span><span style={{fontSize:12,color:t.textMuted,marginRight:8}}> {b.time} • {b.inst}</span></div>
-                      <div style={{display:"flex",gap:5}}><Badge s={b.pay} t={t}/><Badge s={b.status} t={t}/></div>
+                <Badge s={sStatus(s)} t={t} />
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ padding: "10px 12px", borderTop: `1px solid ${t.border}`, background: t.bgElevated }}>
+          <Btn label="+ تسجيل طالب جديد" t={t} sz="sm" style={{ width: "100%" }} />
+        </div>
+      </div>
+
+      {/* ── Right detail panel ── */}
+      {sel && (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ padding: "16px 22px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", gap: 14, background: t.bgSurface, flexShrink: 0 }}>
+            <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#778a3b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: "#fff", fontWeight: 700 }}>{sName(sel).charAt(0)}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: t.text }}>{sName(sel)}</div>
+              <div style={{ fontSize: 12, color: t.textSec, marginTop: 2, direction: "ltr", textAlign: "right" }}>{sPhone(sel)}</div>
+              <div style={{ marginTop: 5, display: "flex", gap: 5 }}><Badge s={sStatus(sel)} t={t} /></div>
+            </div>
+            <div style={{ display: "flex", gap: 7 }}>
+              <Btn label="+ حجز جديد" onClick={() => setCreateModal(true)} t={t} sz="sm" />
+              <Btn label="تعديل" t={t} sz="sm" v="ghost" />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", borderBottom: `1px solid ${t.border}`, background: t.bgSurface, padding: "0 22px", flexShrink: 0 }}>
+            {[["bookings", "الحجوزات"], ["docs", "الوثائق"]].map(([id, label]) => (
+              <button key={id} onClick={() => setDTab(id)} style={{ padding: "11px 15px", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: dTab === id ? 700 : 400, background: "transparent", color: dTab === id ? t.accent : t.textSec, borderBottom: `2px solid ${dTab === id ? t.accent : "transparent"}`, marginBottom: -1 }}>{label}</button>
+            ))}
+          </div>
+
+          <div className="hide-scrollbar" style={{ flex: 1, overflowY: "auto", padding: "18px 22px" }}>
+            {dTab === "bookings" && (
+              <div>
+                <div style={{ display: "flex", gap: 3, marginBottom: 12, background: t.bgElevated, borderRadius: 8, padding: 3, overflowX: "auto" }}>
+                  {BOOKING_STATUS_FILTER.map(f => (
+                    <button key={f.value} onClick={() => setBFilt(f.value)} style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: bFilt === f.value ? 700 : 400, whiteSpace: "nowrap", background: bFilt === f.value ? t.bgSurface : "transparent", color: bFilt === f.value ? t.text : t.textMuted, boxShadow: bFilt === f.value ? t.shadow : "none" }}>{f.label}</button>
+                  ))}
+                </div>
+                {loadingBookings ? (
+                  <div style={{ padding: 30, textAlign: "center", color: t.textMuted, fontSize: 13 }}>جارٍ تحميل الحجوزات...</div>
+                ) : shownBookings.length === 0 ? (
+                  <div style={{ padding: 30, textAlign: "center", color: t.textMuted, fontSize: 13 }}>لا توجد حجوزات لهذا الطالب</div>
+                ) : shownBookings.map(b => (
+                  <div key={b.id} style={{ background: t.bgSurface, borderRadius: 10, border: `1px solid ${t.borderCard}`, padding: "12px 14px", marginBottom: 7, borderRight: `3px solid ${dotColor(b.rawStatus)}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ minWidth: 0 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: t.textMuted }}>#{b.id}</span>
+                        <div style={{ fontSize: 12, color: t.textSec, marginTop: 2, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><IoIosCalendar style={{ fontSize: 13 }} /> {b.dateTime}</span>
+                          <span style={{ color: t.border }}>|</span>
+                          <span style={{ fontWeight: 600 }}>{b.inst}</span>
+                          <span style={{ color: t.border }}>|</span>
+                          <span style={{ fontWeight: 600, color: t.accent }}>{b.type}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 5, alignItems: "center", flexShrink: 0 }}>
+                        <Badge s={b.pay} t={t} />
+                        <Badge s={b.status} t={t} />
+                      </div>
                     </div>
-                    {b.status==="مؤكد"&&<div style={{display:"flex",gap:7,marginTop:5}}>
-                      <Btn label={`إكمال الدفع • ${b.remaining.toLocaleString()} ل.س`} onClick={()=>setInvModal(b)} t={t} sz="sm"/>
-                      <Btn label="لم يحضر" onClick={()=>setNsModal(b)} t={t} sz="sm" v="danger"/>
-                    </div>}
+                    {b.rawStatus === "BOOKED" && (
+                      <div style={{ display: "flex", gap: 7, marginTop: 9 }}>
+                        <Btn label="✓ إكمال الجلسة" onClick={() => handleUpdateStatus(b.id, "COMPLETED")} t={t} sz="sm" disabled={statusBusyId === b.id} />
+                        <Btn label="لم يحضر" onClick={() => handleUpdateStatus(b.id, "NO_SHOW")} t={t} sz="sm" v="danger" disabled={statusBusyId === b.id} />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             )}
-            {dTab==="docs"&&(
+            {dTab === "docs" && (
               <Card t={t} p={16}>
-                <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:12}}>وثائق الشهادة الحكومية</div>
-                {["صورة شخصية حديثة","صورة الهوية (أمامي)","صورة الهوية (خلفي)"].map((d,i)=>(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${t.border}`}}>
-                    <span style={{fontSize:12,fontWeight:600,color:t.text}}>{d}</span>
-                    <span style={{fontSize:11,color:t.textMuted}}>تُسلَّم للمركز — لا تُخزَّن</span>
+                <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 12 }}>وثائق الشهادة الحكومية</div>
+                {["صورة شخصية حديثة", "صورة الهوية (أمامي)", "صورة الهوية (خلفي)"].map((d, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${t.border}` }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: t.text }}>{d}</span>
+                    <span style={{ fontSize: 11, color: t.textMuted }}>تُسلَّم للمركز — لا تُخزَّن</span>
                   </div>
                 ))}
-                <div style={{marginTop:10,padding:"9px 12px",borderRadius:8,background:t.accentLight,fontSize:11,color:t.accentText}}>💡 الوثائق تُسلَّم للمركز الحكومي مباشرةً — يكفي تأكيدها هنا</div>
+                <div style={{ marginTop: 10, padding: "9px 12px", borderRadius: 8, background: t.accentLight, fontSize: 11, color: t.accentText }}>الوثائق تُسلَّم للمركز الحكومي مباشرةً — يكفي تأكيدها هنا</div>
               </Card>
             )}
           </div>
         </div>
       )}
-      {invModal&&<InvoiceModal booking={invModal} t={t} onClose={()=>setInvModal(null)}/>}
-      {nsModal&&<Modal title="الطالب لم يحضر؟" onClose={()=>setNsModal(null)} t={t} width={380}>
-        <div style={{padding:"10px 12px",borderRadius:9,background:t.noshow.bg,marginBottom:12,fontSize:12,color:t.noshow.text}}>العربون غير مسترد — ستُسجَّل الجلسة كـ No-Show</div>
-        <InfoRow k="الطالب" v={sel?.name||""} t={t}/><InfoRow k="الجلسة" v={`${nsModal.date} • ${nsModal.time}`} t={t}/>
-        <div style={{display:"flex",gap:8,marginTop:14}}><Btn label="✓ تأكيد No-Show" onClick={()=>setNsModal(null)} t={t} v="danger" style={{flex:1}}/><Btn label="إلغاء" onClick={()=>setNsModal(null)} t={t} v="ghost"/></div>
-      </Modal>}
+
+      {createModal && sel && (
+        <CreateBookingModal
+          t={t}
+          initialStudentId={sId(sel)}
+          initialStudentName={sName(sel)}
+          onClose={() => setCreateModal(false)}
+          onSuccess={() => { setCreateModal(false); fetchBookings(); }}
+        />
+      )}
     </div>
   );
 }
@@ -313,7 +439,7 @@ function SectionInstructors({t}){
   const filtered=INSTRUCTORS.filter(i=>(gF==="الكل"||i.gender===gF)&&(i.name.includes(search)||i.phone.includes(search)));
   return(
     <div style={{display:"flex",height:"100%"}}>
-      <div className="hide-scrollbar" style={{width:290,flexShrink:0,display:"flex",flexDirection:"column",borderLeft:`1px solid ${t.border}`}}>
+      <div className="hide-scrollbar" style={{width:290,height:"100%",flexShrink:0,display:"flex",flexDirection:"column",overflow:"hidden",borderLeft:`1px solid ${t.border}`}}>
         <div style={{padding:"12px 12px 8px",borderBottom:`1px solid ${t.border}`}}>
           <SearchBar placeholder="بحث عن مدرب..." t={t} value={search} onChange={setSearch}/>
           <div style={{display:"flex",gap:3,marginTop:8}}>
@@ -485,15 +611,16 @@ function StepIndicator({ step, t }) {
   );
 }
 
-function CreateBookingModal({ t, onClose, onSuccess }) {
+function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialStudentName }) {
+  const lockedStudent = Boolean(initialStudentId);
   const [step, setStep] = useState(1);
   const [students, setStudents] = useState([]);
-  const [loadingStudents, setLoadingStudents] = useState(true);
+  const [loadingStudents, setLoadingStudents] = useState(!lockedStudent);
 
-  // Step 1 state
-  const [studentId, setStudentId] = useState("");
-  const [studentLabel, setStudentLabel] = useState("");
-  const [studentQuery, setStudentQuery] = useState("");
+  // Step 1 state — pre-filled & locked when opened from a student profile
+  const [studentId, setStudentId] = useState(initialStudentId ? String(initialStudentId) : "");
+  const [studentLabel, setStudentLabel] = useState(initialStudentName || "");
+  const [studentQuery, setStudentQuery] = useState(initialStudentName || "");
   const [studentOpen, setStudentOpen] = useState(false);
   const [trainingType, setTrainingType] = useState("");
   const [vehicleSource, setVehicleSource] = useState("");
@@ -518,6 +645,7 @@ function CreateBookingModal({ t, onClose, onSuccess }) {
   const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
+    if (lockedStudent) return;
     let cancelled = false;
     (async () => {
       try {
@@ -528,7 +656,7 @@ function CreateBookingModal({ t, onClose, onSuccess }) {
       finally { if (!cancelled) setLoadingStudents(false); }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [lockedStudent]);
 
   const getSid = (s) => s.studentId ?? s.id;
   const sName = (s) => s.user?.name || s.name || "";
@@ -710,44 +838,59 @@ function CreateBookingModal({ t, onClose, onSuccess }) {
       {/* ════════ STEP 1: التفاصيل ════════ */}
       {step === 1 && (
         <div>
-          {/* Student search */}
+          {/* Student — locked read-only badge (from profile) OR searchable select */}
           <div style={{ marginBottom: 14, position: "relative" }}>
             <label style={labelStyle}>الطالب</label>
-            <div style={{ position: "relative" }}>
-              <input value={studentQuery}
-                onChange={e => { setStudentQuery(e.target.value); setStudentOpen(true); if (studentId) clearStudent(); }}
-                onFocus={() => setStudentOpen(true)}
-                placeholder={loadingStudents ? "جارٍ التحميل..." : "ابحث باسم أو رقم الطالب..."}
-                disabled={loadingStudents} autoComplete="off" style={fieldStyle("studentId")} />
-              {studentId && (
-                <button type="button" onClick={clearStudent} style={{
-                  position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
-                  background: "none", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 16, padding: 2,
-                }}>✕</button>
-              )}
-            </div>
-            {studentOpen && !studentId && (
+            {lockedStudent ? (
               <div style={{
-                position: "absolute", top: "100%", right: 0, left: 0, zIndex: 20, marginTop: 2,
-                background: t.bgSurface, border: `1px solid ${t.border}`, borderRadius: 9,
-                boxShadow: t.shadowLg || t.shadow, maxHeight: 180, overflowY: "auto",
+                display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                borderRadius: 9, background: t.accentLight, border: `1.5px solid ${t.accent}`,
               }}>
-                {filteredStudents.length === 0
-                  ? <div style={{ padding: "10px 12px", fontSize: 12, color: t.textMuted, textAlign: "center" }}>لا توجد نتائج</div>
-                  : filteredStudents.slice(0, 30).map(s => (
-                    <div key={getSid(s)} onClick={() => selectStudent(s)} style={{
-                      padding: "8px 12px", cursor: "pointer", fontSize: 12, borderBottom: `1px solid ${t.border}`,
-                      display: "flex", justifyContent: "space-between", alignItems: "center",
-                    }}
-                      onMouseEnter={e => e.currentTarget.style.background = t.bgElevated}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      <span style={{ fontWeight: 600, color: t.text }}>{sName(s)}</span>
-                      <span style={{ fontSize: 11, color: t.textMuted, direction: "ltr" }}>{sPhone(s)}</span>
-                    </div>
-                  ))}
+                <div style={{
+                  width: 30, height: 30, borderRadius: "50%", background: "#778a3b", color: "#fff",
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0,
+                }}>{(studentLabel || "؟").charAt(0)}</div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: t.accentText }}>{studentLabel}</span>
               </div>
+            ) : (
+              <>
+                <div style={{ position: "relative" }}>
+                  <input value={studentQuery}
+                    onChange={e => { setStudentQuery(e.target.value); setStudentOpen(true); if (studentId) clearStudent(); }}
+                    onFocus={() => setStudentOpen(true)}
+                    placeholder={loadingStudents ? "جارٍ التحميل..." : "ابحث باسم أو رقم الطالب..."}
+                    disabled={loadingStudents} autoComplete="off" style={fieldStyle("studentId")} />
+                  {studentId && (
+                    <button type="button" onClick={clearStudent} style={{
+                      position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
+                      background: "none", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 16, padding: 2,
+                    }}>✕</button>
+                  )}
+                </div>
+                {studentOpen && !studentId && (
+                  <div style={{
+                    position: "absolute", top: "100%", right: 0, left: 0, zIndex: 20, marginTop: 2,
+                    background: t.bgSurface, border: `1px solid ${t.border}`, borderRadius: 9,
+                    boxShadow: t.shadowLg || t.shadow, maxHeight: 180, overflowY: "auto",
+                  }}>
+                    {filteredStudents.length === 0
+                      ? <div style={{ padding: "10px 12px", fontSize: 12, color: t.textMuted, textAlign: "center" }}>لا توجد نتائج</div>
+                      : filteredStudents.slice(0, 30).map(s => (
+                        <div key={getSid(s)} onClick={() => selectStudent(s)} style={{
+                          padding: "8px 12px", cursor: "pointer", fontSize: 12, borderBottom: `1px solid ${t.border}`,
+                          display: "flex", justifyContent: "space-between", alignItems: "center",
+                        }}
+                          onMouseEnter={e => e.currentTarget.style.background = t.bgElevated}
+                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                          <span style={{ fontWeight: 600, color: t.text }}>{sName(s)}</span>
+                          <span style={{ fontSize: 11, color: t.textMuted, direction: "ltr" }}>{sPhone(s)}</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+                {errMsg("studentId")}
+              </>
             )}
-            {errMsg("studentId")}
           </div>
 
           {/* Training type */}
@@ -1825,7 +1968,7 @@ export default function ReceptionistPro({embedded=false,page:forcedPage,darkMode
   // sync when parent forces a page (embedded mode)
   if(forcedPage && forcedPage!==page){ setPage(forcedPage); }
   return(
-    <div dir="rtl" style={{display:"flex",height: embedded?"100%":"100vh",overflow:"hidden",background:t.bgApp,fontFamily:"var(--font-body)"}}>
+    <div dir="rtl" style={{display:"flex",height: embedded?"calc(100vh - 112px)":"100vh",overflow:"hidden",background:t.bgApp,fontFamily:"var(--font-body)"}}>
       {!embedded && (
         <div style={{width:sidebarWidth,flexShrink:0}} />
       )}

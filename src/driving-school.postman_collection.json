@@ -3,7 +3,7 @@
     "_postman_id": "5051f4ed-e730-4b4e-adeb-08b30f12a701",
     "name": "driving-school",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "39834260",
+    "_exporter_id": "56148399",
     "_collection_link": "https://go.postman.co/collection/39834260-5051f4ed-e730-4b4e-adeb-08b30f12a701?source=collection_link"
   },
   "item": [
@@ -31,9 +31,11 @@
               }
             },
             "url": {
-              "raw": "{{url}}/auth/login",
-              "host": ["{{url}}"],
-              "path": ["auth", "login"]
+              "raw": "http://localhost:3000/api/v1/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "v1", "auth", "login"]
             }
           },
           "response": []
@@ -190,6 +192,132 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "طلب رمز التحقق",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"phone\": \"0999111222\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://20.250.144.221:3000/api/v1/auth/forgot-password",
+              "protocol": "http",
+              "host": ["20", "250", "144", "221"],
+              "port": "3000",
+              "path": ["api", "v1", "auth", "forgot-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "تأكيد رمز التحقق",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"phone\": \"0999111222\",\r\n  \"code\": \"الكود_من_خطوة_1\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://20.250.144.221:3000/api/v1/auth/verify-otp",
+              "protocol": "http",
+              "host": ["20", "250", "144", "221"],
+              "port": "3000",
+              "path": ["api", "v1", "auth", "verify-otp"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "تغيير كلمة المرور",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"resetToken\": \"التوكن_من_خطوة_2\",\r\n  \"newPassword\": \"NewPass123\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://20.250.144.221:3000/api/v1/auth/reset-password",
+              "protocol": "http",
+              "host": ["20", "250", "144", "221"],
+              "port": "3000",
+              "path": ["api", "v1", "auth", "reset-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Student Registration (خطوتين)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"mmoohhaad\",\r\n  \"phone\": \"0909090909\",\r\n  \"password\": \"Pass12354\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://20.250.144.221:3000/api/v1/auth/register/request-otp",
+              "protocol": "http",
+              "host": ["20", "250", "144", "221"],
+              "port": "3000",
+              "path": ["api", "v1", "auth", "register", "request-otp"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "تأكيد OTP + إنشاء الحساب + دخول تلقائي",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"محمد أحمد\",\r\n  \"phone\": \"0912345678\",\r\n  \"code\": \"الكود_من_خطوة_1\",\r\n  \"password\": \"Pass1234\",\r\n  \"deviceName\": \"iPhone 15\" // اختياري \r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://20.250.144.221:3000/api/v1/auth/register",
+              "protocol": "http",
+              "host": ["20", "250", "144", "221"],
+              "port": "3000",
+              "path": ["api", "v1", "auth", "register"]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -204,7 +332,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIzOTUwMzYsImV4cCI6MTc4MjM5NTkzNn0.lAzWa9a-M0xcVpwVV_zSuzRo2-RGPv0Lq7akH-WA4dg",
                   "type": "string"
                 }
               ]
@@ -218,19 +346,22 @@
               }
             ],
             "url": {
-              "raw": "{{url}}/students?search=&status=PASSED",
-              "host": ["{{url}}"],
-              "path": ["students"],
+              "raw": "http://localhost:3000/api/v1/students?search=الب",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "v1", "students"],
               "query": [
                 {
                   "key": "search",
-                  "value": "",
+                  "value": "الب",
                   "description": "seach by name"
                 },
                 {
                   "key": "status",
                   "value": "PASSED",
-                  "description": "PASSED , FAILED , IN_TRAINING , CERTIFICATE_SEEKER"
+                  "description": "PASSED , FAILED , IN_TRAINING , CERTIFICATE_SEEKER",
+                  "disabled": true
                 }
               ]
             }
@@ -303,12 +434,381 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "الغاء حجز من قبل الطالب",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsInJvbGVzIjpbIlNUVURFTlQiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODI0ODQ5MjgsImV4cCI6MTc4MjQ4NTgyOH0.BSbAkp4tuaM9Y6_QdgZbiI5jerNZ5nSWJKCRQaihBn0",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"cancellationReason\" : \"هنا يوضع سبب الالغاء \"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/student/bookings/43/cancel",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "v1", "student", "bookings", "43", "cancel"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "عرض كل حجوزات الطالب",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsInJvbGVzIjpbIlNUVURFTlQiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODI1MTg2ODcsImV4cCI6MTc4MjUxOTU4N30.4V0QgArNCdNbAvOvwGRYjXg9-CjA-HPR5J5ZjQoe3Vk",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/student/bookings",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "v1", "student", "bookings"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "محمد",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "عرض حجز واحد",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsInJvbGVzIjpbIlNUVURFTlQiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODI0ODU2MjAsImV4cCI6MTc4MjQ4NjUyMH0.wzaTzMVDoQ_CGNfJk3On46r6Cv_pujq8J7y29Y19SD0",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/student/bookings/21",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "v1", "student", "bookings", "21"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "student get available slots",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsInJvbGVzIjpbIlNUVURFTlQiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODI1MjAzNzksImV4cCI6MTc4MjUyMTI3OX0.Gin-FSrtUq11cdUdfqnUqwujo0plNwvS0BV89GSw80Q",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/student/bookings/available-slots?trainingType=MANUAL&vehicleSource=SCHOOL_CAR&instructorGender=FEMALE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "v1", "student", "bookings", "available-slots"],
+              "query": [
+                {
+                  "key": "trainingType",
+                  "value": "MANUAL"
+                },
+                {
+                  "key": "vehicleSource",
+                  "value": "SCHOOL_CAR"
+                },
+                {
+                  "key": "instructorGender",
+                  "value": "FEMALE"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "انشاء حجز جديد من قبل الطالب",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsInJvbGVzIjpbIlNUVURFTlQiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODI1MjAzNzksImV4cCI6MTc4MjUyMTI3OX0.Gin-FSrtUq11cdUdfqnUqwujo0plNwvS0BV89GSw80Q",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"instructorId\": 3,\r\n  \"date\": \"2026-06-27\",\r\n  \"time\": \"09:00\",\r\n  \"trainingType\": \"MANUAL\",\r\n  \"vehicleSource\": \"SCHOOL_CAR\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/student/bookings",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "v1", "student", "bookings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "تاكيد دفع الحجز",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsInJvbGVzIjpbIlNUVURFTlQiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODI1MjAzNzksImV4cCI6MTc4MjUyMTI3OX0.Gin-FSrtUq11cdUdfqnUqwujo0plNwvS0BV89GSw80Q",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/student/bookings/123/confirm-payment",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "student",
+                "bookings",
+                "123",
+                "confirm-payment"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
     {
       "name": "instructors",
       "item": [
+        {
+          "name": "leaves",
+          "item": [
+            {
+              "name": "delete leave",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/instructors/3/leaves/3",
+                  "host": ["{{url}}"],
+                  "path": ["instructors", "3", "leaves", "3"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update leave",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"reason\" : \"ما بدي اجي \" , // nullabe\r\n    // \"date\" : \"2026-06-29\"  // date \"YYYY-MM-DD\" اذا بعتي تاريخ اليوم هذا المتغير يعني رح اعتبرها اجازة يوم كامل \r\n    \"startAt\" : \"2026-06-29T09:00\",  // datetime \"YYYY-MM-DDTHH:MM\"\r\n    \"endAt\" : \"2026-06-29T15:00\"     // datetime \"YYYY-MM-DDTHH:MM\"\r\n}\r\n\r\n\r\n\r\n// يا بتبعتي date اذا الاجازة يوم كامل \r\n// يا بتبعتي من startAt الى endAt اذا الاجازة ساعية ",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url}}/instructors/3/leaves/4",
+                  "host": ["{{url}}"],
+                  "path": ["instructors", "3", "leaves", "4"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get leaves",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/instructors/3/leaves",
+                  "host": ["{{url}}"],
+                  "path": ["instructors", "3", "leaves"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "request leave",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"reason\" : \"ما بدي اجي \" , // nullabe\r\n    \"date\" : \"2026-06-29\"  // date \"YYYY-MM-DD\" اذا بعتي تاريخ اليوم هذا المتغير يعني رح اعتبرها اجازة يوم كامل \r\n    // \"startAt\" : \"\",  // datetime \"YYYY-MM-DDTHH:MM\"\r\n    // \"endAt\" : \"\"     // datetime \"YYYY-MM-DDTHH:MM\"\r\n}\r\n\r\n\r\n\r\n// يا بتبعتي date اذا الاجازة يوم كامل \r\n// يا بتبعتي من startAt الى endAt اذا الاجازة ساعية ",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url}}/instructors/3/leaves",
+                  "host": ["{{url}}"],
+                  "path": ["instructors", "3", "leaves"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
         {
           "name": "get all instructors",
           "request": {
@@ -418,6 +918,241 @@
               "raw": "{{url}}/users/instructors",
               "host": ["{{url}}"],
               "path": ["users", "instructors"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "instructor profile",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/instructors/3/profile",
+              "host": ["{{url}}"],
+              "path": ["instructors", "3", "profile"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "schedule",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{url}}/instructors/3/schedule",
+              "host": ["{{url}}"],
+              "path": ["instructors", "3", "schedule"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update schedule",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"dayOfWeek\": \"MON\",\r\n      \"periods\": [\r\n        { \"startTime\": \"09:00\", \"endTime\": \"12:00\" },\r\n        { \"startTime\": \"17:00\", \"endTime\": \"21:00\" }\r\n      ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/instructors/3/schedule",
+              "host": ["{{url}}"],
+              "path": ["instructors", "3", "schedule"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "instructor booking",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/instructors/3/bookings?viewMode=day&date=2026-06-29&page=1&limit=20",
+              "host": ["{{url}}"],
+              "path": ["instructors", "3", "bookings"],
+              "query": [
+                {
+                  "key": "viewMode",
+                  "value": "day",
+                  "description": "day , week"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-06-29",
+                  "description": "send this varible  if viewMode = day"
+                },
+                {
+                  "key": "weekStart",
+                  "value": "2026-06-30",
+                  "description": "send this varible  if viewMode = week",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "bookingStatus",
+                  "value": "BOOKED",
+                  "description": "PENDING_PAYMENT, BOOKED, COMPLETED, NO_SHOW, CANCELLED, EXPIRED",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "instructor stats",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/instructors/3/stats",
+              "host": ["{{url}}"],
+              "path": ["instructors", "3", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "pay all dues for instructor",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/instructors/3/pay-dues",
+              "host": ["{{url}}"],
+              "path": ["instructors", "3", "pay-dues"]
             }
           },
           "response": []
@@ -549,7 +1284,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIxOTg5NDQsImV4cCI6MTc4MjE5OTg0NH0.MDl7aFXyE_gsy3TjV9EZAyGq-0xJWbXtZ1apLxL7h2M",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIzODc5NTIsImV4cCI6MTc4MjM4ODg1Mn0.icCKIwoPGZE0v4SS5rmFUt1PRQdiZP8SEZVeY_SJl3g",
                   "type": "string"
                 }
               ]
@@ -563,9 +1298,11 @@
               }
             ],
             "url": {
-              "raw": "{{url}}/vehicles?status=ACTIVE&type=MANUAL&search=",
-              "host": ["{{url}}"],
-              "path": ["vehicles"],
+              "raw": "http://localhost:3000/api/v1/vehicles?status=ACTIVE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "v1", "vehicles"],
               "query": [
                 {
                   "key": "status",
@@ -575,12 +1312,14 @@
                 {
                   "key": "type",
                   "value": "MANUAL",
-                  "description": "MANUAL , AUTOMATIC"
+                  "description": "MANUAL , AUTOMATIC",
+                  "disabled": true
                 },
                 {
                   "key": "search",
                   "value": "",
-                  "description": "by plateNumber"
+                  "description": "by plateNumber",
+                  "disabled": true
                 }
               ]
             }
@@ -595,7 +1334,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIyMDM4NjYsImV4cCI6MTc4MjIwNDc2Nn0.Tcpv8uLhD9PEGnhk5T1FNwwKo76jv_rvfHQIJh7u0Nw",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIzODc5NTIsImV4cCI6MTc4MjM4ODg1Mn0.icCKIwoPGZE0v4SS5rmFUt1PRQdiZP8SEZVeY_SJl3g",
                   "type": "string"
                 }
               ]
@@ -609,9 +1348,11 @@
               }
             ],
             "url": {
-              "raw": "{{url}}/vehicles/11",
-              "host": ["{{url}}"],
-              "path": ["vehicles", "11"]
+              "raw": "http://localhost:3000/api/v1/vehicles/3",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "v1", "vehicles", "3"]
             }
           },
           "response": []
@@ -624,7 +1365,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIyMDM2MjgsImV4cCI6MTc4MjIwNDUyOH0.fHFpCAtz5Kl-hdhPkHES-o5EWMhvFUUPKD9PtH26W6E",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIzODc5NTIsImV4cCI6MTc4MjM4ODg1Mn0.icCKIwoPGZE0v4SS5rmFUt1PRQdiZP8SEZVeY_SJl3g",
                   "type": "string"
                 }
               ]
@@ -647,9 +1388,11 @@
               }
             },
             "url": {
-              "raw": "{{url}}/vehicles",
-              "host": ["{{url}}"],
-              "path": ["vehicles"]
+              "raw": "http://localhost:3000/api/v1/vehicles",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "v1", "vehicles"]
             }
           },
           "response": []
@@ -912,14 +1655,15 @@
               }
             ],
             "url": {
-              "raw": "{{url}}/reception/bookings?bookingStatus=BOOKED&page=1&limit=11",
+              "raw": "{{url}}/reception/bookings?page=1&limit=20",
               "host": ["{{url}}"],
               "path": ["reception", "bookings"],
               "query": [
                 {
                   "key": "bookingStatus",
                   "value": "BOOKED",
-                  "description": "PENDING_PAYMENT , BOOKED , COMPLETED, NO_SHOW, CANCELLED ,EXPIRED"
+                  "description": "PENDING_PAYMENT , BOOKED , COMPLETED, NO_SHOW, CANCELLED ,EXPIRED",
+                  "disabled": true
                 },
                 {
                   "key": "search",
@@ -933,7 +1677,7 @@
                 },
                 {
                   "key": "limit",
-                  "value": "11"
+                  "value": "20"
                 }
               ]
             }
@@ -992,7 +1736,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"studentId\": 4,\r\n  \"instructorId\": 3,\r\n  \"date\": \"2026-06-25\",\r\n  \"time\": \"08:00\", // انتبهي للوقت لازم يكون رقمين قبل النقطين و رقمين بعد النقطين\r\n  \"trainingType\": \"AUTOMATIC\", //  // AUTOMATIC , MANUAL \r\n  \"vehicleSource\": \"SCHOOL_CAR\", // // SCHOOL_CAR , STUDENT_CAR\r\n  \"collectedAmount\": 2000 //  محذوف عندما يكون للطالب عربون سابق بتعرف اذا في عبرون من الراوت student-credit\r\n}",
+              "raw": "{\r\n  \"studentId\": 1,\r\n  \"instructorId\": 3,\r\n  \"date\": \"2026-06-28\",\r\n  \"time\": \"18:30\", // انتبهي للوقت لازم يكون رقمين قبل النقطين و رقمين بعد النقطين\r\n  \"trainingType\": \"AUTOMATIC\", //  // AUTOMATIC , MANUAL \r\n  \"vehicleSource\": \"SCHOOL_CAR\", // // SCHOOL_CAR , STUDENT_CAR\r\n    \"collectedAmount\": 2000 //  محذوف عندما يكون للطالب عربون سابق بتعرف اذا في عبرون من الراوت student-credit\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1030,12 +1774,17 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": ""
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
-              "raw": "{{url}}/reception/bookings/39/pay-remainder",
+              "raw": "{{url}}/reception/bookings/87/pay-remainder",
               "host": ["{{url}}"],
-              "path": ["reception", "bookings", "39", "pay-remainder"]
+              "path": ["reception", "bookings", "87", "pay-remainder"]
             }
           },
           "response": []
@@ -1103,6 +1852,44 @@
               "raw": "{{url}}/reception/bookings/41/cancel",
               "host": ["{{url}}"],
               "path": ["reception", "bookings", "41", "cancel"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update status of booking",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"status\" : \"COMPLETED\"  // NO_SHOW , COMPLETED\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/reception/bookings/77/status",
+              "host": ["{{url}}"],
+              "path": ["reception", "bookings", "77", "status"]
             }
           },
           "response": []
