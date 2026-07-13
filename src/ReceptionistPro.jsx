@@ -6,7 +6,7 @@ import { IoDocumentTextOutline } from "react-icons/io5";
 import {  PiUsersThin } from "react-icons/pi";
 import { FaUserTie } from "react-icons/fa";
 import { FaCar } from "react-icons/fa";
-import { bookingsService, studentsService, instructorsService } from "./api";
+import { bookingsService, studentsService, instructorsService, certificatesService } from "./api";
 
 
 const T = {
@@ -155,15 +155,6 @@ function InvoiceModal({booking,t,onClose}){
   </Modal>;
 }
 
-const STUDENTS=[
-  {id:1,name:"أحمد محمد الحسن",phone:"0991234567",status:"قيد التدريب",gender:"ذكر",type:"عادي",id_num:"١٢٣٤٥٦٧",bookings:8,last:"٤ يونيو",cert:"لا"},
-  {id:2,name:"سارة خالد يوسف",phone:"0997654321",status:"نشط",gender:"أنثى",type:"أوتوماتيك",id_num:"٧٦٥٤٣٢١",bookings:3,last:"٢ يونيو",cert:"لا"},
-  {id:3,name:"علي حسن محمود",phone:"0994444444",status:"قيد التدريب",gender:"ذكر",type:"عادي",id_num:"٤٤٤٤٤٤٤",bookings:6,last:"٤ يونيو",cert:"لا"},
-  {id:4,name:"منى العلي سالم",phone:"0993333333",status:"أنهى التدريب",gender:"أنثى",type:"أوتوماتيك",id_num:"٣٣٣٣٣٣٣",bookings:12,last:"٢٨ مايو",cert:"تم التقديم"},
-  {id:5,name:"نورا الأحمد",phone:"0995555555",status:"طلب شهادة",gender:"أنثى",type:"عادي",id_num:"٥٥٥٥٥٥٥",bookings:14,last:"٢٥ مايو",cert:"مقبول"},
-  {id:6,name:"كريم عبدو",phone:"0996666666",status:"نشط",gender:"ذكر",type:"أوتوماتيك",id_num:"٦٦٦٦٦٦٦",bookings:4,last:"٣٠ مايو",cert:"لا"},
-  {id:7,name:"هناء الصالح",phone:"0997777777",status:"جديد",gender:"أنثى",type:"عادي",id_num:"٧٧٧٧٧٧٧",bookings:0,last:"—",cert:"لا"},
-];
 
 const STUDENT_STATUS_MAP = {
   IN_TRAINING: "قيد التدريب",
@@ -180,120 +171,150 @@ const STUDENT_STATUS_FILTER = [
 ];
 
 function SectionStudents({t}){
-  const sId = (s) => s?.studentId ?? s?.id;
-  const sName = (s) => s?.user?.name || s?.name || "—";
-  const sPhone = (s) => s?.user?.phone || s?.phone || "—";
-  const sStatus = (s) => STUDENT_STATUS_MAP[s?.studentStatus] || s?.studentStatus || "—";
+  const sId   = (s) => s?.studentId ?? s?.id;
+  const sName = (s) => s?.user?.name  || s?.name  || "—";
+  const sPhone= (s) => s?.user?.phone || s?.phone || "—";
+  const sStatus=(s) => STUDENT_STATUS_MAP[s?.studentStatus] || s?.studentStatus || "—";
+  const gLabel= (g) => g==="MALE"?"ذكر":g==="FEMALE"?"أنثى":"—";
+  const ttLabel=(tt)=> tt==="MANUAL"?"عادي":tt==="AUTOMATIC"?"أوتوماتيك":"—";
 
-  const [students, setStudents] = useState([]);
-  const [loadingStudents, setLoadingStudents] = useState(true);
-  const [search, setSearch] = useState("");
-  const [fSt, setFSt] = useState("");
-  const [sel, setSel] = useState(null);
+  // ── List state ──
+  const [students,      setStudents]      = useState([]);
+  const [loadingList,   setLoadingList]   = useState(true);
+  const [search,        setSearch]        = useState("");
+  const [fSt,           setFSt]           = useState("");
+  const [sel,           setSel]           = useState(null);
 
-  const [dTab, setDTab] = useState("bookings");
+  // ── Detail state (GET /students/:id) ──
+  const [detail,        setDetail]        = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
-  const [bookings, setBookings] = useState([]);
-  const [loadingBookings, setLoadingBookings] = useState(false);
-  const [bFilt, setBFilt] = useState("");
-  const [statusBusyId, setStatusBusyId] = useState(null);
+  // ── Tabs + bookings ──
+  const [dTab,          setDTab]          = useState("bookings");
+  const [bookings,      setBookings]      = useState([]);
+  const [loadingBk,     setLoadingBk]     = useState(false);
+  const [bFilt,         setBFilt]         = useState("");
+  const [statusBusyId,  setStatusBusyId]  = useState(null);
 
-  const [createModal, setCreateModal] = useState(false);
+  // ── Create booking modal ──
+  const [bookingModal,  setBookingModal]  = useState(false);
 
-  // ── Fetch students (search + status filter) ──
+  // ── Create student modal ──
+  const [newStudentModal, setNewStudentModal] = useState(false);
+  const [newName,        setNewName]       = useState("");
+  const [newPhone,       setNewPhone]      = useState("");
+  const [newPassword,    setNewPassword]   = useState("");
+  const [creating,       setCreating]      = useState(false);
+
+  // ── Fetch list ──
+  const fetchList = async (keepSel = true) => {
+    setLoadingList(true);
+    try {
+      const params = {};
+      if (search.trim()) params.search = search.trim();
+      if (fSt) params.status = fSt;
+      const res = await studentsService.getAll(params);
+      const body = res.data?.data ?? res.data;
+      const arr  = Array.isArray(body) ? body : (body?.items || body?.students || body?.data || []);
+      setStudents(arr);
+      if (keepSel) setSel(prev => (prev && arr.some(s => String(sId(s)) === String(sId(prev)))) ? prev : (arr[0] || null));
+      else setSel(arr[0] || null);
+    } catch { setStudents([]); setSel(null); }
+    finally  { setLoadingList(false); }
+  };
+
+  useEffect(() => { let c=false; (async()=>{ setLoadingList(true); try { const params={}; if(search.trim())params.search=search.trim(); if(fSt)params.status=fSt; const res=await studentsService.getAll(params); const body=res.data?.data??res.data; const arr=Array.isArray(body)?body:(body?.items||body?.students||body?.data||[]); if(!c){setStudents(arr);setSel(prev=>(prev&&arr.some(s=>String(sId(s))===String(sId(prev))))?prev:(arr[0]||null));} } catch{if(!c){setStudents([]);setSel(null);}} finally{if(!c)setLoadingList(false);} })(); return()=>{c=true;}; }, [search, fSt]);
+
+  // ── Fetch full student detail ──
   useEffect(() => {
-    let cancelled = false;
+    if (!sel) return;
+    let c = false;
     (async () => {
-      setLoadingStudents(true);
+      if (!c) setLoadingDetail(true);
       try {
-        const params = {};
-        if (search.trim()) params.search = search.trim();
-        if (fSt) params.status = fSt;
-        const res = await studentsService.getAll(params);
+        const res  = await studentsService.getById(sId(sel));
         const body = res.data?.data ?? res.data;
-        const arr = Array.isArray(body) ? body : (body?.items || body?.students || body?.data || []);
-        if (!cancelled) {
-          setStudents(arr);
-          setSel(prev => (prev && arr.some(s => String(sId(s)) === String(sId(prev)))) ? prev : (arr[0] || null));
-        }
-      } catch {
-        if (!cancelled) { setStudents([]); setSel(null); }
-      } finally {
-        if (!cancelled) setLoadingStudents(false);
-      }
+        if (!c) setDetail(body);
+      } catch { if (!c) setDetail(null); }
+      finally  { if (!c) setLoadingDetail(false); }
     })();
-    return () => { cancelled = true; };
-  }, [search, fSt]);
+    return () => { c = true; };
+  }, [sel]);
 
-  // ── Fetch selected student's bookings (reception route, filtered by name) ──
+  // ── Fetch student bookings via dedicated endpoint ──
   const fetchBookings = async () => {
     if (!sel) { setBookings([]); return; }
-    setLoadingBookings(true);
+    setLoadingBk(true);
     try {
-      const res = await bookingsService.getAll({ search: sName(sel), limit: 50 });
+      const res  = await studentsService.getBookings(sId(sel), { limit: 100 });
       const body = res.data?.data ?? res.data;
-      const arr = Array.isArray(body) ? body : (body?.bookings || body?.items || body?.data || []);
-      const mine = arr.filter(b => (b.studentName || "").trim() === sName(sel).trim());
-      setBookings(mine.length ? mine : arr);
-    } catch {
-      setBookings([]);
-    } finally {
-      setLoadingBookings(false);
-    }
+      const arr  = Array.isArray(body) ? body : (body?.data || body?.bookings || body?.items || []);
+      setBookings(arr);
+    } catch { setBookings([]); }
+    finally  { setLoadingBk(false); }
   };
 
   useEffect(() => {
-    let cancelled = false;
+    let c = false;
     (async () => {
       if (!sel) { setBookings([]); return; }
-      setLoadingBookings(true);
+      setLoadingBk(true);
       try {
-        const res = await bookingsService.getAll({ search: sName(sel), limit: 50 });
+        const res  = await studentsService.getBookings(sId(sel), { limit: 100 });
         const body = res.data?.data ?? res.data;
-        const arr = Array.isArray(body) ? body : (body?.bookings || body?.items || body?.data || []);
-        const mine = arr.filter(b => (b.studentName || "").trim() === sName(sel).trim());
-        if (!cancelled) setBookings(mine.length ? mine : arr);
-      } catch {
-        if (!cancelled) setBookings([]);
-      } finally {
-        if (!cancelled) setLoadingBookings(false);
-      }
+        const arr  = Array.isArray(body) ? body : (body?.data || body?.bookings || body?.items || []);
+        if (!c) setBookings(arr);
+      } catch { if (!c) setBookings([]); }
+      finally  { if (!c) setLoadingBk(false); }
     })();
-    return () => { cancelled = true; };
+    return () => { c = true; };
   }, [sel]);
 
-  // ── Update booking status (COMPLETED / NO_SHOW) ──
+  // ── Update booking status ──
   const handleUpdateStatus = async (bookingId, status) => {
     setStatusBusyId(bookingId);
-    try {
-      await bookingsService.updateStatus(bookingId, status);
-      await fetchBookings();
-    } catch { /* silent — reception route may reject invalid transitions */ }
+    try { await bookingsService.updateStatus(bookingId, status); await fetchBookings(); }
+    catch { /* silent */ }
     finally { setStatusBusyId(null); }
+  };
+
+  // ── Create student ──
+  const handleCreateStudent = async () => {
+    if (!newName.trim() || !newPhone.trim() || !newPassword.trim()) return;
+    setCreating(true);
+    try {
+      await studentsService.create({ name: newName.trim(), phone: newPhone.trim(), password: newPassword.trim() });
+      setNewStudentModal(false); setNewName(""); setNewPhone(""); setNewPassword("");
+      await fetchList(false);
+    } catch (e) { alert(e?.response?.data?.message || "حدث خطأ في تسجيل الطالب"); }
+    finally { setCreating(false); }
   };
 
   const mappedBookings = (Array.isArray(bookings) ? bookings : []).map(b => ({
     id: b.id,
     dateTime: formatBookingDate(b),
-    inst: b.instructorName || b.instructor?.name || "—",
-    type: TRAINING_MAP[b.trainingType] || b.trainingType || "—",
-    status: BOOKING_STATUS_MAP[b.bookingStatus] || b.bookingStatus || "—",
-    pay: PAYMENT_STATUS_MAP[b.paymentStatus] || b.paymentStatus || "—",
+    inst:      b.instructorName || b.instructor?.name || "—",
+    type:      TRAINING_MAP[b.trainingType]   || b.trainingType   || "—",
+    status:    BOOKING_STATUS_MAP[b.bookingStatus] || b.bookingStatus || "—",
+    pay:       PAYMENT_STATUS_MAP[b.paymentStatus] || b.paymentStatus || "—",
     rawStatus: b.bookingStatus,
   }));
   const shownBookings = mappedBookings.filter(b => !bFilt || b.rawStatus === bFilt);
 
   const dotColor = (raw) => {
-    if (raw === "COMPLETED") return t.completed.dot;
-    if (raw === "BOOKED") return t.confirmed.dot;
+    if (raw === "COMPLETED")       return t.completed.dot;
+    if (raw === "BOOKED")          return t.confirmed.dot;
     if (raw === "PENDING_PAYMENT") return t.pending.dot;
-    if (raw === "CANCELLED") return t.cancelled.dot;
-    if (raw === "NO_SHOW") return t.noshow.dot;
+    if (raw === "CANCELLED")       return t.cancelled.dot;
+    if (raw === "NO_SHOW")         return t.noshow.dot;
     return t.expired.dot;
   };
 
+  const d = sel ? detail : null;
+
   return (
     <div style={{ display: "flex", height: "100%" }}>
+
       {/* ── Left list panel ── */}
       <div className="hide-scrollbar" style={{ width: 290, height: "100%", flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden", borderLeft: `1px solid ${t.border}` }}>
         <div style={{ padding: "12px 12px 8px", borderBottom: `1px solid ${t.border}` }}>
@@ -305,7 +326,7 @@ function SectionStudents({t}){
           </div>
         </div>
         <div style={{ flex: 1, overflowY: "auto" }}>
-          {loadingStudents ? (
+          {loadingList ? (
             <div style={{ padding: 24, textAlign: "center", color: t.textMuted, fontSize: 12 }}>جارٍ التحميل...</div>
           ) : students.length === 0 ? (
             <div style={{ padding: 24, textAlign: "center", color: t.textMuted, fontSize: 12 }}>لا يوجد طلاب</div>
@@ -324,7 +345,7 @@ function SectionStudents({t}){
           })}
         </div>
         <div style={{ padding: "10px 12px", borderTop: `1px solid ${t.border}`, background: t.bgElevated }}>
-          <Btn label="+ تسجيل طالب جديد" t={t} sz="sm" style={{ width: "100%" }} />
+          <Btn label="+ تسجيل طالب جديد" onClick={() => setNewStudentModal(true)} t={t} sz="sm" style={{ width: "100%" }} />
         </div>
       </div>
 
@@ -336,29 +357,31 @@ function SectionStudents({t}){
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 17, fontWeight: 700, color: t.text }}>{sName(sel)}</div>
               <div style={{ fontSize: 12, color: t.textSec, marginTop: 2, direction: "ltr", textAlign: "right" }}>{sPhone(sel)}</div>
-              <div style={{ marginTop: 5, display: "flex", gap: 5 }}><Badge s={sStatus(sel)} t={t} /></div>
+              <div style={{ marginTop: 5, display: "flex", gap: 5, flexWrap: "wrap" }}>
+                <Badge s={sStatus(sel)} t={t} />
+                {d?.gender     && <Badge s={gLabel(d.gender)}      t={t} />}
+                {d?.trainingType && <Badge s={ttLabel(d.trainingType)} t={t} />}
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 7 }}>
-              <Btn label="+ حجز جديد" onClick={() => setCreateModal(true)} t={t} sz="sm" />
-              <Btn label="تعديل" t={t} sz="sm" v="ghost" />
-            </div>
+            <Btn label="+ حجز جديد" onClick={() => setBookingModal(true)} t={t} sz="sm" />
           </div>
 
           <div style={{ display: "flex", borderBottom: `1px solid ${t.border}`, background: t.bgSurface, padding: "0 22px", flexShrink: 0 }}>
-            {[["bookings", "الحجوزات"], ["docs", "الوثائق"]].map(([id, label]) => (
-              <button key={id} onClick={() => setDTab(id)} style={{ padding: "11px 15px", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: dTab === id ? 700 : 400, background: "transparent", color: dTab === id ? t.accent : t.textSec, borderBottom: `2px solid ${dTab === id ? t.accent : "transparent"}`, marginBottom: -1 }}>{label}</button>
+            {[["bookings","الحجوزات"],["info","البيانات"],["docs","الوثائق"]].map(([id,label]) => (
+              <button key={id} onClick={() => setDTab(id)} style={{ padding: "11px 15px", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: dTab===id?700:400, background: "transparent", color: dTab===id?t.accent:t.textSec, borderBottom: `2px solid ${dTab===id?t.accent:"transparent"}`, marginBottom: -1 }}>{label}</button>
             ))}
           </div>
 
           <div className="hide-scrollbar" style={{ flex: 1, overflowY: "auto", padding: "18px 22px" }}>
+
             {dTab === "bookings" && (
               <div>
                 <div style={{ display: "flex", gap: 3, marginBottom: 12, background: t.bgElevated, borderRadius: 8, padding: 3, overflowX: "auto" }}>
                   {BOOKING_STATUS_FILTER.map(f => (
-                    <button key={f.value} onClick={() => setBFilt(f.value)} style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: bFilt === f.value ? 700 : 400, whiteSpace: "nowrap", background: bFilt === f.value ? t.bgSurface : "transparent", color: bFilt === f.value ? t.text : t.textMuted, boxShadow: bFilt === f.value ? t.shadow : "none" }}>{f.label}</button>
+                    <button key={f.value} onClick={() => setBFilt(f.value)} style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: bFilt===f.value?700:400, whiteSpace: "nowrap", background: bFilt===f.value?t.bgSurface:"transparent", color: bFilt===f.value?t.text:t.textMuted, boxShadow: bFilt===f.value?t.shadow:"none" }}>{f.label}</button>
                   ))}
                 </div>
-                {loadingBookings ? (
+                {loadingBk ? (
                   <div style={{ padding: 30, textAlign: "center", color: t.textMuted, fontSize: 13 }}>جارٍ تحميل الحجوزات...</div>
                 ) : shownBookings.length === 0 ? (
                   <div style={{ padding: 30, textAlign: "center", color: t.textMuted, fontSize: 13 }}>لا توجد حجوزات لهذا الطالب</div>
@@ -383,38 +406,86 @@ function SectionStudents({t}){
                     {b.rawStatus === "BOOKED" && (
                       <div style={{ display: "flex", gap: 7, marginTop: 9 }}>
                         <Btn label="✓ إكمال الجلسة" onClick={() => handleUpdateStatus(b.id, "COMPLETED")} t={t} sz="sm" disabled={statusBusyId === b.id} />
-                        <Btn label="لم يحضر" onClick={() => handleUpdateStatus(b.id, "NO_SHOW")} t={t} sz="sm" v="danger" disabled={statusBusyId === b.id} />
+                        <Btn label="لم يحضر"         onClick={() => handleUpdateStatus(b.id, "NO_SHOW")}   t={t} sz="sm" v="danger" disabled={statusBusyId === b.id} />
                       </div>
                     )}
                   </div>
                 ))}
               </div>
             )}
+
+            {dTab === "info" && (
+              <Card t={t} p={16}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 12 }}>بيانات الطالب</div>
+                {loadingDetail ? (
+                  <div style={{ padding: 16, textAlign: "center", color: t.textMuted, fontSize: 12 }}>جارٍ التحميل...</div>
+                ) : (
+                  <>
+                    <InfoRow k="الاسم"           v={sName(d || sel)}         t={t} />
+                    <InfoRow k="الهاتف"          v={sPhone(d || sel)}        t={t} />
+                    <InfoRow k="الحالة"          v={sStatus(d || sel)}       t={t} />
+                    <InfoRow k="الجنس"           v={gLabel(d?.gender)}       t={t} />
+                    <InfoRow k="نوع التدريب"     v={ttLabel(d?.trainingType)} t={t} />
+                    {d?.nationalId  && <InfoRow k="رقم الهوية"       v={String(d.nationalId)}                                          t={t} />}
+                    {d?.createdAt   && <InfoRow k="تاريخ التسجيل"   v={new Date(d.createdAt).toLocaleDateString("ar-SY")}            t={t} />}
+                    {d?.balance != null && <InfoRow k="الرصيد"        v={`${Number(d.balance).toLocaleString("ar-SY")} ل.س`}          t={t} />}
+                  </>
+                )}
+              </Card>
+            )}
+
             {dTab === "docs" && (
               <Card t={t} p={16}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 12 }}>وثائق الشهادة الحكومية</div>
-                {["صورة شخصية حديثة", "صورة الهوية (أمامي)", "صورة الهوية (خلفي)"].map((d, i) => (
+                {["صورة شخصية حديثة","صورة الهوية (أمامي)","صورة الهوية (خلفي)"].map((doc, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${t.border}` }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: t.text }}>{d}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: t.text }}>{doc}</span>
                     <span style={{ fontSize: 11, color: t.textMuted }}>تُسلَّم للمركز — لا تُخزَّن</span>
                   </div>
                 ))}
                 <div style={{ marginTop: 10, padding: "9px 12px", borderRadius: 8, background: t.accentLight, fontSize: 11, color: t.accentText }}>الوثائق تُسلَّم للمركز الحكومي مباشرةً — يكفي تأكيدها هنا</div>
               </Card>
             )}
+
           </div>
         </div>
       )}
 
-      {createModal && sel && (
+      {/* ── Create booking modal ── */}
+      {bookingModal && sel && (
         <CreateBookingModal
           t={t}
           initialStudentId={sId(sel)}
           initialStudentName={sName(sel)}
-          onClose={() => setCreateModal(false)}
-          onSuccess={() => { setCreateModal(false); fetchBookings(); }}
+          onClose={() => setBookingModal(false)}
+          onSuccess={() => { setBookingModal(false); fetchBookings(); }}
         />
       )}
+
+      {/* ── Create student modal ── */}
+      {newStudentModal && (
+        <Modal title="تسجيل طالب جديد" onClose={() => setNewStudentModal(false)} t={t} width={420}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 5 }}>الاسم الكامل</label>
+              <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="أدخل الاسم الكامل" style={{ width: "100%", padding: "9px 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.bgElevated, color: t.text, fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 5 }}>رقم الهاتف</label>
+              <input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="09XXXXXXXX" type="tel" dir="ltr" style={{ width: "100%", padding: "9px 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.bgElevated, color: t.text, fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 5 }}>كلمة المرور المؤقتة</label>
+              <input value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="كلمة المرور" type="password" style={{ width: "100%", padding: "9px 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.bgElevated, color: t.text, fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+            <Btn label={creating ? "جاري الحفظ..." : "✓ تسجيل الطالب"} onClick={handleCreateStudent} t={t} disabled={creating || !newName.trim() || !newPhone.trim() || !newPassword.trim()} style={{ flex: 1 }} />
+            <Btn label="إلغاء" onClick={() => setNewStudentModal(false)} t={t} v="ghost" />
+          </div>
+        </Modal>
+      )}
+
     </div>
   );
 }
@@ -2475,145 +2546,368 @@ function SectionTransport({t}){
   );
 }
 
-const CERT_STEPS=["تم التقديم","مقبول","أنهى الجلسات","مؤهل للامتحان","ناجح"];
-const APPLICANTS=[
-  {id:1,name:"نورا الأحمد",status:"مؤهل للامتحان",exam_date:"٢٥ يونيو",paid:true,docs:true,sessions:"٣/٣",transport:true},
-  {id:2,name:"كريم عبدو",status:"أنهى الجلسات",exam_date:"—",paid:true,docs:true,sessions:"٣/٣",transport:false},
-  {id:3,name:"منى العلي",status:"مقبول",exam_date:"—",paid:true,docs:true,sessions:"١/٣",transport:true},
-  {id:4,name:"هناء الصالح",status:"تم التقديم",exam_date:"—",paid:true,docs:false,sessions:"٠/٣",transport:false},
-  {id:5,name:"باسل الخطيب",status:"ناجح",exam_date:"٤ يونيو",paid:true,docs:true,sessions:"٣/٣",transport:true},
+const CERT_STATUS_MAP = {
+  WAITING_FOR_TRAINING_SCHEDULE: { label: "بانتظار التدريب", tk: "pending" },
+  IN_GOVERNMENT_TRAINING:        { label: "في التدريب", tk: "inprogress" },
+  WAITING_FOR_PRACTICAL_EXAM:    { label: "بانتظار العملي", tk: "qualified" },
+  WAITING_FOR_THEORETICAL_EXAM:  { label: "بانتظار النظري", tk: "confirmed" },
+  COMPLETED:                     { label: "مكتمل", tk: "completed" },
+  FAILED:                        { label: "راسب", tk: "failed" },
+  CANCELLED:                     { label: "ملغي", tk: "cancelled" },
+};
+const CERT_STEP_LABELS = ["بانتظار التدريب", "في التدريب", "بانتظار الامتحان", "مكتمل"];
+const CERT_STATUS_OPTS = [
+  { value: "", label: "الكل" },
+  { value: "WAITING_FOR_TRAINING_SCHEDULE", label: "بانتظار التدريب" },
+  { value: "IN_GOVERNMENT_TRAINING", label: "في التدريب" },
+  { value: "WAITING_FOR_PRACTICAL_EXAM", label: "بانتظار العملي" },
+  { value: "WAITING_FOR_THEORETICAL_EXAM", label: "بانتظار النظري" },
+  { value: "COMPLETED", label: "مكتمل" },
+  { value: "FAILED", label: "راسب" },
+  { value: "CANCELLED", label: "ملغي" },
 ];
 
+function CertBadge({s,t}){
+  const m=CERT_STATUS_MAP[s]||{label:s||"—",tk:"expired"};
+  const c=t[m.tk]||t.expired;
+  return <span style={{display:"inline-flex",alignItems:"center",gap:5,background:c.bg,color:c.text,padding:"2px 9px",borderRadius:20,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>{m.label}</span>;
+}
+
 function SectionCertificate({t}){
-  const [sel,setSel]=useState(APPLICANTS[0]);
-  const [filt,setFilt]=useState("الكل");
-  const [notifModal,setNotifModal]=useState(null);
+  const [certs,setCerts]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState("");
+  const [fStatus,setFStatus]=useState("");
+  const [sel,setSel]=useState(null);
+
+  const [cancelModal,setCancelModal]=useState(null);
+  const [cancelReason,setCancelReason]=useState("");
+  const [cancelBusy,setCancelBusy]=useState(false);
+
+  const [courseModal,setCourseModal]=useState(null);
+  const [courseNum,setCourseNum]=useState("");
+  const [courseBusy,setCourseBusy]=useState(false);
+
+  const [sessionsModal,setSessionsModal]=useState(null);
+  const [sessionDates,setSessionDates]=useState(["","",""]);
+  const [sessionsBusy,setSessionsBusy]=useState(false);
+
+  const [examModal,setExamModal]=useState(null);
+  const [examDate,setExamDate]=useState("");
+  const [examBusy,setExamBusy]=useState(false);
+
   const [resultModal,setResultModal]=useState(null);
-  const [newModal,setNewModal]=useState(false);
-  const filtAll=APPLICANTS.filter(a=>filt==="الكل"||a.status===filt);
-  const stepIdx=CERT_STEPS.indexOf(sel?.status);
+  const [resultBusy,setResultBusy]=useState(false);
+
+  const [exportBusy,setExportBusy]=useState(false);
+
+  const cName=(c)=>c?.student?.name||c?.studentName||"—";
+  const cPhone=(c)=>c?.student?.phoneNumber||c?.student?.phone||"—";
+
+  const loadCerts=async()=>{
+    try{
+      const params={};
+      if(fStatus)params.status=fStatus;
+      if(search.trim())params.search=search.trim();
+      const res=await certificatesService.getAll(params);
+      const body=res.data?.data??res.data;
+      const arr=Array.isArray(body)?body:(body?.data||body?.certificates||[]);
+      setCerts(arr);
+      setSel(prev=>prev?(arr.find(c=>c.id===prev.id)||null):(arr[0]||null));
+    }catch{setCerts([]);setSel(null);}
+  };
+
+  useEffect(()=>{
+    let cancelled=false;
+    (async()=>{
+      setLoading(true);
+      try{
+        const params={};
+        if(fStatus)params.status=fStatus;
+        if(search.trim())params.search=search.trim();
+        const res=await certificatesService.getAll(params);
+        const body=res.data?.data??res.data;
+        const arr=Array.isArray(body)?body:(body?.data||body?.certificates||[]);
+        if(!cancelled){setCerts(arr);setSel(prev=>prev?(arr.find(c=>c.id===prev.id)||null):(arr[0]||null));}
+      }catch{if(!cancelled){setCerts([]);setSel(null);}}
+      finally{if(!cancelled)setLoading(false);}
+    })();
+    return()=>{cancelled=true;};
+  },[search,fStatus]);
+
+  const certStepIdx=(c)=>{
+    if(!c)return -1;
+    if(c.status==="COMPLETED")return 3;
+    if(c.status==="WAITING_FOR_PRACTICAL_EXAM"||c.status==="WAITING_FOR_THEORETICAL_EXAM")return 2;
+    if(c.status==="IN_GOVERNMENT_TRAINING")return 1;
+    return 0;
+  };
+
+  const handleCancel=async()=>{
+    if(!cancelModal||!cancelReason.trim())return;
+    setCancelBusy(true);
+    try{
+      await certificatesService.cancel(cancelModal.id,{reason:cancelReason});
+      setCancelModal(null);setCancelReason("");
+      await loadCerts();
+    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
+    finally{setCancelBusy(false);}
+  };
+
+  const handleAssignCourse=async()=>{
+    if(!courseModal||!courseNum.trim())return;
+    setCourseBusy(true);
+    try{
+      await certificatesService.assignCourseNumber({certificateIds:[courseModal.id],courseNumber:courseNum.trim()});
+      setCourseModal(null);setCourseNum("");
+      await loadCerts();
+    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
+    finally{setCourseBusy(false);}
+  };
+
+  const handleScheduleSessions=async()=>{
+    if(!sessionsModal)return;
+    const sessions=sessionDates.map((d,i)=>({sessionNumber:i+1,scheduledAt:d?new Date(d).toISOString():null})).filter(s=>s.scheduledAt);
+    if(!sessions.length)return;
+    setSessionsBusy(true);
+    try{
+      await certificatesService.setTrainingSessions(sessionsModal.id,{sessions});
+      setSessionsModal(null);setSessionDates(["","",""]);
+      await loadCerts();
+    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
+    finally{setSessionsBusy(false);}
+  };
+
+  const handleScheduleExam=async()=>{
+    if(!examModal||!examDate)return;
+    setExamBusy(true);
+    try{
+      await certificatesService.setExamSchedule(examModal.id,{scheduledAt:new Date(examDate).toISOString()});
+      setExamModal(null);setExamDate("");
+      await loadCerts();
+    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
+    finally{setExamBusy(false);}
+  };
+
+  const handleRecordResult=async(examType,result)=>{
+    if(!resultModal)return;
+    setResultBusy(true);
+    try{
+      await certificatesService.recordExamResult(resultModal.id,{examType,attemptNumber:1,result});
+      setResultModal(null);
+      await loadCerts();
+    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
+    finally{setResultBusy(false);}
+  };
+
+  const handleExport=async(format)=>{
+    setExportBusy(true);
+    try{
+      const ids=sel?[sel.id]:certs.map(c=>c.id);
+      const res=await certificatesService.exportFile({format,certificateIds:ids});
+      const url=URL.createObjectURL(new Blob([res.data]));
+      const a=document.createElement("a");
+      a.href=url;a.download=`certificates.${format}`;a.click();
+      URL.revokeObjectURL(url);
+    }catch(e){alert(e.response?.data?.message||"حدث خطأ في التصدير");}
+    finally{setExportBusy(false);}
+  };
+
+  const canCancel=(c)=>c&&!["COMPLETED","CANCELLED"].includes(c.status);
+  const si=certStepIdx(sel);
+
   return(
     <div style={{display:"flex",height:"100%"}}>
-      <div style={{width:280,flexShrink:0,display:"flex",flexDirection:"column",borderLeft:`1px solid ${t.border}`}}>
-        <div style={{padding:"10px 10px 7px",borderBottom:`1px solid ${t.border}`}}>
+      {/* List panel */}
+      <div style={{width:290,flexShrink:0,display:"flex",flexDirection:"column",borderLeft:`1px solid ${t.border}`}}>
+        <div style={{padding:"10px 10px 7px",borderBottom:`1px solid ${t.border}`,display:"flex",flexDirection:"column",gap:7}}>
+          <SearchBar placeholder="بحث باسم الطالب..." t={t} value={search} onChange={setSearch}/>
           <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
-            {["الكل","تم التقديم","مقبول","أنهى الجلسات","مؤهل للامتحان","ناجح"].map(s=>(
-              <button key={s} onClick={()=>setFilt(s)} style={{padding:"3px 8px",borderRadius:20,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:10,fontWeight:filt===s?700:400,background:filt===s?t.accent:"transparent",color:filt===s?"#fff":t.textMuted}}>{s}</button>
+            {CERT_STATUS_OPTS.map(opt=>(
+              <button key={opt.value} onClick={()=>setFStatus(opt.value)} style={{padding:"3px 8px",borderRadius:20,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:10,fontWeight:fStatus===opt.value?700:400,background:fStatus===opt.value?t.accent:"transparent",color:fStatus===opt.value?"#fff":t.textMuted}}>{opt.label}</button>
             ))}
           </div>
         </div>
         <div style={{flex:1,overflowY:"auto"}}>
-          {filtAll.map(a=>(
-            <div key={a.id} onClick={()=>setSel(a)} style={{padding:"11px 12px",cursor:"pointer",borderBottom:`1px solid ${t.border}`,background:sel?.id===a.id?t.accentLight:t.bgSurface,borderRight:sel?.id===a.id?`3px solid ${t.accent}`:"3px solid transparent"}}>
+          {loading?(
+            <div style={{padding:24,textAlign:"center",color:t.textMuted,fontSize:13}}>جاري التحميل...</div>
+          ):certs.length===0?(
+            <div style={{padding:24,textAlign:"center",color:t.textMuted,fontSize:13}}>لا توجد شهادات</div>
+          ):certs.map(c=>(
+            <div key={c.id} onClick={()=>setSel(c)} style={{padding:"11px 12px",cursor:"pointer",borderBottom:`1px solid ${t.border}`,background:sel?.id===c.id?t.accentLight:t.bgSurface,borderRight:sel?.id===c.id?`3px solid ${t.accent}`:"3px solid transparent"}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                <span style={{fontSize:13,fontWeight:600,color:t.text}}>{a.name}</span>
-                <Badge s={a.status} t={t}/>
+                <span style={{fontSize:13,fontWeight:600,color:t.text}}>{cName(c)}</span>
+                <CertBadge s={c.status} t={t}/>
               </div>
-              <div style={{fontSize:11,color:t.textMuted}}>جلسات: {a.sessions} {!a.docs&&"• وثائق ناقصة ⚠"}</div>
+              <div style={{fontSize:11,color:t.textMuted}}>
+                {c.courseNumber?`دورة: ${c.courseNumber}`:"بدون رقم دورة"} • {c.category||"—"} {c.transmissionType==="AUTOMATIC"?"أوتوماتيك":c.transmissionType==="MANUAL"?"يدوي":""}
+              </div>
             </div>
           ))}
         </div>
-        <div style={{padding:"10px 10px",borderTop:`1px solid ${t.border}`}}>
-          <Btn label="+ تقديم جديد" onClick={()=>setNewModal(true)} t={t} sz="sm" style={{width:"100%"}}/>
+        <div style={{padding:"10px",borderTop:`1px solid ${t.border}`,display:"flex",gap:6}}>
+          <Btn label={exportBusy?"...":"↓ PDF"} onClick={()=>handleExport("pdf")} t={t} sz="sm" v="secondary" disabled={exportBusy} style={{flex:1}}/>
+          <Btn label={exportBusy?"...":"↓ Excel"} onClick={()=>handleExport("xlsx")} t={t} sz="sm" v="ghost" disabled={exportBusy} style={{flex:1}}/>
         </div>
       </div>
-      {sel&&(
+
+      {/* Detail panel */}
+      {sel?(
         <div style={{flex:1,overflowY:"auto",padding:"20px 22px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
             <div>
-              <div style={{fontSize:17,fontWeight:700,color:t.text}}>{sel.name}</div>
-              <div style={{marginTop:5}}><Badge s={sel.status} t={t}/></div>
+              <div style={{fontSize:17,fontWeight:700,color:t.text}}>{cName(sel)}</div>
+              <div style={{marginTop:5}}><CertBadge s={sel.status} t={t}/></div>
             </div>
             <div style={{display:"flex",gap:7}}>
-              {(sel.status==="مقبول"||sel.status==="أنهى الجلسات")&&<Btn label="📢 إشعار الطالب" onClick={()=>setNotifModal(sel)} t={t} sz="sm" v="secondary"/>}
-              {sel.status==="مؤهل للامتحان"&&<Btn label="📢 إشعار موعد الامتحان" onClick={()=>setNotifModal({...sel,type:"exam"})} t={t} sz="sm" v="secondary"/>}
-              {sel.status==="مؤهل للامتحان"&&<Btn label="تحديث النتيجة" onClick={()=>setResultModal(sel)} t={t} sz="sm"/>}
+              {canCancel(sel)&&<Btn label="إلغاء الشهادة" onClick={()=>setCancelModal(sel)} t={t} sz="sm" v="danger"/>}
             </div>
           </div>
+
           <Card t={t} p={18} mb={14}>
             <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:14}}>مسار الشهادة</div>
             <div style={{display:"flex",alignItems:"center"}}>
-              {CERT_STEPS.map((step,i)=>{
-                const done=i<=stepIdx;
+              {CERT_STEP_LABELS.map((step,i)=>{
+                const done=i<=si;
                 return(
                   <div key={step} style={{flex:1,display:"flex",alignItems:"center"}}>
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",flex:"0 0 auto",minWidth:65}}>
-                      <div style={{width:26,height:26,borderRadius:"50%",background:done?t.grad:t.border,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700,boxShadow:i===stepIdx?`0 0 0 3px ${t.accent}40`:"none"}}>{done?"✓":i+1}</div>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",flex:"0 0 auto",minWidth:70}}>
+                      <div style={{width:26,height:26,borderRadius:"50%",background:done?t.grad:t.border,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700,boxShadow:i===si?`0 0 0 3px ${t.accent}40`:"none"}}>{done?"✓":i+1}</div>
                       <div style={{fontSize:9,color:done?t.accentText:t.textMuted,marginTop:4,textAlign:"center",lineHeight:1.3}}>{step}</div>
                     </div>
-                    {i<CERT_STEPS.length-1&&<div style={{flex:1,height:2,background:i<stepIdx?t.accent:t.border,margin:"0 3px",marginBottom:18}}/>}
+                    {i<CERT_STEP_LABELS.length-1&&<div style={{flex:1,height:2,background:i<si?t.accent:t.border,margin:"0 3px",marginBottom:18}}/>}
                   </div>
                 );
               })}
             </div>
           </Card>
+
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <Card t={t} p={14}>
-              <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:8}}>تفاصيل الطلب</div>
-              <InfoRow k="الدفع" v={sel.paid?"مدفوع":"معلق"} t={t}/>
-              <InfoRow k="الوثائق" v={sel.docs?"مكتملة ✓":"ناقصة ⚠"} t={t}/>
-              <InfoRow k="الجلسات الإجبارية" v={sel.sessions} t={t}/>
-              <InfoRow k="موعد الامتحان" v={sel.exam_date} t={t}/>
-              <InfoRow k="مسجل في النقل" v={sel.transport?"مسجل":"غير مسجل"} t={t}/>
+              <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:8}}>تفاصيل الشهادة</div>
+              <InfoRow k="اسم الطالب" v={cName(sel)} t={t}/>
+              <InfoRow k="هاتف" v={cPhone(sel)} t={t}/>
+              <InfoRow k="الفئة" v={sel.category||"—"} t={t}/>
+              <InfoRow k="ناقل الحركة" v={sel.transmissionType==="AUTOMATIC"?"أوتوماتيك":sel.transmissionType==="MANUAL"?"يدوي":"—"} t={t}/>
+              <InfoRow k="رقم الدورة" v={sel.courseNumber||"غير مُعيَّن"} t={t}/>
+              <InfoRow k="خدمة النقل" v={sel.transportRequested?"مطلوبة":"غير مطلوبة"} t={t}/>
+              {sel.trainingSessions?.length>0&&(
+                <div style={{marginTop:8}}>
+                  <div style={{fontSize:11,color:t.textMuted,fontWeight:600,marginBottom:4}}>جلسات التدريب الحكومي:</div>
+                  {sel.trainingSessions.map((s,i)=>(
+                    <div key={i} style={{fontSize:11,color:t.text,padding:"2px 0"}}>جلسة {s.sessionNumber}: {s.scheduledAt?new Date(s.scheduledAt).toLocaleDateString("ar-SY"):"—"}</div>
+                  ))}
+                </div>
+              )}
+              {sel.examSchedule&&(
+                <InfoRow k="موعد الامتحان" v={new Date(sel.examSchedule.scheduledAt).toLocaleDateString("ar-SY")} t={t}/>
+              )}
             </Card>
             <Card t={t} p={14}>
               <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:8}}>الإجراءات المتاحة</div>
               <div style={{display:"flex",flexDirection:"column",gap:7}}>
-                {!sel.docs&&<Btn label="✓ تأكيد تسليم الوثائق" t={t} sz="sm" v="secondary" style={{width:"100%"}}/>}
-                {sel.status==="تم التقديم"&&<Btn label="تحديث: مقبول من الوزارة" t={t} sz="sm" v="secondary" style={{width:"100%"}}/>}
-                {sel.status==="مقبول"&&<><Btn label="  إشعار بمواعيد الجلسات + النقل" onClick={()=>setNotifModal(sel)} t={t} sz="sm" style={{width:"100%"}}/><Btn label="تحديث: أنهى الجلسات الثلاث" t={t} sz="sm" v="secondary" style={{width:"100%"}}/></>}
-                {sel.status==="أنهى الجلسات"&&<Btn label="إدخال موعد الامتحان" t={t} sz="sm" style={{width:"100%"}}/>}
-                {sel.status==="مؤهل للامتحان"&&<><Btn label="✓ ناجح" onClick={()=>setResultModal({...sel,res:"ناجح"})} t={t} sz="sm" style={{width:"100%"}}/><Btn label="✗ راسب" onClick={()=>setResultModal({...sel,res:"راسب"})} t={t} sz="sm" v="danger" style={{width:"100%"}}/></>}
-                {sel.status==="ناجح"&&<div style={{padding:"9px 12px",borderRadius:8,background:t.completed.bg,fontSize:12,color:t.completed.text,fontWeight:600}}>🎉 ناجح — يمكنه استلام الشهادة</div>}
+                {sel.status==="WAITING_FOR_TRAINING_SCHEDULE"&&(<>
+                  <Btn label="تعيين رقم الدورة" onClick={()=>{setCourseModal(sel);setCourseNum(sel.courseNumber||"");}} t={t} sz="sm" style={{width:"100%"}}/>
+                  <Btn label="جدولة جلسات التدريب" onClick={()=>setSessionsModal(sel)} t={t} sz="sm" v="secondary" style={{width:"100%"}}/>
+                </>)}
+                {sel.status==="IN_GOVERNMENT_TRAINING"&&(<>
+                  <Btn label="جدولة موعد الامتحان" onClick={()=>setExamModal(sel)} t={t} sz="sm" style={{width:"100%"}}/>
+                  <Btn label="تسجيل نتيجة الامتحان" onClick={()=>setResultModal(sel)} t={t} sz="sm" v="secondary" style={{width:"100%"}}/>
+                </>)}
+                {(sel.status==="WAITING_FOR_PRACTICAL_EXAM"||sel.status==="WAITING_FOR_THEORETICAL_EXAM")&&(<>
+                  <Btn label="جدولة موعد الامتحان" onClick={()=>setExamModal(sel)} t={t} sz="sm" v="secondary" style={{width:"100%"}}/>
+                  <Btn label="تسجيل نتيجة الامتحان" onClick={()=>setResultModal(sel)} t={t} sz="sm" style={{width:"100%"}}/>
+                </>)}
+                {sel.status==="COMPLETED"&&<div style={{padding:"9px 12px",borderRadius:8,background:t.completed.bg,fontSize:12,color:t.completed.text,fontWeight:600}}>🎉 اكتملت الشهادة — يمكن للطالب استلامها</div>}
+                {sel.status==="FAILED"&&<div style={{padding:"9px 12px",borderRadius:8,background:t.failed.bg,fontSize:12,color:t.failed.text,fontWeight:600}}>✗ راسب — يمكن إعادة الامتحان</div>}
+                {sel.status==="CANCELLED"&&<div style={{padding:"9px 12px",borderRadius:8,background:t.cancelled.bg,fontSize:12,color:t.cancelled.text,fontWeight:600}}>ملغية — لا يمكن إجراء أي تعديل</div>}
               </div>
+              {sel.examResults?.length>0&&(
+                <div style={{marginTop:12}}>
+                  <div style={{fontSize:11,color:t.textMuted,fontWeight:600,marginBottom:4}}>نتائج الامتحانات:</div>
+                  {sel.examResults.map((r,i)=>(
+                    <div key={i} style={{fontSize:11,color:t.text,padding:"2px 0",display:"flex",justifyContent:"space-between"}}>
+                      <span>{r.examType==="PRACTICAL"?"عملي":"نظري"} — محاولة {r.attemptNumber}</span>
+                      <span style={{fontWeight:600,color:r.result==="PASS"?t.completed.text:r.result==="FAIL"?t.failed.text:t.pending.text}}>{r.result==="PASS"?"ناجح":r.result==="FAIL"?"راسب":"غائب"}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
           </div>
         </div>
+      ):(
+        <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:t.textMuted,fontSize:14}}>
+          {loading?"جاري التحميل...":"اختر شهادة من القائمة"}
+        </div>
       )}
-      {notifModal&&<Modal title="إرسال إشعار للطالب" onClose={()=>setNotifModal(null)} t={t} width={480}>
-        <div style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>المستلم</label><div style={{padding:"9px 12px",borderRadius:9,background:t.accentLight,color:t.accentText,fontSize:13,fontWeight:600}}>{notifModal.name}</div></div>
-        <div style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>نوع الإشعار</label>
-          <select style={{width:"100%",padding:"9px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit"}}>
-            <option>قبول الطلب + مواعيد الجلسات الثلاث + تذكير بخدمة النقل</option>
-            <option>موعد الامتحان + مكانه + تذكير بخدمة النقل</option>
-            <option>نتيجة الامتحان — ناجح + موعد استلام الشهادة</option>
-          </select>
+
+      {/* Cancel Modal */}
+      {cancelModal&&<Modal title="إلغاء الشهادة" onClose={()=>setCancelModal(null)} t={t} width={420}>
+        <InfoRow k="الطالب" v={cName(cancelModal)} t={t}/>
+        <div style={{marginBottom:14,marginTop:10}}>
+          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>سبب الإلغاء</label>
+          <textarea value={cancelReason} onChange={e=>setCancelReason(e.target.value)} rows={3} placeholder="أدخل سبب الإلغاء..." style={{width:"100%",padding:"9px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",resize:"none",boxSizing:"border-box"}}/>
         </div>
-        {notifModal.status==="مقبول"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
-          {["اليوم الأول","اليوم الثاني","اليوم الثالث"].map(d=> (
-            <div key={d}><label style={{fontSize:10,fontWeight:600,color:t.textSec,display:"block",marginBottom:3}}>{d}</label><input type="date" style={{width:"100%",padding:"7px 8px",borderRadius:7,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:11,fontFamily:"inherit",boxSizing:"border-box"}}/></div>
-          ))}
-        </div>}
-        <div style={{padding:"10px 12px",borderRadius:9,background:t.bgElevated,border:`1px solid ${t.border}`,fontSize:12,color:t.text,lineHeight:1.7,marginBottom:12}}>
-          عزيزي/عزيزتي {notifModal.name}، تم قبول طلبك للحصول على رخصة القيادة. يرجى الحضور للجلسات الإجبارية الثلاث. خدمة نقل جماعي متاحة — تواصل معنا للتسجيل. — مدرسة القيادة
+        <div style={{display:"flex",gap:8}}>
+          <Btn label={cancelBusy?"جاري الإلغاء...":"✓ تأكيد الإلغاء"} onClick={handleCancel} t={t} v="danger" disabled={cancelBusy||!cancelReason.trim()} style={{flex:1}}/>
+          <Btn label="إلغاء" onClick={()=>setCancelModal(null)} t={t} v="ghost"/>
         </div>
-        <div style={{display:"flex",gap:8}}><Btn label="  إرسال الإشعار الآن" onClick={()=>setNotifModal(null)} t={t} style={{flex:1}}/><Btn label="إلغاء" onClick={()=>setNotifModal(null)} t={t} v="ghost"/></div>
       </Modal>}
-      {resultModal&&<Modal title="تحديث نتيجة الامتحان" onClose={()=>setResultModal(null)} t={t} width={380}>
-        <InfoRow k="الطالب" v={resultModal.name} t={t}/>
-        <InfoRow k="موعد الامتحان" v={resultModal.exam_date} t={t}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,margin:"14px 0"}}>
-          <button onClick={()=>setResultModal(null)} style={{padding:"16px",borderRadius:10,border:`2px solid ${t.completed.dot}`,background:t.completed.bg,color:t.completed.text,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✓ ناجح</button>
-          <button onClick={()=>setResultModal(null)} style={{padding:"16px",borderRadius:10,border:`2px solid ${t.cancelled.dot}`,background:t.cancelled.bg,color:t.cancelled.text,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✗ راسب</button>
+
+      {/* Assign Course Number Modal */}
+      {courseModal&&<Modal title="تعيين رقم الدورة" onClose={()=>setCourseModal(null)} t={t} width={380}>
+        <InfoRow k="الطالب" v={cName(courseModal)} t={t}/>
+        <div style={{margin:"12px 0"}}>
+          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>رقم الدورة</label>
+          <input value={courseNum} onChange={e=>setCourseNum(e.target.value)} placeholder="مثال: 181" style={{width:"100%",padding:"9px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
         </div>
-        <div style={{padding:"9px 12px",borderRadius:9,background:t.accentLight,fontSize:11,color:t.accentText}}>💡 سيُرسَل إشعار تلقائي للطالب بنتيجته</div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn label={courseBusy?"جاري الحفظ...":"✓ حفظ"} onClick={handleAssignCourse} t={t} disabled={courseBusy||!courseNum.trim()} style={{flex:1}}/>
+          <Btn label="إلغاء" onClick={()=>setCourseModal(null)} t={t} v="ghost"/>
+        </div>
       </Modal>}
-      {newModal&&<Modal title="تقديم طلب شهادة جديد" onClose={()=>setNewModal(false)} t={t} width={440}>
-        <div style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>الطالب</label>
-          <select style={{width:"100%",padding:"9px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit"}}>
-            {STUDENTS.filter(s=>s.status==="أنهى التدريب"||s.status==="طلب شهادة").map(s=><option key={s.id}>{s.name}</option>)}
-          </select>
-        </div>
-        <div style={{padding:"12px",borderRadius:9,background:t.accentLight,marginBottom:12}}>
-          <div style={{fontSize:12,fontWeight:700,color:t.accentText,marginBottom:6}}>الوثائق المطلوبة (لا تُخزَّن في النظام)</div>
-          {["صورة شخصية حديثة","صورة الهوية أمامية","صورة الهوية خلفية"].map((d,i)=>(
-            <div key={i} style={{display:"flex",gap:7,alignItems:"center",fontSize:12,color:t.accentText,padding:"3px 0"}}>
-              <input type="checkbox" style={{accentColor:t.accent}}/><span>{d} — تأكيد التسليم للمركز</span>
+
+      {/* Training Sessions Modal */}
+      {sessionsModal&&<Modal title="جدولة جلسات التدريب الحكومي" onClose={()=>setSessionsModal(null)} t={t} width={440}>
+        <InfoRow k="الطالب" v={cName(sessionsModal)} t={t}/>
+        <div style={{marginTop:12}}>
+          {["الجلسة الأولى","الجلسة الثانية","الجلسة الثالثة"].map((label,i)=>(
+            <div key={i} style={{marginBottom:10}}>
+              <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>{label}</label>
+              <input type="datetime-local" value={sessionDates[i]} onChange={e=>{const d=[...sessionDates];d[i]=e.target.value;setSessionDates(d);}} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
             </div>
           ))}
         </div>
-        <div style={{padding:"9px 12px",borderRadius:9,background:t.pending.bg,fontSize:13,fontWeight:700,color:t.pending.text,marginBottom:14}}>رسوم الشهادة الحكومية: ٥,٠٠٠ ل.س — تُدفع نقداً</div>
-        <div style={{display:"flex",gap:8}}><Btn label="✓ تسجيل الطلب" onClick={()=>setNewModal(false)} t={t} style={{flex:1}}/><Btn label="إلغاء" onClick={()=>setNewModal(false)} t={t} v="ghost"/></div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn label={sessionsBusy?"جاري الحفظ...":"✓ حفظ الجلسات"} onClick={handleScheduleSessions} t={t} disabled={sessionsBusy} style={{flex:1}}/>
+          <Btn label="إلغاء" onClick={()=>setSessionsModal(null)} t={t} v="ghost"/>
+        </div>
+      </Modal>}
+
+      {/* Exam Schedule Modal */}
+      {examModal&&<Modal title="جدولة موعد الامتحان" onClose={()=>setExamModal(null)} t={t} width={380}>
+        <InfoRow k="الطالب" v={cName(examModal)} t={t}/>
+        <div style={{margin:"12px 0"}}>
+          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>موعد الامتحان</label>
+          <input type="datetime-local" value={examDate} onChange={e=>setExamDate(e.target.value)} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn label={examBusy?"جاري الحفظ...":"✓ حفظ الموعد"} onClick={handleScheduleExam} t={t} disabled={examBusy||!examDate} style={{flex:1}}/>
+          <Btn label="إلغاء" onClick={()=>setExamModal(null)} t={t} v="ghost"/>
+        </div>
+      </Modal>}
+
+      {/* Exam Result Modal */}
+      {resultModal&&<Modal title="تسجيل نتيجة الامتحان" onClose={()=>setResultModal(null)} t={t} width={420}>
+        <InfoRow k="الطالب" v={cName(resultModal)} t={t}/>
+        <InfoRow k="نوع الامتحان" v={resultModal.status==="WAITING_FOR_PRACTICAL_EXAM"?"عملي":resultModal.status==="WAITING_FOR_THEORETICAL_EXAM"?"نظري":"—"} t={t}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:9,margin:"14px 0"}}>
+          {[{label:"✓ ناجح",res:"PASS",style:{border:`2px solid ${t.completed.dot}`,background:t.completed.bg,color:t.completed.text}},{label:"✗ راسب",res:"FAIL",style:{border:`2px solid ${t.failed.dot}`,background:t.failed.bg,color:t.failed.text}},{label:"غائب",res:"ABSENT",style:{border:`2px solid ${t.pending.dot}`,background:t.pending.bg,color:t.pending.text}}].map(btn=>(
+            <button key={btn.res} onClick={()=>handleRecordResult(resultModal.status==="WAITING_FOR_PRACTICAL_EXAM"?"PRACTICAL":"THEORY",btn.res)} disabled={resultBusy} style={{padding:"16px",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",opacity:resultBusy?0.5:1,...btn.style}}>{btn.label}</button>
+          ))}
+        </div>
+        <div style={{padding:"9px 12px",borderRadius:9,background:t.accentLight,fontSize:11,color:t.accentText}}>💡 سيُحدَّث وضع الشهادة تلقائياً بعد تسجيل النتيجة</div>
       </Modal>}
     </div>
   );

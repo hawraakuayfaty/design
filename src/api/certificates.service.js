@@ -2,45 +2,43 @@ import client from "./client";
 
 const certificatesService = {
   getAll(params) {
-    return client.get("/certificates", { params });
+    return client.get("/reception/certificates", { params });
   },
 
   getById(id) {
-    return client.get(`/certificates/${id}`);
+    return client.get(`/reception/certificates/${id}`);
   },
 
-  create(data) {
-    return client.post("/certificates", data);
+  cancel(id, data) {
+    return client.post(`/reception/certificates/${id}/cancel`, data);
   },
 
-  updateStatus(id, requestStatus) {
-    return client.patch(`/certificates/${id}/status`, { requestStatus });
+  exportFile(data) {
+    return client.post("/reception/certificates/export", data, { responseType: "blob" });
   },
 
-  getTrainingSessions(certificateId) {
-    return client.get(`/certificates/${certificateId}/training-sessions`);
+  assignCourseNumber(data) {
+    return client.put("/reception/certificates/course/batch", data);
   },
 
-  updateTrainingSession(certificateId, sessionId, data) {
-    return client.patch(
-      `/certificates/${certificateId}/training-sessions/${sessionId}`,
-      data
-    );
+  setTrainingSessions(id, data) {
+    return client.put(`/reception/certificates/${id}/training-sessions`, data);
   },
 
-  getExamResults(certificateId) {
-    return client.get(`/certificates/${certificateId}/exam-results`);
+  setExamSchedule(id, data) {
+    return client.put(`/reception/certificates/${id}/exam-schedule`, data);
   },
 
-  createExamResult(certificateId, data) {
-    return client.post(`/certificates/${certificateId}/exam-results`, data);
+  setExamScheduleBatch(data) {
+    return client.put("/reception/certificates/exam-schedule/batch", data);
   },
 
-  updateExamResult(certificateId, resultId, data) {
-    return client.patch(
-      `/certificates/${certificateId}/exam-results/${resultId}`,
-      data
-    );
+  recordExamResult(id, data) {
+    return client.post(`/reception/certificates/${id}/exam-results`, data);
+  },
+
+  notifyTrainingSessions(data) {
+    return client.post("/reception/certificates/notify-training-sessions", data);
   },
 };
 
