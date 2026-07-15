@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TbBus } from "react-icons/tb";
 import { IoIosCalendar } from "react-icons/io";
 
@@ -2591,6 +2591,9 @@ function SectionCertificate({t}){
   const [sessionsModal,setSessionsModal]=useState(null);
   const [sessionDates,setSessionDates]=useState(["","",""]);
   const [sessionsBusy,setSessionsBusy]=useState(false);
+  const [notifySessions,setNotifySessions]=useState(true);
+
+  const [notifyBusy,setNotifyBusy]=useState(false);
 
   const [examModal,setExamModal]=useState(null);
   const [examDate,setExamDate]=useState("");
@@ -2601,8 +2604,32 @@ function SectionCertificate({t}){
 
   const [exportBusy,setExportBusy]=useState(false);
 
+  const [editModal,setEditModal]=useState(null);
+  const [editForm,setEditForm]=useState({category:"B",transmissionType:"MANUAL",transportRequested:false});
+  const [editBusy,setEditBusy]=useState(false);
+
+  const [toast,setToast]=useState(null);
+  const showToast=(msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),3000);};
+
+  const [selectedIds,setSelectedIds]=useState([]);
+  const toggleSelect=(id)=>setSelectedIds(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]);
+  const allSelected=certs.length>0&&selectedIds.length===certs.length;
+  const toggleSelectAll=()=>setSelectedIds(allSelected?[]:certs.map(c=>c.id));
+
+  const [batchCourseModal,setBatchCourseModal]=useState(false);
+  const [batchCourseNum,setBatchCourseNum]=useState("");
+  const [batchCourseBusy,setBatchCourseBusy]=useState(false);
+
+  const [importModal,setImportModal]=useState(false);
+  const [importFile,setImportFile]=useState(null);
+  const [importPreviewRows,setImportPreviewRows]=useState(null);
+  const [importBusy,setImportBusy]=useState(false);
+  const [importDragOver,setImportDragOver]=useState(false);
+  const importInputRef=useRef(null);
+
   const cName=(c)=>c?.student?.name||c?.studentName||"—";
-  const cPhone=(c)=>c?.student?.phoneNumber||c?.student?.phone||"—";
+  const cPhone=(c)=>c?.studentPhone||c?.student?.phoneNumber||c?.student?.phone||"—";
+  const normalizeCerts=(arr)=>arr.map(c=>({...c,status:c.requestStatus??c.status}));
 
   const loadCerts=async()=>{
     try{
@@ -2611,7 +2638,7 @@ function SectionCertificate({t}){
       if(search.trim())params.search=search.trim();
       const res=await certificatesService.getAll(params);
       const body=res.data?.data??res.data;
-      const arr=Array.isArray(body)?body:(body?.data||body?.certificates||[]);
+      const arr=normalizeCerts(Array.isArray(body)?body:(body?.data||body?.certificates||[]));
       setCerts(arr);
       setSel(prev=>prev?(arr.find(c=>c.id===prev.id)||null):(arr[0]||null));
     }catch{setCerts([]);setSel(null);}
@@ -2627,7 +2654,7 @@ function SectionCertificate({t}){
         if(search.trim())params.search=search.trim();
         const res=await certificatesService.getAll(params);
         const body=res.data?.data??res.data;
-        const arr=Array.isArray(body)?body:(body?.data||body?.certificates||[]);
+        const arr=normalizeCerts(Array.isArray(body)?body:(body?.data||body?.certificates||[]));
         if(!cancelled){setCerts(arr);setSel(prev=>prev?(arr.find(c=>c.id===prev.id)||null):(arr[0]||null));}
       }catch{if(!cancelled){setCerts([]);setSel(null);}}
       finally{if(!cancelled)setLoading(false);}
@@ -2665,17 +2692,41 @@ function SectionCertificate({t}){
     finally{setCourseBusy(false);}
   };
 
+  const handleAssignCourseBatch=async()=>{
+    if(!batchCourseNum.trim()||selectedIds.length===0)return;
+    setBatchCourseBusy(true);
+    try{
+      await certificatesService.assignCourseNumber({certificateIds:selectedIds,courseNumber:batchCourseNum.trim()});
+      setBatchCourseModal(false);setBatchCourseNum("");
+      setSelectedIds([]);
+      showToast("✓ تم تعيين رقم الدورة للطلاب المحددين بنجاح");
+      await loadCerts();
+    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
+    finally{setBatchCourseBusy(false);}
+  };
+
   const handleScheduleSessions=async()=>{
     if(!sessionsModal)return;
     const sessions=sessionDates.map((d,i)=>({sessionNumber:i+1,scheduledAt:d?new Date(d).toISOString():null})).filter(s=>s.scheduledAt);
     if(!sessions.length)return;
     setSessionsBusy(true);
     try{
-      await certificatesService.setTrainingSessions(sessionsModal.id,{sessions});
+      await certificatesService.setTrainingSessions(sessionsModal.id,{sessions,notify:notifySessions});
       setSessionsModal(null);setSessionDates(["","",""]);
       await loadCerts();
     }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
     finally{setSessionsBusy(false);}
+  };
+
+  const handleResendNotification=async()=>{
+    if(!sel)return;
+    setNotifyBusy(true);
+    try{
+      const payload=sel.courseNumber?{courseNumber:sel.courseNumber}:{certificateIds:[sel.id]};
+      await certificatesService.notifyTrainingSessions(payload);
+      showToast("✓ تم إعادة إرسال إشعار الجلسات بنجاح");
+    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
+    finally{setNotifyBusy(false);}
   };
 
   const handleScheduleExam=async()=>{
@@ -2700,19 +2751,71 @@ function SectionCertificate({t}){
     finally{setResultBusy(false);}
   };
 
+  const EXPORT_MIME={pdf:"application/pdf",xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"};
+  const EXPORT_EXT={pdf:"pdf",xlsx:"xlsx"};
+
+  const readBlobErrorMessage=async(blob)=>{
+    try{return JSON.parse(await blob.text())?.message||null;}catch{return null;}
+  };
+
   const handleExport=async(format)=>{
+    if(selectedIds.length===0){showToast("الرجاء تحديد طالب واحد على الأقل","warning");return;}
     setExportBusy(true);
     try{
-      const ids=sel?[sel.id]:certs.map(c=>c.id);
-      const res=await certificatesService.exportFile({format,certificateIds:ids});
-      const url=URL.createObjectURL(new Blob([res.data]));
-      const a=document.createElement("a");
-      a.href=url;a.download=`certificates.${format}`;a.click();
-      URL.revokeObjectURL(url);
-    }catch(e){alert(e.response?.data?.message||"حدث خطأ في التصدير");}
+      const res=await certificatesService.exportFile({format,certificateIds:selectedIds.map(Number)});
+      const blob=new Blob([res.data],{type:EXPORT_MIME[format]});
+      const url=window.URL.createObjectURL(blob);
+      const link=document.createElement("a");
+      link.href=url;link.download=`certificates_${Date.now()}.${EXPORT_EXT[format]}`;link.click();
+      window.URL.revokeObjectURL(url);
+      setSelectedIds([]);
+    }catch(e){
+      const data=e.response?.data;
+      const msg=data instanceof Blob?await readBlobErrorMessage(data):data?.message;
+      alert(msg||"حدث خطأ في التصدير");
+    }
     finally{setExportBusy(false);}
   };
 
+  const handleUpdateCertificate=async()=>{
+    if(!editModal)return;
+    setEditBusy(true);
+    try{
+      await certificatesService.update(editModal.id,{
+        category:editForm.category,
+        transmissionType:editForm.transmissionType,
+        transportRequested:editForm.transportRequested,
+      });
+      setEditModal(null);
+      showToast("✓ تم تحديث بيانات الشهادة بنجاح");
+      await loadCerts();
+    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
+    finally{setEditBusy(false);}
+  };
+
+  const handleImportFile=async(file)=>{
+    if(!file)return;
+    setImportFile(file);
+    setImportPreviewRows(null);
+    setImportBusy(true);
+    try{
+      const fd=new FormData();
+      fd.append("file",file);
+      fd.append("kind","exam_schedule");
+      const res=await certificatesService.importPreview(fd);
+      const body=res.data?.data??res.data;
+      const arr=Array.isArray(body)?body:(body?.data||body?.rows||body?.items||[]);
+      setImportPreviewRows(arr);
+    }catch(e){
+      alert(e.response?.data?.message||"حدث خطأ في معالجة الملف");
+      setImportPreviewRows([]);
+    }
+    finally{setImportBusy(false);}
+  };
+
+  const resetImportModal=()=>{setImportModal(false);setImportFile(null);setImportPreviewRows(null);setImportDragOver(false);};
+
+  const canEdit=(c)=>c&&c.status==="WAITING_FOR_TRAINING_SCHEDULE";
   const canCancel=(c)=>c&&!["COMPLETED","CANCELLED"].includes(c.status);
   const si=certStepIdx(sel);
 
@@ -2728,24 +2831,41 @@ function SectionCertificate({t}){
             ))}
           </div>
         </div>
+        {certs.length>0&&(
+          <div style={{padding:"7px 12px",borderBottom:`1px solid ${t.border}`,display:"flex",alignItems:"center",gap:7}}>
+            <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} style={{cursor:"pointer"}}/>
+            <span style={{fontSize:11,color:t.textMuted,fontWeight:600}}>تحديد الكل ({selectedIds.length}/{certs.length})</span>
+          </div>
+        )}
+        {selectedIds.length>0&&(
+          <div style={{padding:"7px 12px",borderBottom:`1px solid ${t.border}`,background:t.accentLight}}>
+            <Btn label={`📋 تعيين رقم الدورة للدفعة (${selectedIds.length})`} onClick={()=>{setBatchCourseNum("");setBatchCourseModal(true);}} t={t} sz="sm" style={{width:"100%"}}/>
+          </div>
+        )}
         <div style={{flex:1,overflowY:"auto"}}>
           {loading?(
             <div style={{padding:24,textAlign:"center",color:t.textMuted,fontSize:13}}>جاري التحميل...</div>
           ):certs.length===0?(
             <div style={{padding:24,textAlign:"center",color:t.textMuted,fontSize:13}}>لا توجد شهادات</div>
           ):certs.map(c=>(
-            <div key={c.id} onClick={()=>setSel(c)} style={{padding:"11px 12px",cursor:"pointer",borderBottom:`1px solid ${t.border}`,background:sel?.id===c.id?t.accentLight:t.bgSurface,borderRight:sel?.id===c.id?`3px solid ${t.accent}`:"3px solid transparent"}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                <span style={{fontSize:13,fontWeight:600,color:t.text}}>{cName(c)}</span>
-                <CertBadge s={c.status} t={t}/>
-              </div>
-              <div style={{fontSize:11,color:t.textMuted}}>
-                {c.courseNumber?`دورة: ${c.courseNumber}`:"بدون رقم دورة"} • {c.category||"—"} {c.transmissionType==="AUTOMATIC"?"أوتوماتيك":c.transmissionType==="MANUAL"?"يدوي":""}
+            <div key={c.id} onClick={()=>setSel(c)} style={{padding:"11px 12px",cursor:"pointer",borderBottom:`1px solid ${t.border}`,background:sel?.id===c.id?t.accentLight:t.bgSurface,borderRight:sel?.id===c.id?`3px solid ${t.accent}`:"3px solid transparent",display:"flex",alignItems:"flex-start",gap:8}}>
+              <input type="checkbox" checked={selectedIds.includes(c.id)} onClick={e=>e.stopPropagation()} onChange={()=>toggleSelect(c.id)} style={{marginTop:3,cursor:"pointer",flexShrink:0}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                  <span style={{fontSize:13,fontWeight:600,color:t.text}}>{cName(c)}</span>
+                  <CertBadge s={c.status} t={t}/>
+                </div>
+                <div style={{fontSize:11,color:t.textMuted}}>
+                  {c.courseNumber?`دورة: ${c.courseNumber}`:"بدون رقم دورة"} • {c.category||"—"} {c.transmissionType==="AUTOMATIC"?"أوتوماتيك":c.transmissionType==="MANUAL"?"يدوي":""}
+                </div>
               </div>
             </div>
           ))}
         </div>
-        <div style={{padding:"10px",borderTop:`1px solid ${t.border}`,display:"flex",gap:6}}>
+        <div style={{padding:"10px 10px 0",borderTop:`1px solid ${t.border}`}}>
+          <Btn label="📂 رفع ملف الوزارة" onClick={()=>setImportModal(true)} t={t} sz="sm" v="secondary" style={{width:"100%"}}/>
+        </div>
+        <div style={{padding:"10px",display:"flex",gap:6}}>
           <Btn label={exportBusy?"...":"↓ PDF"} onClick={()=>handleExport("pdf")} t={t} sz="sm" v="secondary" disabled={exportBusy} style={{flex:1}}/>
           <Btn label={exportBusy?"...":"↓ Excel"} onClick={()=>handleExport("xlsx")} t={t} sz="sm" v="ghost" disabled={exportBusy} style={{flex:1}}/>
         </div>
@@ -2763,6 +2883,10 @@ function SectionCertificate({t}){
               {canCancel(sel)&&<Btn label="إلغاء الشهادة" onClick={()=>setCancelModal(sel)} t={t} sz="sm" v="danger"/>}
             </div>
           </div>
+
+          {toast&&(()=>{const tc=toast.type==="warning"?t.pending:t.completed;return(
+            <div style={{margin:"16px 0",padding:"9px 18px",borderRadius:9,textAlign:"center",fontSize:12,fontWeight:600,background:tc.bg,color:tc.text,border:`1px solid ${tc.dot}40`}}>{toast.msg}</div>
+          );})()}
 
           <Card t={t} p={18} mb={14}>
             <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:14}}>مسار الشهادة</div>
@@ -2784,7 +2908,12 @@ function SectionCertificate({t}){
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <Card t={t} p={14}>
-              <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:8}}>تفاصيل الشهادة</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div style={{fontSize:13,fontWeight:700,color:t.text}}>تفاصيل الشهادة</div>
+                {canEdit(sel)&&(
+                  <button onClick={()=>{setEditForm({category:sel.category||"B",transmissionType:sel.transmissionType||"MANUAL",transportRequested:!!sel.transportRequested});setEditModal(sel);}} title="تعديل الشهادة" style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:7,border:`1px solid ${t.accent}30`,background:t.accentLight,color:t.accentText,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✎ تعديل الشهادة</button>
+                )}
+              </div>
               <InfoRow k="اسم الطالب" v={cName(sel)} t={t}/>
               <InfoRow k="هاتف" v={cPhone(sel)} t={t}/>
               <InfoRow k="الفئة" v={sel.category||"—"} t={t}/>
@@ -2808,11 +2937,12 @@ function SectionCertificate({t}){
               <div style={{display:"flex",flexDirection:"column",gap:7}}>
                 {sel.status==="WAITING_FOR_TRAINING_SCHEDULE"&&(<>
                   <Btn label="تعيين رقم الدورة" onClick={()=>{setCourseModal(sel);setCourseNum(sel.courseNumber||"");}} t={t} sz="sm" style={{width:"100%"}}/>
-                  <Btn label="جدولة جلسات التدريب" onClick={()=>setSessionsModal(sel)} t={t} sz="sm" v="secondary" style={{width:"100%"}}/>
+                  <Btn label="جدولة جلسات التدريب" onClick={()=>{setSessionsModal(sel);setSessionDates(["","",""]);setNotifySessions(true);}} t={t} sz="sm" v="secondary" style={{width:"100%"}}/>
                 </>)}
                 {sel.status==="IN_GOVERNMENT_TRAINING"&&(<>
-                  <Btn label="جدولة موعد الامتحان" onClick={()=>setExamModal(sel)} t={t} sz="sm" style={{width:"100%"}}/>
+                  <Btn label="تحديد موعد الامتحان" onClick={()=>setExamModal(sel)} t={t} sz="sm" style={{width:"100%"}}/>
                   <Btn label="تسجيل نتيجة الامتحان" onClick={()=>setResultModal(sel)} t={t} sz="sm" v="secondary" style={{width:"100%"}}/>
+                  <Btn label={notifyBusy?"...":"🔔 إعادة إرسال إشعار الجلسات"} onClick={handleResendNotification} t={t} sz="sm" v="ghost" disabled={notifyBusy} style={{width:"100%"}}/>
                 </>)}
                 {(sel.status==="WAITING_FOR_PRACTICAL_EXAM"||sel.status==="WAITING_FOR_THEORETICAL_EXAM")&&(<>
                   <Btn label="جدولة موعد الامتحان" onClick={()=>setExamModal(sel)} t={t} sz="sm" v="secondary" style={{width:"100%"}}/>
@@ -2868,6 +2998,19 @@ function SectionCertificate({t}){
         </div>
       </Modal>}
 
+      {/* Batch Course Assignment Modal */}
+      {batchCourseModal&&<Modal title="تعيين رقم الدورة للدفعة" onClose={()=>setBatchCourseModal(false)} t={t} width={380}>
+        <div style={{fontSize:12,color:t.textSec,marginBottom:12}}>سيتم تعيين رقم الدورة لعدد {selectedIds.length} طالب محدد</div>
+        <div style={{margin:"12px 0"}}>
+          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>رقم الدورة</label>
+          <input value={batchCourseNum} onChange={e=>setBatchCourseNum(e.target.value)} placeholder="مثال: 181" style={{width:"100%",padding:"9px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn label={batchCourseBusy?"جاري الحفظ...":"✓ حفظ"} onClick={handleAssignCourseBatch} t={t} disabled={batchCourseBusy||!batchCourseNum.trim()} style={{flex:1}}/>
+          <Btn label="إلغاء" onClick={()=>setBatchCourseModal(false)} t={t} v="ghost"/>
+        </div>
+      </Modal>}
+
       {/* Training Sessions Modal */}
       {sessionsModal&&<Modal title="جدولة جلسات التدريب الحكومي" onClose={()=>setSessionsModal(null)} t={t} width={440}>
         <InfoRow k="الطالب" v={cName(sessionsModal)} t={t}/>
@@ -2878,6 +3021,10 @@ function SectionCertificate({t}){
               <input type="datetime-local" value={sessionDates[i]} onChange={e=>{const d=[...sessionDates];d[i]=e.target.value;setSessionDates(d);}} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
             </div>
           ))}
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:7,margin:"6px 0 14px"}}>
+          <input type="checkbox" checked={notifySessions} onChange={e=>setNotifySessions(e.target.checked)} style={{cursor:"pointer"}}/>
+          <span style={{fontSize:12,color:t.textSec}}>إرسال إشعار للطالب بمواعيد الجلسات</span>
         </div>
         <div style={{display:"flex",gap:8}}>
           <Btn label={sessionsBusy?"جاري الحفظ...":"✓ حفظ الجلسات"} onClick={handleScheduleSessions} t={t} disabled={sessionsBusy} style={{flex:1}}/>
@@ -2908,6 +3055,89 @@ function SectionCertificate({t}){
           ))}
         </div>
         <div style={{padding:"9px 12px",borderRadius:9,background:t.accentLight,fontSize:11,color:t.accentText}}>💡 سيُحدَّث وضع الشهادة تلقائياً بعد تسجيل النتيجة</div>
+      </Modal>}
+
+      {/* Edit Certificate Modal */}
+      {editModal&&<Modal title="تعديل الشهادة" onClose={()=>setEditModal(null)} t={t} width={420}>
+        <InfoRow k="الطالب" v={cName(editModal)} t={t}/>
+        <div style={{margin:"12px 0"}}>
+          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>فئة الرخصة</label>
+          <select value={editForm.category} onChange={e=>setEditForm({...editForm,category:e.target.value})} style={{width:"100%",padding:"9px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}>
+            {["B","B1","C","D"].map(c=><option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div style={{marginBottom:12}}>
+          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>ناقل الحركة</label>
+          <select value={editForm.transmissionType} onChange={e=>setEditForm({...editForm,transmissionType:e.target.value})} style={{width:"100%",padding:"9px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}>
+            <option value="MANUAL">يدوي</option>
+            <option value="AUTOMATIC">أوتوماتيك</option>
+          </select>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>خدمة النقل</label>
+          <div style={{display:"flex",gap:8}}>
+            {[{v:true,label:"مطلوبة"},{v:false,label:"غير مطلوبة"}].map(opt=>(
+              <button key={String(opt.v)} onClick={()=>setEditForm({...editForm,transportRequested:opt.v})} style={{flex:1,padding:"9px 10px",borderRadius:9,cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:600,border:editForm.transportRequested===opt.v?`2px solid ${t.accent}`:`1px solid ${t.border}`,background:editForm.transportRequested===opt.v?t.accentLight:t.bgElevated,color:editForm.transportRequested===opt.v?t.accentText:t.textSec}}>{opt.label}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn label={editBusy?"جاري الحفظ...":"✓ حفظ التعديلات"} onClick={handleUpdateCertificate} t={t} disabled={editBusy} style={{flex:1}}/>
+          <Btn label="إلغاء" onClick={()=>setEditModal(null)} t={t} v="ghost"/>
+        </div>
+      </Modal>}
+
+      {/* Import Ministry File Modal */}
+      {importModal&&<Modal title="رفع ملف الوزارة — Excel" onClose={resetImportModal} t={t} width={620}>
+        <div style={{fontSize:12,color:t.textSec,marginBottom:14}}>ارفع الملف القادم من الوزارة لمطابقة الطلاب ومواعيد امتحاناتهم تلقائياً</div>
+        <div
+          onDragOver={e=>{e.preventDefault();setImportDragOver(true);}}
+          onDragLeave={()=>setImportDragOver(false)}
+          onDrop={e=>{e.preventDefault();setImportDragOver(false);const f=e.dataTransfer.files?.[0];if(f)handleImportFile(f);}}
+          style={{border:`2px dashed ${importDragOver?t.accent:t.border}`,borderRadius:10,padding:"30px 20px",textAlign:"center",background:importDragOver?t.accentLight:t.bgElevated,transition:"background 0.15s,border-color 0.15s"}}
+        >
+          <div style={{fontSize:32,marginBottom:8}}>📂</div>
+          <div style={{fontSize:13,color:t.textSec,marginBottom:12}}>{importFile?importFile.name:"اسحب ملف Excel هنا أو اضغط للاختيار"}</div>
+          <input ref={importInputRef} type="file" accept=".xlsx,.xls" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handleImportFile(f);e.target.value="";}}/>
+          <Btn label={importBusy?"جاري التحليل...":"اختيار ملف"} onClick={()=>importInputRef.current?.click()} t={t} sz="sm" disabled={importBusy}/>
+        </div>
+        <div style={{marginTop:10,fontSize:11,color:t.textMuted}}>بعد الرفع: يطابق النظام برقم الهوية أولاً، ثم يعرض قائمة "تحتاج مراجعة يدوية" للأسماء المتشابهة.</div>
+
+        {importBusy&&<div style={{marginTop:16,textAlign:"center",color:t.textMuted,fontSize:12}}>جاري تحليل الملف...</div>}
+
+        {!importBusy&&importPreviewRows&&(
+          importPreviewRows.length===0?(
+            <div style={{marginTop:16,padding:14,borderRadius:9,background:t.bgElevated,color:t.textMuted,fontSize:12,textAlign:"center"}}>لا توجد بيانات في الملف أو تعذّرت معالجته</div>
+          ):(
+            <div style={{marginTop:16}}>
+              <div style={{fontSize:12,fontWeight:700,color:t.text,marginBottom:8}}>معاينة البيانات ({importPreviewRows.length})</div>
+              <div style={{maxHeight:280,overflow:"auto",border:`1px solid ${t.border}`,borderRadius:9}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                  <thead>
+                    <tr style={{background:t.bgElevated,position:"sticky",top:0}}>
+                      {Object.keys(importPreviewRows[0]).map(k=>(
+                        <th key={k} style={{padding:"7px 9px",textAlign:"right",color:t.textSec,fontWeight:700,borderBottom:`1px solid ${t.border}`,whiteSpace:"nowrap"}}>{k}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importPreviewRows.map((row,i)=>(
+                      <tr key={i} style={{borderBottom:`1px solid ${t.border}`}}>
+                        {Object.keys(importPreviewRows[0]).map(k=>(
+                          <td key={k} style={{padding:"7px 9px",color:t.text,whiteSpace:"nowrap"}}>{typeof row[k]==="object"&&row[k]!==null?JSON.stringify(row[k]):String(row[k]??"—")}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )
+        )}
+
+        <div style={{display:"flex",gap:8,marginTop:16}}>
+          <Btn label="إغلاق" onClick={resetImportModal} t={t} v="ghost" style={{flex:1}}/>
+        </div>
       </Modal>}
     </div>
   );

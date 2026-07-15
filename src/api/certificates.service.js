@@ -9,12 +9,20 @@ const certificatesService = {
     return client.get(`/reception/certificates/${id}`);
   },
 
+  update(id, data) {
+    return client.patch(`/reception/certificates/${id}`, data);
+  },
+
   cancel(id, data) {
     return client.post(`/reception/certificates/${id}/cancel`, data);
   },
 
   exportFile(data) {
     return client.post("/reception/certificates/export", data, { responseType: "blob" });
+  },
+
+  importPreview(formData) {
+    return client.post("/reception/certificates/import/preview", formData);
   },
 
   assignCourseNumber(data) {
