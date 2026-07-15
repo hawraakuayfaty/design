@@ -2,179 +2,50 @@ import client from "./client";
 
 const vehiclesService = {
   getAll(params) {
-    const url = "/vehicles";
-    const method = "GET";
-    console.log(`[API Request] ${method} ${url}`, { params });
-    return client
-      .get(url, { params })
-      .then((res) => {
-        console.log(`[API Response] ${method} ${url}`, {
-          status: res.status,
-          data: res.data,
-        });
-        return res;
-      })
-      .catch((err) => {
-        console.error(`[API Error] ${method} ${url}`, {
-          status: err.response?.status,
-          error: err.response?.data || err.message,
-        });
-        throw err;
-      });
+    return client.get("/vehicles", { params });
   },
 
   getById(id) {
-    const url = `/vehicles/${id}`;
-    const method = "GET";
-    console.log(`[API Request] ${method} ${url}`);
-    return client
-      .get(url)
-      .then((res) => {
-        console.log(`[API Response] ${method} ${url}`, {
-          status: res.status,
-          data: res.data,
-        });
-        return res;
-      })
-      .catch((err) => {
-        console.error(`[API Error] ${method} ${url}`, {
-          status: err.response?.status,
-          error: err.response?.data || err.message,
-        });
-        throw err;
-      });
+    return client.get(`/vehicles/${id}`);
   },
 
   create(data) {
-    const url = "/vehicles";
-    const method = "POST";
-    console.log(`[API Request] ${method} ${url}`, { body: data });
-    return client
-      .post(url, data)
-      .then((res) => {
-        console.log(`[API Response] ${method} ${url}`, {
-          status: res.status,
-          data: res.data,
-        });
-        return res;
-      })
-      .catch((err) => {
-        console.error(`[API Error] ${method} ${url}`, {
-          status: err.response?.status,
-          error: err.response?.data || err.message,
-        });
-        throw err;
-      });
+    return client.post("/vehicles", data);
   },
 
   update(id, data) {
-    const url = `/vehicles/${id}`;
-    const method = "PUT";
-    console.log(`[API Request] ${method} ${url}`, { body: data });
-    return client
-      .put(url, data)
-      .then((res) => {
-        console.log(`[API Response] ${method} ${url}`, {
-          status: res.status,
-          data: res.data,
-        });
-        return res;
-      })
-      .catch((err) => {
-        console.error(`[API Error] ${method} ${url}`, {
-          status: err.response?.status,
-          error: err.response?.data || err.message,
-        });
-        throw err;
-      });
+    return client.put(`/vehicles/${id}`, data);
   },
 
   addFuel(id, data) {
-    const url = `/vehicles/${id}/fuel`;
-    const method = "POST";
-    console.log(`[API Request] ${method} ${url}`, { body: data });
-    return client
-      .post(url, data)
-      .then((res) => {
-        console.log(`[API Response] ${method} ${url}`, {
-          status: res.status,
-          data: res.data,
-        });
-        return res;
-      })
-      .catch((err) => {
-        console.error(`[API Error] ${method} ${url}`, {
-          status: err.response?.status,
-          error: err.response?.data || err.message,
-        });
-        throw err;
-      });
-  },
-
-  sendToMaintenance(id) {
-    const url = `/vehicles/${id}/maintenance`;
-    const method = "POST";
-    console.log(`[API Request] ${method} ${url}`);
-    return client
-      .post(url)
-      .then((res) => {
-        console.log(`[API Response] ${method} ${url}`, {
-          status: res.status,
-          data: res.data,
-        });
-        return res;
-      })
-      .catch((err) => {
-        console.error(`[API Error] ${method} ${url}`, {
-          status: err.response?.status,
-          error: err.response?.data || err.message,
-        });
-        throw err;
-      });
-  },
-
-  returnFromMaintenance(id, data) {
-    const url = `/vehicles/${id}/return-from-maintenance`;
-    const method = "POST";
-    console.log(`[API Request] ${method} ${url}`, { body: data });
-    return client
-      .post(url, data)
-      .then((res) => {
-        console.log(`[API Response] ${method} ${url}`, {
-          status: res.status,
-          data: res.data,
-        });
-        return res;
-      })
-      .catch((err) => {
-        console.error(`[API Error] ${method} ${url}`, {
-          status: err.response?.status,
-          error: err.response?.data || err.message,
-        });
-        throw err;
-      });
+    return client.post(`/vehicles/${id}/fuel`, data);
   },
 
   archive(id) {
-    const url = `/vehicles/${id}/archive`;
-    const method = "POST";
-    console.log(`[API Request] ${method} ${url}`);
-    return client
-      .post(url)
-      .then((res) => {
-        console.log(`[API Response] ${method} ${url}`, {
-          status: res.status,
-          data: res.data,
-        });
-        return res;
-      })
-      .catch((err) => {
-        console.error(`[API Error] ${method} ${url}`, {
-          status: err.response?.status,
-          error: err.response?.data || err.message,
-        });
-        throw err;
-      });
+    return client.post(`/vehicles/${id}/archive`);
+  },
+
+  sendVehicleToMaintenance(vehicleId, data) {
+    return client.post(`/vehicles/${vehicleId}/maintenance`, data);
+  },
+
+  getAllMaintenancePeriods(vehicleId) {
+    return client.get(`/vehicles/${vehicleId}/maintenance`);
+  },
+
+  updateMaintenancePeriod(vehicleId, periodId, data) {
+    return client.put(`/vehicles/${vehicleId}/maintenance/${periodId}`, data);
+  },
+
+  deleteMaintenancePeriod(vehicleId, periodId) {
+    return client.delete(`/vehicles/${vehicleId}/maintenance/${periodId}`);
+  },
+
+  // The API path shape is /vehicles/:id/return-from-maintenance, but :id is actually
+  // the maintenance periodId, not the vehicleId — confirmed in reception-dashboard-api
+  // reference. Pass the period's id here, not vehicle.id.
+  returnFromMaintenance(periodId, data) {
+    return client.post(`/vehicles/${periodId}/return-from-maintenance`, data);
   },
 };
 

@@ -3,7 +3,7 @@ import qeyadahLogo from "./assets/qeyadah-logo.jpg";
 import AdminPro from "./AdminPro";
 import AccountantPro from "./AccountantPro";
 import ReceptionistPro from "./ReceptionistPro";
-import { studentsService, instructorsService, vehiclesService } from "./api";
+import { studentsService, instructorsService, vehiclesService, dashboardService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
 import { CiSettings } from "react-icons/ci";
@@ -76,6 +76,9 @@ const tokens = {
     expired: { bg: "rgba(160,165,155,0.16)", text: "#747a70" },
     noshow: { bg: "rgba(199,72,72,0.12)", text: "#c74848" },
     inprogress: { bg: "rgba(113,83,23,0.12)", text: "#715317" },
+    pendingDeposit: { bg: "rgba(191,173,64,0.16)", text: "#8a7d1e" },
+    nonRefundable: { bg: "rgba(214,110,120,0.14)", text: "#b8505f" },
+    availableRebooking: { bg: "rgba(59,130,246,0.14)", text: "#2563eb" },
   },
 
   dark: {
@@ -107,6 +110,9 @@ const tokens = {
     expired: { bg: "rgba(161,161,170,0.14)", text: "#a1a1aa" },
     noshow: { bg: "rgba(199,72,72,0.20)", text: "#fca5a5" },
     inprogress: { bg: "rgba(119,124,59,0.18)", text: "#eef2e4" },
+    pendingDeposit: { bg: "rgba(217,199,110,0.22)", text: "#e8d178" },
+    nonRefundable: { bg: "rgba(214,110,120,0.24)", text: "#f0a3ac" },
+    availableRebooking: { bg: "rgba(59,130,246,0.24)", text: "#93c5fd" },
   },
 };
 // ═══════════════════════════════════════════════
@@ -199,7 +205,7 @@ const navItems = [
 // ═══════════════════════════════════════════════
 // BADGE COMPONENT
 // ═══════════════════════════════════════════════
-function Badge({ status, t }) {
+function Badge({ status, t, color }) {
   const map = {
     "مؤكد":            t.confirmed,
     "بانتظار العربون": t.pending,
@@ -215,6 +221,7 @@ function Badge({ status, t }) {
     "غير نشط":         t.expired,
     "في إجازة":        t.pending,
     "متاحة":           t.confirmed,
+    "متاح":            t.confirmed,
     "في الصيانة":      t.pending,
     "غير متاحة":       t.cancelled,
     "مقبول":           t.completed,
@@ -227,13 +234,13 @@ function Badge({ status, t }) {
     "ذكر":             t.confirmed,
     "أنثى":            t.submitted,
   };
-  const color = map[status] || t.expired;
+  const resolved = color || map[status] || t.expired;
   return (
     <span style={{
-      background: color.bg, color: color.text,
-      padding: "3px 10px", borderRadius: 20,
+      background: resolved.bg, color: resolved.text,
+      padding: "4px 12px", borderRadius: 20,
       fontSize: 12, fontWeight: 600, whiteSpace: "nowrap",
-      display: "inline-block",
+      display: "inline-block", lineHeight: 1.4,
     }}>{status}</span>
   );
 }
@@ -278,17 +285,24 @@ function darkShadow(t) {
 // ═══════════════════════════════════════════════
 // TABLE WRAPPER
 // ═══════════════════════════════════════════════
-function Table({ headers, rows, t }) {
+function Table({ headers, rows, t, minColWidths }) {
+  // minColWidths sets a floor on total table width (auto layout, per-cell content still
+  // decides each column's share) so badges/names get room to breathe instead of being
+  // squeezed — the wrapper scrolls horizontally rather than clipping when space runs out.
+  const tableMinWidth = minColWidths ? minColWidths.reduce((a, b) => a + b, 0) : undefined;
   return (
-    <div style={{ borderRadius: 10, border: `0.5px solid ${t.border}`, overflow: "hidden" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+    <div style={{ borderRadius: 10, border: `0.5px solid ${t.border}`, overflowX: "auto", overflowY: "hidden" }}>
+      <table style={{
+        width: "100%", minWidth: tableMinWidth, borderCollapse: "collapse", fontSize: 14,
+      }}>
         <thead>
           <tr style={{ background: t.bgElevated }}>
             {headers.map((h, i) => (
               <th key={i} style={{
-                padding: "10px 14px", textAlign: "right",
-                color: t.textMuted, fontWeight: 600,
+                padding: "12px 16px", textAlign: "right",
+                color: t.textMuted, fontWeight: 700,
                 fontSize: 12, borderBottom: `0.5px solid ${t.border}`,
+                whiteSpace: "nowrap",
               }}>{h}</th>
             ))}
           </tr>
@@ -300,11 +314,14 @@ function Table({ headers, rows, t }) {
               borderBottom: `0.5px solid ${t.border}`,
             }}>
               {row.map((cell, ci) => (
-                <td key={ci} style={{ padding: "10px 14px", color: t.text, fontSize: 14 }}>
+                <td key={ci} style={{
+                  padding: "12px 16px", color: t.text, fontSize: 14,
+                  lineHeight: 1.6, verticalAlign: "middle",
+                }}>
                   {typeof cell === "string" && [
                     "مؤكد","بانتظار العربون","ملغي","تم الإثبات","مكتمل",
                     "منتهي","لم يحضر","جاري","نشط","غير نشط","في إجازة",
-                    "متاحة","في الصيانة","غير متاحة","مقبول","راسب",
+                    "متاحة","متاح","في الصيانة","غير متاحة","مقبول","راسب",
                     "قيد المتابعة","مدفوع","معلق","داخلي","خارجي",
                     "عادي","أوتوماتيك","ذكر","أنثى",
                   ].includes(cell)
@@ -387,23 +404,248 @@ function AlertBox({ items, t }) {
 // ═══════════════════════════════════════════════
 // PAGE: DASHBOARD
 // ═══════════════════════════════════════════════
+const DASHBOARD_TRAINING_TYPE_MAP = { MANUAL: "عادي", AUTOMATIC: "أوتوماتيك" };
+
+// bookingStatus — enum مغلق موثق في reception-dashboard-api.md
+const DASHBOARD_STATUS_META = {
+  PENDING_PAYMENT: { label: "بانتظار الدفع",     color: (t) => t.pending },
+  BOOKED:          { label: "مؤكد",              color: (t) => t.confirmed },
+  COMPLETED:       { label: "مكتمل",             color: (t) => t.completed },
+  NO_SHOW:         { label: "غائب",              color: (t) => t.noshow },
+  CANCELLED:       { label: "ملغى",              color: (t) => t.cancelled },
+  EXPIRED:         { label: "منتهي الصلاحية",    color: (t) => t.expired },
+};
+
+// paymentStatus — enum مغلق موثق في reception-dashboard-api.md
+const DASHBOARD_PAYMENT_STATUS_META = {
+  PENDING_DEPOSIT:                 { label: "بانتظار العربون",           color: (t) => t.pendingDeposit },
+  DEPOSIT_PAID:                    { label: "العربون مدفوع",             color: (t) => t.pending },
+  FULLY_PAID:                      { label: "مدفوع بالكامل",             color: (t) => t.completed },
+  DEPOSIT_NON_REFUNDABLE:          { label: "العربون غير مسترد",         color: (t) => t.nonRefundable },
+  DEPOSIT_AVAILABLE_FOR_REBOOKING: { label: "العربون متاح لإعادة الحجز", color: (t) => t.availableRebooking },
+  DEPOSIT_USED_IN_REBOOKING:       { label: "العربون استُخدم للحجز",     color: (t) => t.expired },
+};
+
+const DASHBOARD_VEHICLE_STATUS_META = {
+  AVAILABLE:      { label: "متاحة",      color: (t) => t.confirmed },
+  IN_MAINTENANCE: { label: "في الصيانة", color: (t) => t.pending },
+  INACTIVE:       { label: "متوقفة",     color: (t) => t.cancelled },
+};
+
+const DASHBOARD_INSTRUCTOR_TYPE_META = {
+  MANUAL:    { label: "عادي",              color: (t) => t.confirmed },
+  AUTOMATIC: { label: "أوتوماتيك",         color: (t) => t.submitted },
+  BOTH:      { label: "عادي + أوتوماتيك", color: (t) => t.inprogress },
+};
+
+const DASHBOARD_INSTRUCTOR_AVAILABILITY_META = {
+  AVAILABLE: { label: "متاح",           color: (t) => t.confirmed },
+  ON_LEAVE:  { label: "في إجازة اليوم", color: (t) => t.pending },
+};
+
+// يحوّل أي قيمة enum قادمة من الـ API إلى Badge ملوّن — لا يسمح بتسرب نص إنجليزي خام أبداً،
+// حتى لو وصلت قيمة غير موثقة (fallback رمادي محايد بدل النص الخام).
+function metaBadge(meta, key, t) {
+  const entry = meta[key];
+  const label = entry?.label || key || "—";
+  const color = entry?.color ? entry.color(t) : t.expired;
+  return <Badge status={label} color={color} t={t} />;
+}
+
+function formatMoney(v) {
+  if (v == null || v === "") return "—";
+  const n = Number(v);
+  return isNaN(n) ? String(v) : `${n.toLocaleString("ar-SY")} ل.س`;
+}
+
+function formatArabicDate(date) {
+  return new Intl.DateTimeFormat("ar", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+    numberingSystem: "latn",
+  }).format(date);
+}
+
+function lessonVehicleLabel(lesson) {
+  if (lesson.vehicleSource === "STUDENT_CAR") return "سيارة الطالب";
+  return lesson.vehiclePlate || "سيارة المدرسة";
+}
+
+// leaves[] موثّق بحد أقصى فترة واحدة فعليًا لكل يوم — نعرض الأولى فقط
+function instructorLeaveDetail(instructor) {
+  if (instructor.availabilityToday !== "ON_LEAVE") return null;
+  const leave = instructor.leaves?.[0];
+  if (!leave) return null;
+  return leave.isFullDay
+    ? "إجازة يوم كامل"
+    : `إجازة (من ${leave.fromTime} إلى ${leave.toTime})`;
+}
+
+function InstructorAvailabilityCell({ instructor, t }) {
+  const detail = instructorLeaveDetail(instructor);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-start" }}>
+      {metaBadge(DASHBOARD_INSTRUCTOR_AVAILABILITY_META, instructor.availabilityToday, t)}
+      {detail && <Badge status={detail} color={t.pendingDeposit} t={t} />}
+    </div>
+  );
+}
+
+function MinutesLeftBadge({ minutesLeft, t }) {
+  if (minutesLeft == null) return "—";
+  const critical = minutesLeft <= 10;
+  const warning = minutesLeft <= 30;
+  const color = critical ? t.cancelled : warning ? t.pending : t.confirmed;
+  return (
+    <span style={{
+      background: color.bg, color: color.text,
+      padding: "4px 12px", borderRadius: 20,
+      fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
+      display: "inline-block", lineHeight: 1.4,
+    }}>
+      {minutesLeft} دقيقة {critical ? "⚠" : ""}
+    </span>
+  );
+}
+
 function PageDashboard({ t }) {
+  const [summary, setSummary] = useState(null);
+  const [alerts, setAlerts] = useState(null);
+  const [fleet, setFleet] = useState(null);
+  const [pendingPayments, setPendingPayments] = useState([]);
+  const [lessons, setLessons] = useState([]);
+  const [scope, setScope] = useState("upcoming");
+  const [loading, setLoading] = useState(true);
+  const [lessonsLoading, setLessonsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setLoadError("");
+      try {
+        const [summaryRes, alertsRes, pendingRes, fleetRes] = await Promise.allSettled([
+          dashboardService.getTodaySummary(),
+          dashboardService.getAlerts(),
+          dashboardService.getPendingPayments(),
+          dashboardService.getFleetStatus(),
+        ]);
+        if (cancelled) return;
+
+        setSummary(summaryRes.status === "fulfilled" ? (summaryRes.value.data?.data ?? summaryRes.value.data) : null);
+        setAlerts(alertsRes.status === "fulfilled" ? (alertsRes.value.data?.data ?? alertsRes.value.data) : null);
+        setFleet(fleetRes.status === "fulfilled" ? (fleetRes.value.data?.data ?? fleetRes.value.data) : null);
+
+        const pendingBody = pendingRes.status === "fulfilled" ? (pendingRes.value.data?.data ?? pendingRes.value.data) : [];
+        setPendingPayments(Array.isArray(pendingBody) ? pendingBody : []);
+
+        if ([summaryRes, alertsRes, pendingRes, fleetRes].every((r) => r.status === "rejected")) {
+          setLoadError("تعذر تحميل بيانات لوحة التحكم");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLessonsLoading(true);
+      try {
+        const { data } = await dashboardService.getTodayLessons({ scope });
+        const body = data?.data ?? data;
+        if (!cancelled) setLessons(Array.isArray(body) ? body : []);
+      } catch {
+        if (!cancelled) setLessons([]);
+      } finally {
+        if (!cancelled) setLessonsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [scope]);
+
+  const alertItems = [];
+  if (alerts) {
+    if (alerts.pendingPaymentCount > 0) alertItems.push(`${alerts.pendingPaymentCount} إثباتات دفع بانتظار التحقق`);
+    if (alerts.expiringHoldsCount > 0) alertItems.push(`${alerts.expiringHoldsCount} حجوزات مؤقتة على وشك الانتهاء`);
+    if (alerts.vehiclesInMaintenanceCount > 0) alertItems.push(`${alerts.vehiclesInMaintenanceCount} مركبة في الصيانة`);
+    if (alerts.instructorsOnLeaveTodayCount > 0) alertItems.push(`${alerts.instructorsOnLeaveTodayCount} مدرب في إجازة اليوم`);
+  }
+
+  const collectionDiff = summary ? (summary.todayCollection || 0) - (summary.yesterdayCollection || 0) : 0;
+  const collectionTrendText = !summary
+    ? "—"
+    : collectionDiff > 0
+    ? `ارتفاع ${formatMoney(collectionDiff)} عن أمس`
+    : collectionDiff < 0
+    ? `انخفاض ${formatMoney(Math.abs(collectionDiff))} عن أمس`
+    : "بدون تغيير عن أمس";
+
+  const heroPills = [
+    `نسبة الإشغال ${summary?.occupancyRate != null ? `${summary.occupancyRate}%` : "—"}`,
+    `${alerts?.pendingPaymentCount ?? 0} مدفوعات تنتظر تحقق`,
+    `${alerts?.vehiclesInMaintenanceCount ?? 0} مركبة في الصيانة`,
+  ];
+
+  const statCards = [
+    { label: "حجوزات اليوم", value: summary?.todayBookings ?? 0, color: t.accent, icon: <RiCalendarScheduleLine size={24} /> },
+    { label: "مؤكدة", value: summary?.confirmed ?? 0, color: t.accent, icon: <FaRegCalendarCheck size={24} /> },
+    { label: "بانتظار الدفع", value: summary?.pendingPayment ?? 0, color: "#c2410c", icon: <BsHourglassSplit size={24} /> },
+    { label: "إثباتات معلقة", value: alerts?.pendingPaymentCount ?? 0, color: t.accent, icon: <BsPaperclip size={24} /> },
+    { label: "دروس مكتملة", value: summary?.completed ?? 0, color: t.accent, icon: <PiMedalFill size={24} /> },
+    { label: "لم يحضر", value: summary?.noShow ?? 0, color: t.accent, icon: <MdOutlineCancel size={24} /> },
+    { label: "ملغية", value: summary?.cancelled ?? 0, color: "#b91c1c", icon: <TbCalendarCancel size={24} /> },
+    { label: "إيرادات اليوم", value: formatMoney(summary?.todayCollection ?? 0), color: t.accent, icon: <TbReportMoney size={24} /> },
+  ];
+
+  const lessonRows = lessons.map((l) => [
+    l.studentName || "—",
+    l.instructorName || "—",
+    `${l.startTime || "—"} — ${l.endTime || "—"}`,
+    DASHBOARD_TRAINING_TYPE_MAP[l.trainingType] || l.trainingType || "—",
+    lessonVehicleLabel(l),
+    metaBadge(DASHBOARD_STATUS_META, l.bookingStatus, t),
+    metaBadge(DASHBOARD_PAYMENT_STATUS_META, l.paymentStatus, t),
+  ]);
+
+  const pendingRows = pendingPayments.map((p) => [
+    p.studentName || "—",
+    formatMoney(p.amountDue),
+    `${p.expiresDate || "—"} ${p.expiresTime || ""}`.trim(),
+    <MinutesLeftBadge minutesLeft={p.minutesLeft} t={t} />,
+  ]);
+
+  const vehicleRows = (fleet?.vehicles || []).map((v) => [
+    v.plateNumber || "—",
+    DASHBOARD_TRAINING_TYPE_MAP[v.type] || v.type || "—",
+    metaBadge(DASHBOARD_VEHICLE_STATUS_META, v.status, t),
+  ]);
+
+  const instructorRows = (fleet?.instructors || []).map((i) => [
+    i.name || "—",
+    metaBadge(DASHBOARD_INSTRUCTOR_TYPE_META, i.instructorType, t),
+    <InstructorAvailabilityCell instructor={i} t={t} />,
+  ]);
+
   return (
     <div className="dashboard-stack">
       <SectionHeader
         title="لوحة التحكم"
-        subtitle="الخميس، 4 يونيو 2026"
+        subtitle={`${formatArabicDate(new Date())}${loading ? " • جارٍ التحميل..." : ""}`}
         t={t}
       />
-      <AlertBox
-        t={t}
-        items={[
-          "3 إثباتات دفع بانتظار التحقق",
-          "مركبة رقم (أ ب ج 123) في الصيانة",
-          "مدرب خالد عمر في إجازة اليوم",
-          "حجزان مؤقتان على وشك الانتهاء",
-        ]}
-      />
+      {loadError && (
+        <div style={{
+          background: t.cancelled.bg, border: `0.5px solid ${t.cancelled.text}30`,
+          borderRadius: 10, padding: "12px 16px", marginBottom: 20,
+          fontSize: 13, color: t.cancelled.text, fontWeight: 600,
+        }}>
+          {loadError}
+        </div>
+      )}
+      <AlertBox t={t} items={alertItems} />
 
       <div className="dashboard-hero">
         <div
@@ -441,11 +683,7 @@ function PageDashboard({ t }) {
             والمركبات أو المدربين الذين يحتاجون متابعة فورية.
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {[
-              "نسبة الإشغال 78%",
-              "3 مدفوعات تنتظر تحقق",
-              "مركبة واحدة في الصيانة",
-            ].map((item) => (
+            {heroPills.map((item) => (
               <div
                 key={item}
                 style={{
@@ -485,10 +723,10 @@ function PageDashboard({ t }) {
                 marginBottom: 6,
               }}
             >
-              ٤٥٠٠ ل.س
+              {formatMoney(summary?.todayCollection ?? 0)}
             </div>
             <div style={{ fontSize: 13, color: t.textSec }}>
-              ارتفاع طفيف عن أمس مع 3 إثباتات بانتظار المطابقة.
+              {collectionTrendText}
             </div>
           </div>
           <div
@@ -513,7 +751,7 @@ function PageDashboard({ t }) {
             >
               <div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: t.text }}>
-                  6
+                  {summary?.completed ?? 0}
                 </div>
                 <div style={{ fontSize: 12, color: t.textSec }}>
                   دروس مكتملة
@@ -521,7 +759,7 @@ function PageDashboard({ t }) {
               </div>
               <div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: t.text }}>
-                  1
+                  {summary?.noShow ?? 0}
                 </div>
                 <div style={{ fontSize: 12, color: t.textSec }}>حالة غياب</div>
               </div>
@@ -531,62 +769,9 @@ function PageDashboard({ t }) {
       </div>
 
       <div className="dashboard-stats-grid">
-        <StatCard
-          label="حجوزات اليوم"
-          value="14"
-          color={t.accent}
-          icon={<RiCalendarScheduleLine size={24} />}
-          t={t}
-        />
-        <StatCard
-          label="مؤكدة"
-          value="9"
-          color={t.accent}
-          icon={<FaRegCalendarCheck size={24} />}
-          t={t}
-        />
-        <StatCard
-          label="بانتظار الدفع"
-          value="3"
-          color="#c2410c"
-          icon={<BsHourglassSplit size={24} />}
-          t={t}
-        />
-        <StatCard
-          label="إثباتات معلقة"
-          value="3"
-          color={t.accent}
-          icon={<BsPaperclip size={24} />}
-          t={t}
-        />
-        <StatCard
-          label="دروس مكتملة"
-          value="6"
-          color={t.accent}
-          icon={<PiMedalFill size={24} />}
-          t={t}
-        />
-        <StatCard
-          label="لم يحضر"
-          value="1"
-          color={t.accent}
-          icon={<MdOutlineCancel size={24} />}
-          t={t}
-        />
-        <StatCard
-          label="ملغية"
-          value="1"
-          color="#b91c1c"
-          icon={<TbCalendarCancel size={24} />}
-          t={t}
-        />
-        <StatCard
-          label="إيرادات اليوم"
-          value="٤٥٠٠ ل.س"
-          color={t.accent}
-          icon={<TbReportMoney size={24} />}
-          t={t}
-        />
+        {statCards.map((s) => (
+          <StatCard key={s.label} label={s.label} value={s.value} color={s.color} icon={s.icon} t={t} />
+        ))}
       </div>
 
       <div className="dashboard-panels-grid">
@@ -618,17 +803,42 @@ function PageDashboard({ t }) {
                 ترتيب زمني مع إشارة سريعة إلى الدفع والحالة
               </div>
             </div>
-            <div
-              style={{
-                padding: "7px 12px",
-                borderRadius: 999,
-                background: t.accentLight,
-                color: t.accentText,
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
-              5 حصص مجدولة
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 4, background: t.bgElevated, borderRadius: 999, padding: 4 }}>
+                {[
+                  { key: "upcoming", label: "القادمة" },
+                  { key: "all", label: "الكل" },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setScope(opt.key)}
+                    style={{
+                      padding: "5px 14px",
+                      borderRadius: 999,
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      background: scope === opt.key ? t.accent : "transparent",
+                      color: scope === opt.key ? "#fff" : t.textSec,
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div
+                style={{
+                  padding: "7px 12px",
+                  borderRadius: 999,
+                  background: t.accentLight,
+                  color: t.accentText,
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                {lessonsLoading ? "جارٍ التحميل..." : `${lessons.length} حصة مجدولة`}
+              </div>
             </div>
           </div>
           <Table
@@ -640,55 +850,10 @@ function PageDashboard({ t }) {
               "النوع",
               "المركبة",
               "الحالة",
-              "الدفع المتبقي",
+              "حالة الدفع",
             ]}
-            rows={[
-              [
-                "أحمد محمد الحسن",
-                "خالد عمر",
-                "09:00 — 10:30",
-                "عادي",
-                "أ ب ج 101",
-                "مؤكد",
-                "نعم",
-              ],
-              [
-                "سارة خالد",
-                "ليلى سعد",
-                "10:30 — 12:00",
-                "أوتوماتيك",
-                "أ ب ج 202",
-                "مؤكد",
-                "نعم",
-              ],
-              [
-                "علي حسن",
-                "خالد عمر",
-                "12:00 — 13:30",
-                "عادي",
-                "سيارة الطالب",
-                "بانتظار العربون",
-                "—",
-              ],
-              [
-                "منى العلي",
-                "ليلى سعد",
-                "14:00 — 15:30",
-                "أوتوماتيك",
-                "أ ب ج 202",
-                "تم الإثبات",
-                "نعم",
-              ],
-              [
-                "محمود سالم",
-                "أحمد الزيد",
-                "15:30 — 17:00",
-                "عادي",
-                "أ ب ج 101",
-                "مؤكد",
-                "نعم",
-              ],
-            ]}
+            rows={lessonRows}
+            minColWidths={[170, 150, 110, 100, 140, 120, 200]}
           />
         </div>
 
@@ -711,16 +876,13 @@ function PageDashboard({ t }) {
                 marginBottom: 12,
               }}
             >
-              إثباتات دفع بانتظار التحقق
+              دفعات معلقة بانتظار الانتهاء
             </div>
             <Table
               t={t}
-              headers={["الطالب", "المبلغ", "الطريقة", "الحالة"]}
-              rows={[
-                ["أحمد الناصر", "١٥٠٠ ل.س", "شام كاش", "تم الإثبات"],
-                ["نورا سالم", "١٥٠٠ ل.س", "شام كاش", "تم الإثبات"],
-                ["كريم عبدو", "١٥٠٠ ل.س", "شام كاش", "تم الإثبات"],
-              ]}
+              headers={["الطالب", "المبلغ المستحق", "ينتهي في", "الوقت المتبقي"]}
+              rows={pendingRows}
+              minColWidths={[150, 140, 130, 140]}
             />
           </div>
           <div
@@ -749,12 +911,17 @@ function PageDashboard({ t }) {
             <Table
               t={t}
               headers={["المركبة", "النوع", "الحالة"]}
-              rows={[
-                ["أ ب ج 101", "عادي", "متاحة"],
-                ["أ ب ج 102", "عادي", "في الصيانة"],
-                ["أ ب ج 201", "أوتوماتيك", "متاحة"],
-                ["أ ب ج 202", "أوتوماتيك", "متاحة"],
-              ]}
+              rows={vehicleRows}
+              minColWidths={[140, 120, 130]}
+            />
+            <div style={{ fontSize: 12, color: t.textMuted, margin: "14px 0 8px" }}>
+              المدربون
+            </div>
+            <Table
+              t={t}
+              headers={["المدرب", "النوع", "الحالة اليوم"]}
+              rows={instructorRows}
+              minColWidths={[140, 160, 230]}
             />
           </div>
         </div>
@@ -1469,6 +1636,48 @@ const VEHICLE_TYPE_OPTIONS = [
   { value: "AUTOMATIC", label: "أوتوماتيك" },
 ];
 
+// المواعيد القادمة من الـ API محلية بالفعل (server-local، بلا منطقة زمنية) — تُعرض كما هي
+// بدون تمريرها عبر new Date(...) تفادياً لأي إعادة تفسير للمنطقة الزمنية من المتصفح.
+function formatMaintDateTime(s) {
+  if (!s) return "—";
+  const [datePart, timePart] = s.split("T");
+  return timePart ? `${datePart} ${timePart.slice(0, 5)}` : datePart;
+}
+
+function ActionResultBanner({ t, result, onDismiss }) {
+  if (!result) return null;
+  const reassigned = result.reassignedBookings ?? 0;
+  const cancelled = result.cancelledBookings ?? 0;
+  return (
+    <div style={{
+      background: t.completed.bg, border: `0.5px solid ${t.completed.text}30`,
+      borderRadius: 10, padding: "12px 14px", marginBottom: 16,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: t.completed.text }}>{result.message}</div>
+        <button onClick={onDismiss} style={{
+          background: "none", border: "none", cursor: "pointer",
+          color: t.completed.text, fontSize: 16, lineHeight: 1, padding: 0,
+        }}><LuX size={14} /></button>
+      </div>
+      {(reassigned > 0 || cancelled > 0) && (
+        <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+          {reassigned > 0 && (
+            <span style={{ fontSize: 12, fontWeight: 600, color: t.pending.text, background: t.pending.bg, padding: "3px 10px", borderRadius: 20 }}>
+              {reassigned} حجز أُعيد جدولته
+            </span>
+          )}
+          {cancelled > 0 && (
+            <span style={{ fontSize: 12, fontWeight: 600, color: t.cancelled.text, background: t.cancelled.bg, padding: "3px 10px", borderRadius: 20 }}>
+              {cancelled} حجز أُلغي
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AddVehicleModal({ t, onClose, onSuccess }) {
   const [form, setForm] = useState({ plateNumber: "", model: "", color: "", type: "", adminNotes: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -1752,7 +1961,7 @@ function EditVehicleModal({ t, vehicle, onClose, onSuccess }) {
 }
 
 function FuelModal({ t, vehicle, onClose, onSuccess }) {
-  const [form, setForm] = useState({ liters: "", pricePerLiter: "", note: "" });
+  const [form, setForm] = useState({ liters: "", pricePerLiter: "", paymentMethod: "CASH", note: "" });
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
@@ -1776,6 +1985,7 @@ function FuelModal({ t, vehicle, onClose, onSuccess }) {
       await vehiclesService.addFuel(vehicle.id, {
         liters: Number(form.liters),
         pricePerLiter: Number(form.pricePerLiter),
+        paymentMethod: form.paymentMethod,
         note: form.note.trim() || null,
       });
       onSuccess();
@@ -1836,6 +2046,21 @@ function FuelModal({ t, vehicle, onClose, onSuccess }) {
             {errors.pricePerLiter && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.pricePerLiter}</div>}
           </div>
 
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 8 }}>طريقة الدفع</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {[["CASH", "نقدي"], ["SHAM_CASH", "شام كاش"]].map(([value, label]) => (
+                <button key={value} type="button" onClick={() => setForm({ ...form, paymentMethod: value })} style={{
+                  flex: 1, padding: "10px 8px", borderRadius: 10, border: "none",
+                  cursor: "pointer", fontSize: 13, fontWeight: 600, textAlign: "center",
+                  background: form.paymentMethod === value ? "#778a3b" : t.bgElevated,
+                  color: form.paymentMethod === value ? "#fff" : t.textSec,
+                  outline: form.paymentMethod === value ? "none" : `1.5px solid ${t.border}`,
+                }}>{label}</button>
+              ))}
+            </div>
+          </div>
+
           <div style={{ marginBottom: 24 }}>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>ملاحظة (اختياري)</label>
             <input value={form.note} onChange={(ev) => setForm({ ...form, note: ev.target.value })}
@@ -1873,47 +2098,240 @@ function FuelModal({ t, vehicle, onClose, onSuccess }) {
   );
 }
 
-function ReturnFromMaintenanceModal({ t, vehicle, onClose, onSuccess }) {
-  const [form, setForm] = useState({ maintenanceCost: "", expenseStatus: "PAID", notes: "" });
-  const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [serverError, setServerError] = useState("");
+// مركز إدارة صيانة مركبة واحدة: يعرض current/upcoming/past ديناميكياً من
+// getAllMaintenancePeriods، ويحوّل بين أربع "شاشات فرعية" ضمن نفس النافذة بدل فتح
+// نوافذ منفصلة فوق بعضها: فتح نافذة جديدة، تعديل فترة قادمة، إلغاء فترة قادمة، إرجاع من الصيانة الحالية.
+function extractErrorMessage(err, fallback) {
+  const msg = err.response?.data?.message ?? err.message;
+  if (Array.isArray(msg)) return msg.join("، ");
+  return msg || fallback;
+}
 
-  const validate = () => {
-    const e = {};
-    if (!form.maintenanceCost || isNaN(form.maintenanceCost) || Number(form.maintenanceCost) < 0) e.maintenanceCost = "تكلفة الصيانة مطلوبة";
-    return e;
+// صف فترة صيانة قادمة واحدة. يملك حالة التعديل/تأكيد الإلغاء الخاصة به محلياً بدل الاعتماد
+// على "view mode" عام مشترك مع بقية النافذة — كل صف مستقل تماماً عن الصفوف الأخرى وعن
+// نموذجَي الجدولة/الإرجاع، فلا يمكن لأي منها أن يتشابك مع حالة الآخر.
+function UpcomingPeriodRow({ t, vehicleId, period, onChanged, onError }) {
+  const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [endAt, setEndAt] = useState(period.endAt ? period.endAt.slice(0, 16) : "");
+  const [notes, setNotes] = useState(period.notes || "");
+  const [busy, setBusy] = useState(false);
+
+  const smallFieldStyle = {
+    width: "100%", padding: "10px 12px", borderRadius: 8,
+    border: `1.5px solid ${t.border}`, background: t.bgElevated,
+    color: t.text, fontSize: 13, outline: "none",
   };
 
-  const handleSubmit = async (ev) => {
+  const handleUpdate = async (ev) => {
     ev.preventDefault();
-    setServerError("");
-    const v = validate();
-    setErrors(v);
-    if (Object.keys(v).length) return;
-
-    setSubmitting(true);
+    onError("");
+    setBusy(true);
     try {
-      await vehiclesService.returnFromMaintenance(vehicle.id, {
-        maintenanceCost: Number(form.maintenanceCost),
-        expenseStatus: form.expenseStatus,
-        notes: form.notes.trim() || null,
+      const { data } = await vehiclesService.updateMaintenancePeriod(vehicleId, period.id, {
+        endAt: endAt || null,
+        notes: notes.trim() || null,
       });
-      onSuccess();
+      setEditing(false);
+      onChanged(data?.data ?? data);
     } catch (err) {
-      const msg = err.response?.data?.message;
-      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "حدث خطأ");
+      onError(extractErrorMessage(err, "حدث خطأ أثناء تعديل فترة الصيانة"));
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
   };
 
-  const fieldStyle = (field) => ({
+  const handleDelete = async () => {
+    onError("");
+    setBusy(true);
+    try {
+      const { data } = await vehiclesService.deleteMaintenancePeriod(vehicleId, period.id);
+      onChanged(data?.data ?? data);
+    } catch (err) {
+      onError(extractErrorMessage(err, "حدث خطأ أثناء إلغاء فترة الصيانة"));
+      setBusy(false);
+      setConfirmingDelete(false);
+    }
+  };
+
+  if (confirmingDelete) {
+    return (
+      <div style={{
+        padding: "10px 12px", borderRadius: 10, border: `0.5px solid ${t.cancelled.text}40`,
+        background: t.cancelled.bg, marginBottom: 8,
+      }}>
+        <div style={{ fontSize: 12, color: t.cancelled.text, marginBottom: 10 }}>
+          هل أنت متأكد من إلغاء فترة الصيانة {formatMaintDateTime(period.startAt)} — {formatMaintDateTime(period.endAt)}؟
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={handleDelete} disabled={busy} style={{
+            padding: "6px 14px", borderRadius: 8, background: busy ? t.textMuted : "#c74848",
+            color: "#fff", border: "none", fontSize: 12, fontWeight: 700, cursor: busy ? "not-allowed" : "pointer",
+          }}>{busy ? "جارٍ الإلغاء..." : "تأكيد الإلغاء"}</button>
+          <button onClick={() => setConfirmingDelete(false)} disabled={busy} style={{
+            padding: "6px 14px", borderRadius: 8, background: t.bgElevated, color: t.textSec,
+            border: `1px solid ${t.border}`, fontSize: 12, fontWeight: 600, cursor: "pointer",
+          }}>تراجع</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (editing) {
+    return (
+      <form onSubmit={handleUpdate} style={{ padding: "10px 12px", borderRadius: 10, border: `0.5px solid ${t.border}`, marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: t.text, marginBottom: 8 }}>
+          تعديل فترة الصيانة — تبدأ {formatMaintDateTime(period.startAt)}
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: t.textSec, marginBottom: 4 }}>نهاية الصيانة</label>
+          <input type="datetime-local" value={endAt} onChange={(ev) => setEndAt(ev.target.value)} style={smallFieldStyle} />
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: t.textSec, marginBottom: 4 }}>ملاحظات</label>
+          <input value={notes} onChange={(ev) => setNotes(ev.target.value)} style={smallFieldStyle} />
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="submit" disabled={busy} style={{
+            padding: "6px 14px", borderRadius: 8, background: busy ? t.textMuted : "#778a3b",
+            color: "#fff", border: "none", fontSize: 12, fontWeight: 700, cursor: busy ? "not-allowed" : "pointer",
+          }}>{busy ? "جارٍ الحفظ..." : "حفظ"}</button>
+          <button type="button" onClick={() => setEditing(false)} disabled={busy} style={{
+            padding: "6px 14px", borderRadius: 8, background: t.bgElevated, color: t.textSec,
+            border: `1px solid ${t.border}`, fontSize: 12, fontWeight: 600, cursor: "pointer",
+          }}>تراجع</button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div style={{
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+      padding: "10px 12px", borderRadius: 10, border: `0.5px solid ${t.border}`, marginBottom: 8, gap: 10,
+    }}>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{formatMaintDateTime(period.startAt)} — {formatMaintDateTime(period.endAt)}</div>
+        {period.notes && <div style={{ fontSize: 12, color: t.textMuted }}>{period.notes}</div>}
+      </div>
+      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+        <button onClick={() => setEditing(true)} style={{
+          padding: "4px 10px", borderRadius: 6, background: t.accentLight,
+          color: t.accentText, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
+        }}>تعديل</button>
+        <button onClick={() => setConfirmingDelete(true)} style={{
+          padding: "4px 10px", borderRadius: 6, background: t.cancelled.bg,
+          color: t.cancelled.text, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
+        }}>إلغاء</button>
+      </div>
+    </div>
+  );
+}
+
+// مركز إدارة صيانة مركبة واحدة. لا يوجد "view mode" عام: كل قسم (الوضع الحالي/جدولة
+// جديدة/القادمة/السابقة) يُرسم مباشرة من بيانات getAllMaintenancePeriods المجلوبة، فلا
+// يمكن لزر أو نموذج أن "يتذكر" فترة قديمة بعد تغيّر البيانات الفعلية.
+function MaintenanceModal({ t, vehicle, onClose, onVehicleChanged }) {
+  const [periods, setPeriods] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [result, setResult] = useState(null);
+  const [actionError, setActionError] = useState("");
+
+  const [scheduleForm, setScheduleForm] = useState({ startAt: "", endAt: "", notes: "" });
+  const [scheduling, setScheduling] = useState(false);
+
+  const [returnNotes, setReturnNotes] = useState("");
+  const [returning, setReturning] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setLoadError("");
+      try {
+        const { data } = await vehiclesService.getAllMaintenancePeriods(vehicle.id);
+        if (!cancelled) setPeriods(data?.data ?? data);
+      } catch (err) {
+        if (!cancelled) setLoadError(extractErrorMessage(err, "حدث خطأ أثناء تحميل فترات الصيانة"));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [vehicle.id]);
+
+  const fetchPeriods = async () => {
+    setLoading(true);
+    setLoadError("");
+    try {
+      const { data } = await vehiclesService.getAllMaintenancePeriods(vehicle.id);
+      setPeriods(data?.data ?? data);
+    } catch (err) {
+      setLoadError(extractErrorMessage(err, "حدث خطأ أثناء تحميل فترات الصيانة"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ينفَّذ بعد أي عملية ناجحة (جدولة/تعديل/إلغاء/إرجاع): يمسح الأخطاء، يعرض نتيجة العملية،
+  // ويعيد جلب الفترات فوراً من الخادم بدل الاعتماد على تحديث محلي متفائل.
+  const handleSuccess = (resultData) => {
+    setActionError("");
+    setResult(resultData);
+    fetchPeriods();
+    onVehicleChanged?.();
+  };
+
+  const handleSchedule = async (ev) => {
+    ev.preventDefault();
+    setActionError("");
+    if (!scheduleForm.startAt || !scheduleForm.endAt) { setActionError("تاريخ البداية والنهاية مطلوبان"); return; }
+    if (scheduleForm.endAt <= scheduleForm.startAt) { setActionError("يجب أن يكون تاريخ النهاية بعد تاريخ البداية"); return; }
+    if (new Date(scheduleForm.startAt).getTime() < Date.now()) { setActionError("لا يمكن أن يبدأ موعد الصيانة في الماضي — اختر الآن أو وقتاً مستقبلياً"); return; }
+    setScheduling(true);
+    try {
+      const { data } = await vehiclesService.sendVehicleToMaintenance(vehicle.id, {
+        startAt: scheduleForm.startAt,
+        endAt: scheduleForm.endAt,
+        notes: scheduleForm.notes.trim() || null,
+      });
+      setScheduleForm({ startAt: "", endAt: "", notes: "" });
+      handleSuccess(data?.data ?? data);
+    } catch (err) {
+      setActionError(extractErrorMessage(err, "حدث خطأ أثناء فتح نافذة الصيانة"));
+    } finally {
+      setScheduling(false);
+    }
+  };
+
+  const handleReturn = async (ev) => {
+    ev.preventDefault();
+    setActionError("");
+    // نقرأ periodId من periods.current مباشرة عند الإرسال — وليس من أي حالة محفوظة مسبقاً —
+    // فإن لم توجد فترة حالية فعلية الآن، نرفض الإرسال بدل مناداة الخادم بمعرّف غير صالح.
+    const currentPeriodId = periods?.current?.id;
+    if (!currentPeriodId) { setActionError("لا توجد فترة صيانة حالية لإرجاع المركبة منها"); return; }
+    setReturning(true);
+    try {
+      const { data } = await vehiclesService.returnFromMaintenance(currentPeriodId, {
+        notes: returnNotes.trim() || null,
+      });
+      setReturnNotes("");
+      handleSuccess(data?.data ?? data);
+    } catch (err) {
+      setActionError(extractErrorMessage(err, "حدث خطأ أثناء إرجاع المركبة من الصيانة"));
+    } finally {
+      setReturning(false);
+    }
+  };
+
+  const fieldStyle = {
     width: "100%", padding: "12px 14px", borderRadius: 10,
-    border: `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+    border: `1.5px solid ${t.border}`,
     background: t.bgElevated, color: t.text, fontSize: 14,
-    outline: "none", transition: "border-color 0.2s",
-  });
+    outline: "none",
+  };
 
   return (
     <div style={{
@@ -1923,75 +2341,107 @@ function ReturnFromMaintenanceModal({ t, vehicle, onClose, onSuccess }) {
     }} onClick={onClose}>
       <div onClick={(ev) => ev.stopPropagation()} style={{
         background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
-        width: "100%", maxWidth: 440, border: `1px solid ${t.borderCard}`,
+        width: "100%", maxWidth: 520, border: `1px solid ${t.borderCard}`,
         boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+        maxHeight: "90vh", overflowY: "auto",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: t.text }}>إرجاع من الصيانة — {vehicle.plateNumber}</h3>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: t.text }}>صيانة المركبة — {vehicle.plateNumber}</h3>
           <button onClick={onClose} style={{
             background: "none", border: "none", cursor: "pointer",
             color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
           }}><LuX /></button>
         </div>
 
-        {serverError && (
+        <ActionResultBanner t={t} result={result} onDismiss={() => setResult(null)} />
+
+        {actionError && (
           <div style={{
             background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
             borderRadius: 10, padding: "10px 14px", marginBottom: 16,
             fontSize: 13, color: "#c74848",
-          }}>{serverError}</div>
+          }}>{actionError}</div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>تكلفة الصيانة</label>
-            <input type="number" step="0.1" value={form.maintenanceCost} onChange={(ev) => { setForm({ ...form, maintenanceCost: ev.target.value }); setErrors({ ...errors, maintenanceCost: undefined }); }}
-              placeholder="مثال: 142.2" dir="ltr" style={{ ...fieldStyle("maintenanceCost"), textAlign: "left" }} />
-            {errors.maintenanceCost && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.maintenanceCost}</div>}
-          </div>
+        {loading ? (
+          <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>جارٍ تحميل فترات الصيانة...</div>
+        ) : loadError ? (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "14px 16px", fontSize: 13, color: "#c74848",
+          }}>{loadError}</div>
+        ) : (
+          <div>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: t.textSec, marginBottom: 8 }}>الوضع الحالي</div>
+              {periods?.current ? (
+                <div style={{ padding: 14, borderRadius: 10, background: t.pending.bg, border: `0.5px solid ${t.pending.text}30` }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: t.pending.text, marginBottom: 4 }}>
+                    المركبة في الصيانة الآن: {formatMaintDateTime(periods.current.startAt)} — {formatMaintDateTime(periods.current.endAt)}
+                  </div>
+                  {periods.current.notes && <div style={{ fontSize: 12, color: t.textSec, marginBottom: 10 }}>{periods.current.notes}</div>}
+                  <form onSubmit={handleReturn}>
+                    <div style={{ marginBottom: 10 }}>
+                      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: t.textSec, marginBottom: 4 }}>ملاحظات الإرجاع (اختياري)</label>
+                      <input value={returnNotes} onChange={(ev) => setReturnNotes(ev.target.value)} placeholder="ملاحظات"
+                        style={{ ...fieldStyle, padding: "8px 12px", fontSize: 13 }} />
+                    </div>
+                    <button type="submit" disabled={returning} style={{
+                      padding: "8px 16px", borderRadius: 8, background: returning ? t.textMuted : "#778a3b",
+                      color: "#fff", border: "none", fontSize: 13, fontWeight: 700, cursor: returning ? "not-allowed" : "pointer",
+                    }}>{returning ? "جارٍ الإرجاع..." : "إرجاع المركبة للعمل"}</button>
+                  </form>
+                </div>
+              ) : (
+                <form onSubmit={handleSchedule} style={{ padding: 14, borderRadius: 10, border: `0.5px solid ${t.border}` }}>
+                  <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 12 }}>لا توجد صيانة حالية — جدولة نافذة صيانة جديدة</div>
+                  <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: 160 }}>
+                      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: t.textSec, marginBottom: 4 }}>البداية</label>
+                      <input type="datetime-local" value={scheduleForm.startAt} onChange={(ev) => setScheduleForm({ ...scheduleForm, startAt: ev.target.value })} style={fieldStyle} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 160 }}>
+                      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: t.textSec, marginBottom: 4 }}>النهاية</label>
+                      <input type="datetime-local" value={scheduleForm.endAt} onChange={(ev) => setScheduleForm({ ...scheduleForm, endAt: ev.target.value })} style={fieldStyle} />
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: t.textSec, marginBottom: 4 }}>ملاحظات (اختياري)</label>
+                    <input value={scheduleForm.notes} onChange={(ev) => setScheduleForm({ ...scheduleForm, notes: ev.target.value })} style={fieldStyle} />
+                  </div>
+                  <button type="submit" disabled={scheduling} style={{
+                    padding: "10px 18px", borderRadius: 10, background: scheduling ? t.textMuted : "#778a3b",
+                    color: "#fff", border: "none", fontSize: 14, fontWeight: 700, cursor: scheduling ? "not-allowed" : "pointer",
+                  }}>{scheduling ? "جارٍ الحفظ..." : "جدولة الصيانة"}</button>
+                </form>
+              )}
+            </div>
 
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 8 }}>حالة الدفع</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button type="button" onClick={() => setForm({ ...form, expenseStatus: "PAID" })} style={{
-                flex: 1, padding: "10px 8px", borderRadius: 10, border: "none",
-                cursor: "pointer", fontSize: 13, fontWeight: 600, textAlign: "center",
-                background: form.expenseStatus === "PAID" ? "#778a3b" : t.bgElevated,
-                color: form.expenseStatus === "PAID" ? "#fff" : t.textSec,
-                outline: form.expenseStatus === "PAID" ? "none" : `1.5px solid ${t.border}`,
-              }}>مدفوع</button>
-              <button type="button" onClick={() => setForm({ ...form, expenseStatus: "UNPAID" })} style={{
-                flex: 1, padding: "10px 8px", borderRadius: 10, border: "none",
-                cursor: "pointer", fontSize: 13, fontWeight: 600, textAlign: "center",
-                background: form.expenseStatus === "UNPAID" ? "#778a3b" : t.bgElevated,
-                color: form.expenseStatus === "UNPAID" ? "#fff" : t.textSec,
-                outline: form.expenseStatus === "UNPAID" ? "none" : `1.5px solid ${t.border}`,
-              }}>غير مدفوع</button>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: t.textSec, marginBottom: 8 }}>الفترات القادمة</div>
+              {periods?.upcoming?.length ? periods.upcoming.map((p) => (
+                <UpcomingPeriodRow
+                  key={p.id}
+                  t={t}
+                  vehicleId={vehicle.id}
+                  period={p}
+                  onChanged={handleSuccess}
+                  onError={setActionError}
+                />
+              )) : <div style={{ fontSize: 13, color: t.textMuted }}>لا توجد فترات قادمة</div>}
+            </div>
+
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: t.textSec, marginBottom: 8 }}>الفترات السابقة</div>
+              {periods?.past?.length ? periods.past.map((p) => (
+                <div key={p.id} style={{ padding: "10px 12px", borderRadius: 10, background: t.bgElevated, marginBottom: 6 }}>
+                  <div style={{ fontSize: 13, color: t.text }}>{formatMaintDateTime(p.startAt)} — {formatMaintDateTime(p.endAt)}</div>
+                  {p.notes && <div style={{ fontSize: 12, color: t.textMuted }}>{p.notes}</div>}
+                </div>
+              )) : <div style={{ fontSize: 13, color: t.textMuted }}>لا توجد فترات سابقة</div>}
             </div>
           </div>
-
-          <div style={{ marginBottom: 24 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>ملاحظات (اختياري)</label>
-            <input value={form.notes} onChange={(ev) => setForm({ ...form, notes: ev.target.value })}
-              placeholder="ملاحظات عن الصيانة" style={fieldStyle("notes")} />
-          </div>
-
-          <div style={{ display: "flex", gap: 10 }}>
-            <button type="submit" disabled={submitting} style={{
-              flex: 1, padding: "12px", borderRadius: 12,
-              background: submitting ? t.textMuted : "#778a3b",
-              color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
-              cursor: submitting ? "not-allowed" : "pointer",
-              transition: "background 0.2s",
-            }}>{submitting ? "جارٍ الحفظ..." : "تأكيد الإرجاع"}</button>
-            <button type="button" onClick={onClose} style={{
-              padding: "12px 20px", borderRadius: 12,
-              background: t.bgElevated, color: t.textSec,
-              border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
-              cursor: "pointer",
-            }}>إلغاء</button>
-          </div>
-        </form>
+        )}
       </div>
     </div>
   );
@@ -2067,6 +2517,12 @@ function VehicleDetailsModal({ t, vehicleId, onClose }) {
             {detailRow("الحالة", VEHICLE_STATUS_MAP[details.status] || details.status)}
             {detailRow("ملاحظات الإدارة", details.adminNotes)}
             {detailRow("تاريخ الإنشاء", details.createdAt ? new Date(details.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }) : null)}
+            {detailRow("قيد الصيانة الآن", details.inMaintenanceNow ? "نعم" : "لا")}
+            {details.currentMaintenancePeriod && detailRow(
+              "الفترة الحالية",
+              `${formatMaintDateTime(details.currentMaintenancePeriod.startAt)} — ${formatMaintDateTime(details.currentMaintenancePeriod.endAt)}`
+            )}
+            {details.upcomingMaintenancePeriods?.length > 0 && detailRow("فترات صيانة قادمة", `${details.upcomingMaintenancePeriods.length}`)}
           </div>
         ) : null}
 
@@ -2077,6 +2533,74 @@ function VehicleDetailsModal({ t, vehicleId, onClose }) {
             border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
             cursor: "pointer",
           }}>إغلاق</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ArchiveVehicleConfirm({ t, vehicle, onClose, onSuccess }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleConfirm = async () => {
+    setError("");
+    setSubmitting(true);
+    try {
+      const { data } = await vehiclesService.archive(vehicle.id);
+      onSuccess(data?.data ?? data);
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join("، ") : msg || "حدث خطأ أثناء أرشفة المركبة");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.45)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
+        width: "100%", maxWidth: 400, border: `1px solid ${t.borderCard}`,
+        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: t.text }}>أرشفة المركبة</h3>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+        <div style={{
+          padding: "10px 12px", borderRadius: 9, background: t.cancelled.bg,
+          marginBottom: 16, fontSize: 13, color: t.cancelled.text,
+        }}>
+          هل أنت متأكد من أرشفة المركبة {vehicle.plateNumber}؟ قد يتم إلغاء أو إعادة جدولة حجوزاتها المستقبلية.
+        </div>
+        {error && (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+            fontSize: 13, color: "#c74848",
+          }}>{error}</div>
+        )}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={handleConfirm} disabled={submitting} style={{
+            flex: 1, padding: "12px", borderRadius: 12,
+            background: submitting ? t.textMuted : "#c74848",
+            color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
+            cursor: submitting ? "not-allowed" : "pointer",
+          }}>{submitting ? "جارٍ الأرشفة..." : "تأكيد الأرشفة"}</button>
+          <button onClick={onClose} style={{
+            padding: "12px 20px", borderRadius: 12,
+            background: t.bgElevated, color: t.textSec,
+            border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
+            cursor: "pointer",
+          }}>إلغاء</button>
         </div>
       </div>
     </div>
@@ -2097,9 +2621,10 @@ function PageVehicles({ t }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editVehicle, setEditVehicle] = useState(null);
   const [fuelVehicle, setFuelVehicle] = useState(null);
-  const [returnVehicle, setReturnVehicle] = useState(null);
-  const [actionLoading, setActionLoading] = useState(null);
+  const [maintenanceVehicle, setMaintenanceVehicle] = useState(null);
+  const [archiveTarget, setArchiveTarget] = useState(null);
   const [detailsVehicleId, setDetailsVehicleId] = useState(null);
+  const [vehicleResult, setVehicleResult] = useState(null);
 
   const fetchVehicles = async () => {
     setLoading(true);
@@ -2137,32 +2662,6 @@ function PageVehicles({ t }) {
     return () => { cancelled = true; };
   }, [search, statusFilter, typeFilter]);
 
-  const handleSendToMaintenance = async (vehicle) => {
-    if (actionLoading) return;
-    setActionLoading(vehicle.id);
-    try {
-      await vehiclesService.sendToMaintenance(vehicle.id);
-      fetchVehicles();
-    } catch {
-      // error already logged by service
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleArchive = async (vehicle) => {
-    if (actionLoading) return;
-    setActionLoading(vehicle.id);
-    try {
-      await vehiclesService.archive(vehicle.id);
-      fetchVehicles();
-    } catch {
-      // error already logged by service
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
   const maintenanceVehicles = vehicles.filter((v) => v.status === "INACTIVE");
 
   const tableRows = vehicles.map((v) => [
@@ -2184,6 +2683,8 @@ function PageVehicles({ t }) {
         onAction={() => setShowAddModal(true)}
         t={t}
       />
+
+      <ActionResultBanner t={t} result={vehicleResult} onDismiss={() => setVehicleResult(null)} />
 
       <div style={{
         background: t.bgSurface, borderRadius: 10, border: `0.5px solid ${t.borderCard}`,
@@ -2268,20 +2769,14 @@ function PageVehicles({ t }) {
                             padding: "4px 10px", borderRadius: 6, background: t.accentLight,
                             color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
                           }}>وقود</button>
-                          {vehicle?.status === "ACTIVE" && (
-                            <button onClick={() => handleSendToMaintenance(vehicle)} disabled={actionLoading === vehicle?.id} style={{
+                          {vehicle?.status !== "ARCHIVED" && (
+                            <button onClick={() => setMaintenanceVehicle(vehicle)} style={{
                               padding: "4px 10px", borderRadius: 6, background: t.pending.bg,
                               color: t.pending.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                            }}>صيانة</button>
-                          )}
-                          {vehicle?.status === "INACTIVE" && (
-                            <button onClick={() => setReturnVehicle(vehicle)} style={{
-                              padding: "4px 10px", borderRadius: 6, background: t.completed.bg,
-                              color: t.completed.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                            }}>إرجاع</button>
+                            }}>الصيانة</button>
                           )}
                           {vehicle?.status !== "ARCHIVED" && (
-                            <button onClick={() => handleArchive(vehicle)} disabled={actionLoading === vehicle?.id} style={{
+                            <button onClick={() => setArchiveTarget(vehicle)} style={{
                               padding: "4px 10px", borderRadius: 6, background: t.cancelled.bg,
                               color: t.cancelled.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
                             }}>أرشفة</button>
@@ -2334,12 +2829,21 @@ function PageVehicles({ t }) {
         />
       )}
 
-      {returnVehicle && (
-        <ReturnFromMaintenanceModal
+      {maintenanceVehicle && (
+        <MaintenanceModal
           t={t}
-          vehicle={returnVehicle}
-          onClose={() => setReturnVehicle(null)}
-          onSuccess={() => { setReturnVehicle(null); fetchVehicles(); }}
+          vehicle={maintenanceVehicle}
+          onClose={() => setMaintenanceVehicle(null)}
+          onVehicleChanged={fetchVehicles}
+        />
+      )}
+
+      {archiveTarget && (
+        <ArchiveVehicleConfirm
+          t={t}
+          vehicle={archiveTarget}
+          onClose={() => setArchiveTarget(null)}
+          onSuccess={(result) => { setArchiveTarget(null); setVehicleResult(result); fetchVehicles(); }}
         />
       )}
 
