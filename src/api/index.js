@@ -13,3 +13,5 @@ export { default as notificationsService } from "./notifications.service";
 export { default as settingsService } from "./settings.service";
 export { default as employeesService } from "./employees.service";
 export { default as dashboardService } from "./dashboard.service";
+export { default as generalExpensesService } from "./generalExpenses.service";
+export { default as employeeAccountingService } from "./employeeAccounting.service";

@@ -3704,73 +3704,136 @@ export default function App({
 
   // Standalone mode (legacy fallback)
   return (
-    <div dir="rtl" className="app-shell" style={{
-      display: "flex", minHeight: "100svh", overflow: "hidden", width: "100%",
-      background: t.bgPage, fontFamily: "var(--font-body)",
-      direction: "rtl",
-    }}>
-
+    <div
+      dir="rtl"
+      className="app-shell"
+      style={{
+        display: "flex",
+        minHeight: "100svh",
+        overflow: "hidden",
+        width: "100%",
+        background: t.bgPage,
+        fontFamily: "var(--font-body)",
+        direction: "rtl",
+      }}
+    >
       {/* ─── SIDEBAR ─── */}
       <div style={{ width: sidebarWidth, flexShrink: 0 }} />
-      <div style={{
-        width: sidebarWidth,
-        height: "100svh",
-        minHeight: "100svh",
-        position: "fixed",
-        top: 0,
-        right: 0,
-        zIndex: 40,
-        background: t.bgSidebar,
-        display: "flex", flexDirection: "column",
-        transition: "width 0.2s ease",
-        overflow: "hidden",
-        borderLeft: `1px solid ${t.borderCard}`,
-      }}>
+      <div
+        style={{
+          width: sidebarWidth,
+          height: "100svh",
+          minHeight: "100svh",
+          position: "fixed",
+          top: 0,
+          right: 0,
+          zIndex: 40,
+          background: t.bgSidebar,
+          display: "flex",
+          flexDirection: "column",
+          transition: "width 0.2s ease",
+          overflow: "hidden",
+          borderLeft: `1px solid ${t.borderCard}`,
+        }}
+      >
         {/* Logo */}
-        <div style={{
-          padding: "24px 18px 18px",
-          borderBottom: `1px solid ${t.borderCard}`,
-          display: "flex", alignItems: "center", gap: 10,
-        }}>
-          <div style={{
-            width: 42, height: 42, borderRadius: 12,
-            overflow: "hidden", flexShrink: 0,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <img src={qeyadahLogo} alt="qeyadah" style={{width: "100%", height: "100%", objectFit: "cover", display: "block"}} />
+        <div
+          style={{
+            padding: "24px 18px 18px",
+            borderBottom: `1px solid ${t.borderCard}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 12,
+              overflow: "hidden",
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <img
+              src={qeyadahLogo}
+              alt="qeyadah"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
           </div>
           {!sidebarCollapsed && (
             <div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: "#fff7d4", lineHeight: 1.2 }}>مدرسة القيادة</div>
-              <div style={{ fontSize: 12, color: t.textSidebar, marginTop: 3 }}>نظام الإدارة</div>
+              <div
+                style={{
+                  fontSize: 15,
+                  fontWeight: 800,
+                  color: "#fff7d4",
+                  lineHeight: 1.2,
+                }}
+              >
+                مدرسة القيادة
+              </div>
+              <div style={{ fontSize: 12, color: t.textSidebar, marginTop: 3 }}>
+                نظام الإدارة
+              </div>
             </div>
           )}
         </div>
 
         {/* Nav Items */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "12px 10px" }}>
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            padding: "12px 10px",
+          }}
+        >
           {navItems
-            .filter(item => {
+            .filter((item) => {
               if (item.permission) return hasPermission(item.permission);
               return true;
             })
-            .map(item => {
+            .map((item) => {
               const isActive = activePage === item.page;
               const displayLabel = item.label;
               return (
-                <button key={item.id} onClick={() => setActivePage(item.page)} style={{
-                  width: "100%", display: "flex", alignItems: "center",
-                  gap: 12, padding: sidebarCollapsed ? "14px 10px" : "14px 16px",
-                  borderRadius: 14, border: "none", cursor: "pointer",
-                  background: isActive ? t.bgSidebarActive : "transparent",
-                  color: isActive ? t.textSidebarActive : t.textSidebar,
-                  fontSize: 16, fontWeight: isActive ? 700 : 500,
-                  marginBottom: 6, textAlign: "right",
-                  justifyContent: sidebarCollapsed ? "center" : "flex-start",
-                  transition: "all 0.15s",
-                  boxShadow: isActive ? "0 10px 24px rgba(0,0,0,0.18)" : "none",
-                }}>
-                  <span style={{ fontSize: 20, flexShrink: 0 }}>{item.icon}</span>
+                <button
+                  key={item.id}
+                  onClick={() => setActivePage(item.page)}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: sidebarCollapsed ? "14px 10px" : "14px 16px",
+                    borderRadius: 14,
+                    border: "none",
+                    cursor: "pointer",
+                    background: isActive ? t.bgSidebarActive : "transparent",
+                    color: isActive ? t.textSidebarActive : t.textSidebar,
+                    fontSize: 16,
+                    fontWeight: isActive ? 700 : 500,
+                    marginBottom: 6,
+                    textAlign: "right",
+                    justifyContent: sidebarCollapsed ? "center" : "flex-start",
+                    transition: "all 0.15s",
+                    boxShadow: isActive
+                      ? "0 10px 24px rgba(0,0,0,0.18)"
+                      : "none",
+                  }}
+                >
+                  <span style={{ fontSize: 20, flexShrink: 0 }}>
+                    {item.icon}
+                  </span>
                   {!sidebarCollapsed && <span>{displayLabel}</span>}
                 </button>
               );
@@ -3778,92 +3841,189 @@ export default function App({
         </div>
 
         {/* Sidebar Footer */}
-        <div style={{
-          padding: "14px 10px",
-          borderTop: `1px solid ${t.borderCard}`,
-        }}>
-          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{
-            width: "100%", padding: "12px", borderRadius: 12,
-            background: t.accentLight, border: "none",
-            color: t.accentText, cursor: "pointer", fontSize: 18, fontWeight: 700,
-          }}>{sidebarCollapsed ? "→" : "←"}</button>
+        <div
+          style={{
+            padding: "14px 10px",
+            borderTop: `1px solid ${t.borderCard}`,
+          }}
+        >
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: 12,
+              background: t.accentLight,
+              border: "none",
+              color: t.accentText,
+              cursor: "pointer",
+              fontSize: 18,
+              fontWeight: 700,
+            }}
+          >
+            {sidebarCollapsed ? "→" : "←"}
+          </button>
         </div>
       </div>
 
       {/* ─── MAIN AREA ─── */}
-      <div className="app-main" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-
+      <div
+        className="app-main"
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
         {/* TOPBAR */}
-        <div style={{
-          height: 56, background: t.bgHeader,
-          borderBottom: `0.5px solid ${t.border}`,
-          display: "flex", alignItems: "center",
-          padding: "0 20px", gap: 14, flexShrink: 0,
-        }}>
+        <div
+          style={{
+            height: 56,
+            background: t.bgHeader,
+            borderBottom: `0.5px solid ${t.border}`,
+            display: "flex",
+            alignItems: "center",
+            padding: "0 20px",
+            gap: 14,
+            flexShrink: 0,
+          }}
+        >
           {activePage === "AdminProPage" ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {[{id:'dash',label:'لوحة التحكم'},{id:'employees',label:'الموظفون'},{id:'permissions',label:'الصلاحيات'},{id:'pricing',label:'الأسعار والرسوم'}].map(a=>{
-                const isActive = adminSubPage===a.id;
+              {[
+                { id: "dash", label: "لوحة التحكم" },
+                { id: "employees", label: "الموظفون" },
+                { id: "permissions", label: "الصلاحيات" },
+                { id: "pricing", label: "الأسعار وإعدادات النظام " },
+              ].map((a) => {
+                const isActive = adminSubPage === a.id;
                 return (
-                  <button key={a.id} onClick={()=>setInternalAdminSub(a.id)} style={{
-                    padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer",
-                    background: isActive ? t.bgSidebarActive : "transparent",
-                    color: isActive ? t.textSidebarActive : t.textMuted, fontWeight: isActive?700:600
-                  }}>{a.label}</button>
+                  <button
+                    key={a.id}
+                    onClick={() => setInternalAdminSub(a.id)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      border: "none",
+                      cursor: "pointer",
+                      background: isActive ? t.bgSidebarActive : "transparent",
+                      color: isActive ? t.textSidebarActive : t.textMuted,
+                      fontWeight: isActive ? 700 : 600,
+                    }}
+                  >
+                    {a.label}
+                  </button>
                 );
               })}
             </div>
           ) : activePage === "AccountantProPage" ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {[{id:'dash',label:'لوحة الحسابات'},{id:'payments',label:'الدفعات'},{id:'invoices',label:'الفواتير'},{id:'payroll',label:'الرواتب'},{id:'revenues',label:'الإيرادات'},{id:'pricing',label:'الأسعار'}].map(a=>{
-                const isActive = accountantSubPage===a.id;
+              {[
+                { id: "dash", label: "لوحة الحسابات" },
+                { id: "payments", label: "الدفعات" },
+                { id: "invoices", label: "الفواتير" },
+                { id: "payroll", label: "الرواتب" },
+                { id: "revenues", label: "الإيرادات" },
+                { id: "pricing", label: "الأسعار" },
+              ].map((a) => {
+                const isActive = accountantSubPage === a.id;
                 return (
-                  <button key={a.id} onClick={()=>setInternalAccountantSub(a.id)} style={{
-                    padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer",
-                    background: isActive ? t.bgSidebarActive : "transparent",
-                    color: isActive ? t.textSidebarActive : t.textMuted, fontWeight: isActive?700:600
-                  }}>{a.label}</button>
+                  <button
+                    key={a.id}
+                    onClick={() => setInternalAccountantSub(a.id)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      border: "none",
+                      cursor: "pointer",
+                      background: isActive ? t.bgSidebarActive : "transparent",
+                      color: isActive ? t.textSidebarActive : t.textMuted,
+                      fontWeight: isActive ? 700 : 600,
+                    }}
+                  >
+                    {a.label}
+                  </button>
                 );
               })}
             </div>
           ) : activePage === "ReceptionistPage" ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {[{id:'students',label:'الطلاب'},{id:'bookings',label:'الحجوزات'},{id:'instructors',label:'المدربون'},{id:'certificate',label:'الشهادة'},{id:'transport',label:'النقل'}].map(a=>{
-                const isActive = receptionistSubPage===a.id;
+              {[
+                { id: "students", label: "الطلاب" },
+                { id: "bookings", label: "الحجوزات" },
+                { id: "instructors", label: "المدربون" },
+                { id: "certificate", label: "الشهادة" },
+                { id: "transport", label: "النقل" },
+              ].map((a) => {
+                const isActive = receptionistSubPage === a.id;
                 return (
-                  <button key={a.id} onClick={()=>setInternalReceptionistSub(a.id)} style={{
-                    padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer",
-                    background: isActive ? t.bgSidebarActive : "transparent",
-                    color: isActive ? t.textSidebarActive : t.textMuted, fontWeight: isActive?700:600
-                  }}>{a.label}</button>
+                  <button
+                    key={a.id}
+                    onClick={() => setInternalReceptionistSub(a.id)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      border: "none",
+                      cursor: "pointer",
+                      background: isActive ? t.bgSidebarActive : "transparent",
+                      color: isActive ? t.textSidebarActive : t.textMuted,
+                      fontWeight: isActive ? 700 : 600,
+                    }}
+                  >
+                    {a.label}
+                  </button>
                 );
               })}
             </div>
           ) : (
             <div style={{ fontSize: 13, color: t.textMuted }}>
-              {navItems.find(n => n.page === activePage)?.label || "—"}
+              {navItems.find((n) => n.page === activePage)?.label || "—"}
             </div>
           )}
 
           <div style={{ flex: 1 }} />
 
-          <button onClick={() => setDarkMode(!darkMode)} style={{
-            padding: "6px 14px", borderRadius: 7,
-            background: t.accentLight, color: t.accentText,
-            border: "none", fontSize: 12, cursor: "pointer", fontWeight: 600,
-          }}>{darkMode ? "☀️ نهاري" : "🌙 ليلي"}</button>
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 7,
+              background: t.accentLight,
+              color: t.accentText,
+              border: "none",
+              fontSize: 12,
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            {darkMode ? "☀️ نهاري" : "🌙 ليلي"}
+          </button>
 
-          <div style={{
-            width: 34, height: 34, borderRadius: "50%",
-            background: t.accentLight, color: t.accentText,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 13, fontWeight: 700, cursor: "pointer",
-          }}>م</div>
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: "50%",
+              background: t.accentLight,
+              color: t.accentText,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            م
+          </div>
         </div>
 
         {/* PAGE CONTENT */}
         <div className="hide-scrollbar app-page">
-          {pageComponents[activePage] || <PlaceholderPage title={activePage} t={t} />}
+          {pageComponents[activePage] || (
+            <PlaceholderPage title={activePage} t={t} />
+          )}
         </div>
       </div>
     </div>

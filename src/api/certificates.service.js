@@ -33,6 +33,10 @@ const certificatesService = {
     return client.put(`/reception/certificates/${id}/training-sessions`, data);
   },
 
+  setTrainingSessionsBatch(data) {
+    return client.put("/reception/certificates/training-sessions/batch", data);
+  },
+
   setExamSchedule(id, data) {
     return client.put(`/reception/certificates/${id}/exam-schedule`, data);
   },

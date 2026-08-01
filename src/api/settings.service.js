@@ -10,7 +10,7 @@ const settingsService = {
   },
 
   update(key, value) {
-    return client.patch(`/settings/${key}`, { value });
+    return client.put("/settings", { key, value: String(value) });
   },
 
   getActivityLog(params) {

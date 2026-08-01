@@ -114,7 +114,7 @@ const ADMIN_SUB_TABS = [
   { id: "dash", label: "لوحة التحكم" },
   { id: "employees", label: "الموظفون" },
   { id: "permissions", label: "الصلاحيات" },
-  { id: "pricing", label: "الأسعار والرسوم" },
+  { id: "pricing", label: "الأسعار و إعدادات النظام " },
 ];
 
 const ACCOUNTANT_SUB_TABS = [
@@ -123,6 +123,7 @@ const ACCOUNTANT_SUB_TABS = [
   { id: "invoices", label: "الفواتير" },
   { id: "payroll", label: "الرواتب" },
   { id: "revenues", label: "الإيرادات" },
+  { id: "generalExpenses", label: "المصاريف العامة" },
   { id: "pricing", label: "الأسعار" },
 ];
 
