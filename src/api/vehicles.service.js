@@ -41,11 +41,24 @@ const vehiclesService = {
     return client.delete(`/vehicles/${vehicleId}/maintenance/${periodId}`);
   },
 
-  // The API path shape is /vehicles/:id/return-from-maintenance, but :id is actually
-  // the maintenance periodId, not the vehicleId — confirmed in reception-dashboard-api
-  // reference. Pass the period's id here, not vehicle.id.
-  returnFromMaintenance(periodId, data) {
-    return client.post(`/vehicles/${periodId}/return-from-maintenance`, data);
+  returnFromMaintenance(vehicleId, data) {
+    return client.post(`/vehicles/${vehicleId}/return-from-maintenance`, data);
+  },
+
+  getReport(vehicleId, params) {
+    return client.get(`/vehicles/${vehicleId}/report`, { params });
+  },
+
+  getExpenses(vehicleId, params) {
+    return client.get(`/vehicles/${vehicleId}/expenses`, { params });
+  },
+
+  addExpense(vehicleId, data) {
+    return client.post(`/vehicles/${vehicleId}/expenses`, data);
+  },
+
+  deleteExpense(vehicleId, expenseId) {
+    return client.delete(`/vehicles/${vehicleId}/expenses/${expenseId}`);
   },
 };
 

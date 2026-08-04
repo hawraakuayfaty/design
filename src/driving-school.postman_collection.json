@@ -1,10 +1,10 @@
 {
   "info": {
-    "_postman_id": "5051f4ed-e730-4b4e-adeb-08b30f12a701",
+    "_postman_id": "77196dcc-45a0-45a6-9bbf-01bdc6c7fa3b",
     "name": "driving-school",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "40609574",
-    "_collection_link": "https://go.postman.co/collection/39834260-5051f4ed-e730-4b4e-adeb-08b30f12a701?source=collection_link"
+    "_collection_link": "https://go.postman.co/collection/40609574-77196dcc-45a0-45a6-9bbf-01bdc6c7fa3b?source=collection_link"
   },
   "item": [
     {
@@ -23,7 +23,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"phone\" : \"0999111222\", \r\n    \"password\" :  \"Admin@12345\"\r\n}\r\n\r\n\r\n/*\r\n\r\n{\r\n    \"phone\" : \"0999400009\", \r\n    \"password\" :  \"Test@12345\"\r\n}\r\n*/",
+              "raw": "{\r\n    \"phone\" : \"0999111222\", \r\n    \"password\" :  \"Admin@12345\"\r\n}\r\n// {\r\n//     \"phone\": \"0999111222\", \"password\": \"Admin@12345\",\r\n//     \"fcmToken\": \"fake-fcm-token-123\",\r\n//     \"platform\": \"ANDROID\" // ANDROID IOS WEB\r\n//  }\r\n\r\n// {\r\n//     \"phone\" : \"0987654321\", \r\n//     \"password\" :  \"0000\"\r\n// }\r\n\r\n// {\r\n//     \"phone\" : \"0999400015\", \r\n//     \"password\" :  \"Test@12345\"\r\n// }\r\n",
               "options": {
                 "raw": {
                   "language": "json"
@@ -134,7 +134,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsInJvbGVzIjpbIklOU1RSVUNUT1IiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODMzNzYwNzEsImV4cCI6MTc4MzM3Njk3MX0.DpmCgXZMGVLAMESQ0mQNNqjwdS6BLVhsKbv8V8kQ9WU",
+                  "value": "{{token}}",
                   "type": "string"
                 }
               ]
@@ -379,7 +379,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "\r\n{\r\n  \"name\": \"Test Student\",\r\n  \"phone\": \"0999555001\",\r\n  \"email\": \"matrex663@gmail.com\", // email that we send the otp\r\n  \"code\": \"899782\",\r\n  \"password\": \"Test@12345\",\r\n  \"deviceName\": \"iPhone 15\" // اختياري \r\n}",
+              "raw": "\r\n{\r\n  \"name\": \"Test Student\",\r\n  \"phone\": \"0999555001\",\r\n  \"email\": \"matrex663@gmail.com\", // email that we send the otp\r\n  \"code\": \"899782\",\r\n  \"password\": \"Test@12345\",\r\n  \"deviceName\": \"iPhone 15\" , // اختياري \r\n  \"fcmToken\": \"fake-fcm-token-123\",\r\n  \"platform\": \"ANDROID\" // ANDROID IOS WEB\r\n}\r\n",
               "options": {
                 "raw": {
                   "language": "json"
@@ -589,7 +589,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsInJvbGVzIjpbIlNUVURFTlQiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODI1MTg2ODcsImV4cCI6MTc4MjUxOTU4N30.4V0QgArNCdNbAvOvwGRYjXg9-CjA-HPR5J5ZjQoe3Vk",
+                  "value": "{{token}}",
                   "type": "string"
                 }
               ]
@@ -650,7 +650,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsInJvbGVzIjpbIlNUVURFTlQiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODI0ODU2MjAsImV4cCI6MTc4MjQ4NjUyMH0.wzaTzMVDoQ_CGNfJk3On46r6Cv_pujq8J7y29Y19SD0",
+                  "value": "{{token}}",
                   "type": "string"
                 }
               ]
@@ -686,7 +686,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsInJvbGVzIjpbIlNUVURFTlQiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODI2MDA3MTQsImV4cCI6MTc4MjYwMTYxNH0.LrTYPJv8c0Z66dAp1uMTKWCrcxOFxX_FjmVAKUn7aAc",
+                  "value": "{{token}}",
                   "type": "string"
                 }
               ]
@@ -742,7 +742,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsInJvbGVzIjpbIlNUVURFTlQiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODI1MjAzNzksImV4cCI6MTc4MjUyMTI3OX0.Gin-FSrtUq11cdUdfqnUqwujo0plNwvS0BV89GSw80Q",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODQwNjY0MjksImV4cCI6MTc4NDA2NzMyOX0.n_qDUWyxlWOWAf0TxqZ9b7a3Yj_5TQE3hrdE7WMCtpc",
                   "type": "string"
                 }
               ]
@@ -751,7 +751,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"instructorId\": 3,\r\n  \"date\": \"2026-06-27\",\r\n  \"time\": \"09:00\",\r\n  \"trainingType\": \"MANUAL\",\r\n  \"vehicleSource\": \"SCHOOL_CAR\"\r\n}",
+              "raw": "{\r\n  \"instructorId\": 3,\r\n  \"date\": \"2026-07-15\",\r\n  \"time\": \"11:00\",\r\n  \"trainingType\": \"MANUAL\",\r\n  \"vehicleSource\": \"SCHOOL_CAR\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -759,10 +759,13 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/student/bookings",
+              "raw": "http://20.250.144.221:3000/api/v1/student/bookings",
               "protocol": "http",
               "host": [
-                "localhost"
+                "20",
+                "250",
+                "144",
+                "221"
               ],
               "port": "3000",
               "path": [
@@ -813,6 +816,93 @@
                 "bookings",
                 "45",
                 "confirm-payment"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update student info",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\" : \"bahij\" \r\n    // \"phone\" : \"\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/students/1",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "students",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "block and unblock students",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"blocked\" : false // boolean\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/students/1/block",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "students",
+                "1",
+                "block"
               ]
             }
           },
@@ -981,6 +1071,418 @@
                     "instructors",
                     "3",
                     "leaves"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "accounting",
+          "item": [
+            {
+              "name": "Bonuses",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"amount\" : 100 ,\r\n    \"paymentMethod\" : \"CASH\" , // CASH , SHAM_CASH\r\n    \"note\" : \"null\" \r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url}}/instructors/3/bonuses",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "instructors",
+                    "3",
+                    "bonuses"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete bonus",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/instructors/3/bonuses/84",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "instructors",
+                    "3",
+                    "bonuses",
+                    "84"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "dues",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/instructors/1/dues",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "instructors",
+                    "1",
+                    "dues"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "pay for lesson",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"expenseIds\" : [86,92],\r\n    \"paymentMethod\" : \"CASH\" ,// CASH , SHAM_CASH\r\n    \"note\" : null\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url}}/instructors/1/settle",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "instructors",
+                    "1",
+                    "settle"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "تراجع عن دفع فاتورة دروس",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"expenseIds\" : [86] ,\r\n    \"reason\" : \"null\" \r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url}}/instructors/1/settlements/reverse",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "instructors",
+                    "1",
+                    "settlements",
+                    "reverse"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "payments",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/instructors/1/payments?page=1&limit=20",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "instructors",
+                    "1",
+                    "payments"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "report",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/atom+xml",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/instructors/1/report?from=2026-07-01&to=2026-07-30",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "instructors",
+                    "1",
+                    "report"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-07-01",
+                      "description": "YYYY-MM-DD"
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-07-30",
+                      "description": "YYYY-MM-DD"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "report sessions",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/instructors/1/report/sessions?from=2026-07-01&to=2026-07-30&page=1&limit=10",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "instructors",
+                    "1",
+                    "report",
+                    "sessions"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-07-01",
+                      "description": "YYYY-MM-DD"
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-07-30",
+                      "description": "YYYY-MM-DD"
+                    },
+                    {
+                      "key": "expenseStatus",
+                      "value": "UNPAID",
+                      "description": "PAID ,UNPAID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get all instructors dues",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/instructors/dues/summary?from=2026-07-01&to=2026-07-31",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "instructors",
+                    "dues",
+                    "summary"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-07-01",
+                      "description": "YYYY-MM-DD"
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-07-31",
+                      "description": "YYYY-MM-DD"
+                    }
                   ]
                 }
               },
@@ -1359,7 +1861,7 @@
           "response": []
         },
         {
-          "name": "pay all dues for instructor",
+          "name": "update instructor profile",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1371,7 +1873,7 @@
                 }
               ]
             },
-            "method": "POST",
+            "method": "PATCH",
             "header": [
               {
                 "key": "Accept",
@@ -1379,15 +1881,67 @@
                 "type": "text"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\" : \"wwe\",\r\n    \"phone\" : \"0987654322\"\r\n    // \"gender\" : \"MALE\", // MALE , FEMALE\r\n    // \"instructorType\" : \"MANUAL\" // AUTOMATIC , MANUAL , BOTH\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
-              "raw": "{{url}}/instructors/3/pay-dues",
+              "raw": "{{url}}/instructors/1",
               "host": [
                 "{{url}}"
               ],
               "path": [
                 "instructors",
-                "3",
-                "pay-dues"
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "archive instructors",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"archived\" : false //boolean => true or false\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/instructors/1/archive",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "instructors",
+                "1",
+                "archive"
               ]
             }
           },
@@ -1398,6 +1952,156 @@
     {
       "name": "Employees",
       "item": [
+        {
+          "name": "role-permissions",
+          "item": [
+            {
+              "name": "permissions-catalog",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/roles/permissions-catalog",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "roles",
+                    "permissions-catalog"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get roles on system",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/roles",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "roles"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get all permissions of one role",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/roles/2",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "roles",
+                    "2"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update permissions of role",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"permissionCodes\": [\r\n    \"bookings.read\",\r\n    \"dashboard.read\"\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url}}/roles/2/permissions",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "roles",
+                    "2",
+                    "permissions"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
         {
           "name": "get all employees",
           "request": {
@@ -1487,7 +2191,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODUwMjE2NTksImV4cCI6MTc4NTAyMjU1OX0.lnUQh8ltLvd1J8QzwW3zgubtmQLAikPTkyjNGmJvN5c",
                   "type": "string"
                 }
               ]
@@ -1510,13 +2214,150 @@
               }
             },
             "url": {
-              "raw": "{{url}}/users/employees",
+              "raw": "localhost:3000/api/v1/users/employees",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "employees"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "edit employee",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODUwMzA3MDYsImV4cCI6MTc4NTAzMTYwNn0.vO8-Ppyd9d42hFFAQoRQbvkJkr1AbYdeZwy-b2jmJY0",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"monthlySalary\": 100000 , \"hireDate\" : \"2026-03-22\" , \"resignDate\" : \"2026-03-22\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:3000/api/v1/employees/1",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "employees",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"role\" : \"RECEPTIONIST\" // ACCOUNTANT , RECEPTIONIST\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/employees/1/role",
               "host": [
                 "{{url}}"
               ],
               "path": [
-                "users",
-                "employees"
+                "employees",
+                "1",
+                "role"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "archive employee",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"archived\" : false // boolean => true or false\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/employees/1/archive",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "employees",
+                "1",
+                "archive"
               ]
             }
           },
@@ -1596,7 +2437,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{url}}/vehicles/3/expenses?reason=GAS&paymentMethod=CASH&from=2026-07-01&to=2026-07-08&page=1&limit=11",
+                  "raw": "{{url}}/vehicles/3/expenses?reason=GAS&paymentMethod=CASH&from=2026-07-01&to=2026-07-20&page=1&limit=11",
                   "host": [
                     "{{url}}"
                   ],
@@ -1623,7 +2464,7 @@
                     },
                     {
                       "key": "to",
-                      "value": "2026-07-08",
+                      "value": "2026-07-20",
                       "description": "YYYY-MM-DD"
                     },
                     {
@@ -1681,6 +2522,89 @@
                 }
               },
               "response": []
+            },
+            {
+              "name": "Delete expenses for one car",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/vehicles/3/expenses/45",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "vehicles",
+                    "3",
+                    "expenses",
+                    "45"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get all vehicles dues",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/vehicles/expenses/summary?from=2026-07-01&to=2026-07-31",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "vehicles",
+                    "expenses",
+                    "summary"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-07-01",
+                      "description": "YYYY-MM-DD"
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-07-31",
+                      "description": "YYYY-MM-DD"
+                    }
+                  ]
+                }
+              },
+              "response": []
             }
           ]
         },
@@ -1692,7 +2616,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIzODc5NTIsImV4cCI6MTc4MjM4ODg1Mn0.icCKIwoPGZE0v4SS5rmFUt1PRQdiZP8SEZVeY_SJl3g",
+                  "value": "{{token}}",
                   "type": "string"
                 }
               ]
@@ -1706,23 +2630,14 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:3000/api/v1/vehicles?status=ACTIVE",
-              "protocol": "http",
+              "raw": "{{url}}/vehicles",
               "host": [
-                "localhost"
+                "{{url}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "vehicles"
               ],
               "query": [
-                {
-                  "key": "status",
-                  "value": "ACTIVE",
-                  "description": "ACTIVE , INACTIVE , ARCHIVED"
-                },
                 {
                   "key": "type",
                   "value": "MANUAL",
@@ -1733,6 +2648,11 @@
                   "key": "search",
                   "value": "",
                   "description": "by plateNumber",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
                   "disabled": true
                 }
               ]
@@ -1748,7 +2668,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIzODc5NTIsImV4cCI6MTc4MjM4ODg1Mn0.icCKIwoPGZE0v4SS5rmFUt1PRQdiZP8SEZVeY_SJl3g",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODQxMjgxNzksImV4cCI6MTc4NDEyOTA3OX0.onJL_jbEe4TQk9TqQGsrEpwZG8JPiSaSxKRi_EU_n-c",
                   "type": "string"
                 }
               ]
@@ -1762,17 +2682,20 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:3000/api/v1/vehicles/3",
+              "raw": "http://20.250.144.221:3000/api/v1/vehicles/4",
               "protocol": "http",
               "host": [
-                "localhost"
+                "20",
+                "250",
+                "144",
+                "221"
               ],
               "port": "3000",
               "path": [
                 "api",
                 "v1",
                 "vehicles",
-                "3"
+                "4"
               ]
             }
           },
@@ -1786,7 +2709,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIzODc5NTIsImV4cCI6MTc4MjM4ODg1Mn0.icCKIwoPGZE0v4SS5rmFUt1PRQdiZP8SEZVeY_SJl3g",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODQxNTI1MjYsImV4cCI6MTc4NDE1MzQyNn0.R2a_B3v_MJJTX5YIKCas4Rn41yaF__yKUAVBm9IQla4",
                   "type": "string"
                 }
               ]
@@ -1801,7 +2724,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"plateNumber\" : \"123456789\" ,\r\n    \"model\" :\"kia rio\" , //  nullable\r\n    \"color\" :\"white\" , //  nullable\r\n    \"type\" : \"AUTOMATIC\", // AUTOMATIC ,MANUAL\r\n    \"adminNotes\" : null  // nullable\r\n}",
+              "raw": "{\r\n    \"plateNumber\" : \"123456888\" ,\r\n    \"model\" :\"kia rio\" , //  nullable\r\n    \"color\" :\"white\" , //  nullable\r\n    \"type\" : \"AUTOMATIC\", // AUTOMATIC ,MANUAL\r\n    \"adminNotes\" : null  // nullable\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1809,10 +2732,13 @@
               }
             },
             "url": {
-              "raw": "http://localhost:3000/api/v1/vehicles",
+              "raw": "http://20.250.144.221:3000/api/v1/vehicles",
               "protocol": "http",
               "host": [
-                "localhost"
+                "20",
+                "250",
+                "144",
+                "221"
               ],
               "port": "3000",
               "path": [
@@ -1832,7 +2758,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIyMDM4NjYsImV4cCI6MTc4MjIwNDc2Nn0.Tcpv8uLhD9PEGnhk5T1FNwwKo76jv_rvfHQIJh7u0Nw",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODQxMjE3MjksImV4cCI6MTc4NDEyMjYyOX0.BkNmzAXHWkfx9L3s1G0TaD62V6kSqEIXgQWfTNnRhMA",
                   "type": "string"
                 }
               ]
@@ -1847,7 +2773,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"plateNumber\" : \"2222\" \r\n    // \"model\" :\"kia rio\" , //  nullable\r\n    // \"color\" :\"white\" , //  nullable\r\n    // \"type\" : \"AUTOMATIC\", // AUTOMATIC ,MANUAL\r\n    // \"adminNotes\" : null  // nullable\r\n}",
+              "raw": "{\r\n    \"plateNumber\" : \"أ ب ج 102\" ,\r\n    \"model\" :\"kia rio\" , //  nullable\r\n    \"color\" :\"white\" , //  nullable\r\n    \"type\" : \"AUTOMATIC\", // AUTOMATIC ,MANUAL\r\n    \"adminNotes\" : null  // nullable\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1934,7 +2860,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"startAt\" :   \"2026-07-08T18:30\"      ,// YYYY-MM-DDTHH:mm\r\n    \"endAt\"  : \"2026-07-09T18:00\" , // YYYY-MM-DDTHH:mm\r\n    \"notes\" : null // nullable\r\n\r\n}",
+              "raw": "{\r\n    \"startAt\" :   \"2026-07-17T15:51\"      ,// YYYY-MM-DDTHH:mm\r\n    \"endAt\"  : \"2026-07-17T16:00\" , // YYYY-MM-DDTHH:mm\r\n    \"notes\" : null // nullable\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1942,13 +2868,13 @@
               }
             },
             "url": {
-              "raw": "{{url}}/vehicles/3/maintenance",
+              "raw": "{{url}}/vehicles/4/maintenance",
               "host": [
                 "{{url}}"
               ],
               "path": [
                 "vehicles",
-                "3",
+                "4",
                 "maintenance"
               ]
             }
@@ -2108,13 +3034,13 @@
               "raw": ""
             },
             "url": {
-              "raw": "{{url}}/vehicles/3/maintenance",
+              "raw": "{{url}}/vehicles/4/maintenance",
               "host": [
                 "{{url}}"
               ],
               "path": [
                 "vehicles",
-                "3",
+                "4",
                 "maintenance"
               ]
             }
@@ -2152,13 +3078,13 @@
               }
             },
             "url": {
-              "raw": "{{url}}/vehicles/3/return-from-maintenance",
+              "raw": "{{url}}/vehicles/4/return-from-maintenance",
               "host": [
                 "{{url}}"
               ],
               "path": [
                 "vehicles",
-                "3",
+                "4",
                 "return-from-maintenance"
               ]
             }
@@ -2170,6 +3096,99 @@
     {
       "name": "Booking",
       "item": [
+        {
+          "name": "payments",
+          "item": [
+            {
+              "name": "Get all booking payments on period",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/bookings/revenue/summary?from=2026-07-01&to=2026-07-31",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "bookings",
+                    "revenue",
+                    "summary"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-07-01",
+                      "description": "YYYY-MM-DD"
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-07-31",
+                      "description": "YYYY-MM-DD"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get payment by day",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/bookings/revenue/daily?date=2026-07-01",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "bookings",
+                    "revenue",
+                    "daily"
+                  ],
+                  "query": [
+                    {
+                      "key": "date",
+                      "value": "2026-07-01"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
         {
           "name": "get all available slote",
           "request": {
@@ -2949,7 +3968,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{url}}/instructor/me/earnings?month=2026-06",
+                  "raw": "{{url}}/instructor/me/earnings?month=2026-07",
                   "host": [
                     "{{url}}"
                   ],
@@ -2967,8 +3986,210 @@
                     },
                     {
                       "key": "month",
-                      "value": "2026-06"
+                      "value": "2026-07"
                     }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "payments",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/instructor/me/payments?page=1&limit=20&month=2026-07",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "instructor",
+                    "me",
+                    "payments"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "date",
+                      "value": "2026-07-18",
+                      "description": "YYYY-MM-DD",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "month",
+                      "value": "2026-07",
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "notifications",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/instructor/me/notifications?page=1&limit=11",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "instructor",
+                    "me",
+                    "notifications"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "11"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "make all notification as reed",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{url}}/instructor/me/notifications/read-all",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "instructor",
+                    "me",
+                    "notifications",
+                    "read-all"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "make one notification as read",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{url}}/instructor/me/notifications/9/read",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "instructor",
+                    "me",
+                    "notifications",
+                    "9",
+                    "read"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "student",
+          "item": [
+            {
+              "name": "theory test",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{url}}/theory/self-test",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "theory",
+                    "self-test"
                   ]
                 }
               },
@@ -2995,7 +4216,7 @@
                   "bearer": [
                     {
                       "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODM1NjY5NzAsImV4cCI6MTc4MzU2Nzg3MH0.ttHU_2wPo57plxNVWihiWBaF7WJyH8IhRLSvTEnxZTc",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODU2MzgzNjMsImV4cCI6MTc4NTYzOTI2M30.wz61mGul8bvIoW1IyQqtlFac7--Iz05R86mHb9vOwNo",
                       "type": "string"
                     }
                   ]
@@ -3013,13 +4234,10 @@
                   "raw": ""
                 },
                 "url": {
-                  "raw": "http://20.250.144.221:3000/api/v1/reception/certificates",
+                  "raw": "http://localhost:3000/api/v1/reception/certificates?unassigned=true",
                   "protocol": "http",
                   "host": [
-                    "20",
-                    "250",
-                    "144",
-                    "221"
+                    "localhost"
                   ],
                   "port": "3000",
                   "path": [
@@ -3036,7 +4254,7 @@
                     },
                     {
                       "key": "category",
-                      "value": "B1",
+                      "value": "B",
                       "disabled": true
                     },
                     {
@@ -3065,6 +4283,10 @@
                       "key": "limit",
                       "value": "40",
                       "disabled": true
+                    },
+                    {
+                      "key": "unassigned",
+                      "value": "true"
                     }
                   ]
                 }
@@ -3079,7 +4301,7 @@
                   "bearer": [
                     {
                       "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODM1NjQ4ODYsImV4cCI6MTc4MzU2NTc4Nn0.ATYqyQRKI79xfR27hYSiV3Q8i0BxN_sRRHve5UsUFt8",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODU2MzE3MzQsImV4cCI6MTc4NTYzMjYzNH0.biVjkc8-ED5ZueVxLvNs-LEh8yvoURsyO-lfHF7bX2E",
                       "type": "string"
                     }
                   ]
@@ -3093,13 +4315,10 @@
                   }
                 ],
                 "url": {
-                  "raw": "http://20.250.144.221:3000/api/v1/reception/certificates/5",
+                  "raw": "http://localhost:3000/api/v1/reception/certificates/6",
                   "protocol": "http",
                   "host": [
-                    "20",
-                    "250",
-                    "144",
-                    "221"
+                    "localhost"
                   ],
                   "port": "3000",
                   "path": [
@@ -3107,7 +4326,7 @@
                     "v1",
                     "reception",
                     "certificates",
-                    "5"
+                    "6"
                   ]
                 }
               },
@@ -3121,7 +4340,7 @@
                   "bearer": [
                     {
                       "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODM1MjAxNDYsImV4cCI6MTc4MzUyMTA0Nn0.gpfLqF1DWuZ5nqir7dtNaddxyQhGskgRiq71n2ohRMI",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODU2MzE3MzQsImV4cCI6MTc4NTYzMjYzNH0.biVjkc8-ED5ZueVxLvNs-LEh8yvoURsyO-lfHF7bX2E",
                       "type": "string"
                     }
                   ]
@@ -3138,7 +4357,7 @@
                   }
                 },
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/reception/certificates/2/cancel",
+                  "raw": "http://localhost:3000/api/v1/reception/certificates/5/cancel",
                   "protocol": "http",
                   "host": [
                     "localhost"
@@ -3149,7 +4368,7 @@
                     "v1",
                     "reception",
                     "certificates",
-                    "2",
+                    "5",
                     "cancel"
                   ]
                 }
@@ -3429,7 +4648,7 @@
                   "bearer": [
                     {
                       "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODM1NTg3NzksImV4cCI6MTc4MzU1OTY3OX0.CO0-PQiJuk8JoggJQiajqnXvT_QriqbSBZcpTP66wVg",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODU2MzYyMDcsImV4cCI6MTc4NTYzNzEwN30.XIoCTcoEQZKqK1aNnkEkLMiO-I6uE2WROyC7Is-NodI",
                       "type": "string"
                     }
                   ]
@@ -3446,7 +4665,7 @@
                   }
                 },
                 "url": {
-                  "raw": "http://localhost:3000/api/v1/reception/certificates/6",
+                  "raw": "http://localhost:3000/api/v1/reception/certificates/9",
                   "protocol": "http",
                   "host": [
                     "localhost"
@@ -3457,7 +4676,7 @@
                     "v1",
                     "reception",
                     "certificates",
-                    "6"
+                    "9"
                   ]
                 }
               },
@@ -3550,7 +4769,7 @@
               "response": []
             },
             {
-              "name": "تسجيل نتيجة الامتحان",
+              "name": "تسجيل نتيجة الامتحان لشهادة محددة",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -3634,6 +4853,49 @@
                 }
               },
               "response": []
+            },
+            {
+              "name": "تسجيل إعادة نقدية من المكتب",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODU2MzYyMDcsImV4cCI6MTc4NTYzNzEwN30.XIoCTcoEQZKqK1aNnkEkLMiO-I6uE2WROyC7Is-NodI",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"examType\" : \"PRACTICAL\" // THEORITICAL\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/reception/certificates/9/reexam",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "reception",
+                    "certificates",
+                    "9",
+                    "reexam"
+                  ]
+                }
+              },
+              "response": []
             }
           ]
         },
@@ -3648,7 +4910,7 @@
                   "bearer": [
                     {
                       "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjE2LCJyb2xlcyI6WyJTVFVERU5UIl0sInRva2VuVmVyc2lvbiI6MCwiaWF0IjoxNzgzNTY4MTc3LCJleHAiOjE3ODM1NjkwNzd9.TOQ99ZnmlUiCdWislTiEFWikcWxjTGrvXNLVw-pdscA",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjI1LCJyb2xlcyI6WyJTVFVERU5UIl0sInRva2VuVmVyc2lvbiI6MCwiaWF0IjoxNzg1NjM2MDU2LCJleHAiOjE3ODU2MzY5NTZ9.clYIF8HWwvxye5lBBcZWKZ_g3Dwh2xATHUut_HaeS_Y",
                       "type": "string"
                     }
                   ]
@@ -3668,19 +4930,19 @@
                       "key": "personalPhoto",
                       "type": "file",
                       "uuid": "731696ff-d090-49bb-bc58-f2580573fd14",
-                      "src": "/C:/Users/Zakwan/Desktop/file-example2.jpg"
+                      "src": "/C:/Users/Zakwan/Desktop/دورة.jpg"
                     },
                     {
                       "key": "idFront",
                       "type": "file",
                       "uuid": "06968150-389d-48a0-9ae5-eb494c1f1a89",
-                      "src": "/C:/Users/Zakwan/Desktop/file-example2.jpg"
+                      "src": "/C:/Users/Zakwan/Desktop/دورة.jpg"
                     },
                     {
                       "key": "idBack",
                       "type": "file",
                       "uuid": "33a68bba-2570-464b-8048-55802dc077a2",
-                      "src": "/C:/Users/Zakwan/Desktop/file-example2.jpg"
+                      "src": "/C:/Users/Zakwan/Desktop/دورة.jpg"
                     },
                     {
                       "key": "transmissionType",
@@ -3696,20 +4958,17 @@
                     },
                     {
                       "key": "transactionId",
-                      "value": "1231223",
+                      "value": "123123121",
                       "type": "text",
                       "uuid": "780707e8-9616-4494-9fed-1c863aebabee"
                     }
                   ]
                 },
                 "url": {
-                  "raw": "http://20.250.144.221:3000/api/v1/student/certificates",
+                  "raw": "http://localhost:3000/api/v1/student/certificates",
                   "protocol": "http",
                   "host": [
-                    "20",
-                    "250",
-                    "144",
-                    "221"
+                    "localhost"
                   ],
                   "port": "3000",
                   "path": [
@@ -3730,7 +4989,7 @@
                   "bearer": [
                     {
                       "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjE2LCJyb2xlcyI6WyJTVFVERU5UIl0sInRva2VuVmVyc2lvbiI6MCwiaWF0IjoxNzgzNTY4MTc3LCJleHAiOjE3ODM1NjkwNzd9.TOQ99ZnmlUiCdWislTiEFWikcWxjTGrvXNLVw-pdscA",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIyLCJyb2xlcyI6WyJTVFVERU5UIl0sInRva2VuVmVyc2lvbiI6MCwiaWF0IjoxNzg1NjM1OTMxLCJleHAiOjE3ODU2MzY4MzF9.jjVzmhF69YHpOx9Jmj9_o-z1iCqn05FgKBQRQ-1vC3",
                       "type": "string"
                     }
                   ]
@@ -3738,13 +4997,10 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "http://20.250.144.221:3000/api/v1/student/certificates",
+                  "raw": "http://localhost:3000/api/v1/student/certificates?category=B&transmissionType=MANUAL&courseNumber=100",
                   "protocol": "http",
                   "host": [
-                    "20",
-                    "250",
-                    "144",
-                    "221"
+                    "localhost"
                   ],
                   "port": "3000",
                   "path": [
@@ -3752,6 +5008,21 @@
                     "v1",
                     "student",
                     "certificates"
+                  ],
+                  "query": [
+                    {
+                      "key": "category",
+                      "value": "B"
+                    },
+                    {
+                      "key": "transmissionType",
+                      "value": "MANUAL"
+                    },
+                    {
+                      "key": "courseNumber",
+                      "value": "100",
+                      "description": "هاد بتوقع منشان يشوف طلبات العملي اله بغير رقم دورته الاصلية"
+                    }
                   ]
                 }
               },
@@ -3768,7 +5039,7 @@
                   "bearer": [
                     {
                       "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjE2LCJyb2xlcyI6WyJTVFVERU5UIl0sInRva2VuVmVyc2lvbiI6MCwiaWF0IjoxNzgzNTY4MTc3LCJleHAiOjE3ODM1NjkwNzd9.TOQ99ZnmlUiCdWislTiEFWikcWxjTGrvXNLVw-pdscA",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjI1LCJyb2xlcyI6WyJTVFVERU5UIl0sInRva2VuVmVyc2lvbiI6MCwiaWF0IjoxNzg1NjMxNDY4LCJleHAiOjE3ODU2MzIzNjh9.iZz8F8TqyGif-Y7SoSLTbQALrw2IYKrtezc1yQc8xEs",
                       "type": "string"
                     }
                   ]
@@ -3786,13 +5057,10 @@
                   "raw": ""
                 },
                 "url": {
-                  "raw": "http://20.250.144.221:3000/api/v1/student/certificates/6",
+                  "raw": "http://localhost:3000/api/v1/student/certificates/9",
                   "protocol": "http",
                   "host": [
-                    "20",
-                    "250",
-                    "144",
-                    "221"
+                    "localhost"
                   ],
                   "port": "3000",
                   "path": [
@@ -3800,7 +5068,7 @@
                     "v1",
                     "student",
                     "certificates",
-                    "6"
+                    "9"
                   ]
                 }
               },
@@ -3814,7 +5082,7 @@
                   "bearer": [
                     {
                       "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjE2LCJyb2xlcyI6WyJTVFVERU5UIl0sInRva2VuVmVyc2lvbiI6MCwiaWF0IjoxNzgzNTY4MTc3LCJleHAiOjE3ODM1NjkwNzd9.TOQ99ZnmlUiCdWislTiEFWikcWxjTGrvXNLVw-pdscA",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjI1LCJyb2xlcyI6WyJTVFVERU5UIl0sInRva2VuVmVyc2lvbiI6MCwiaWF0IjoxNzg1NjM2MDU2LCJleHAiOjE3ODU2MzY5NTZ9.clYIF8HWwvxye5lBBcZWKZ_g3Dwh2xATHUut_HaeS_Y",
                       "type": "string"
                     }
                   ]
@@ -3829,7 +5097,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{ \"examType\":\"THEORY\", \"transactionId\":\"1231231\" }",
+                  "raw": "{ \"examType\":\"THEORY\", \"transactionId\":\"123123123\" }",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3837,13 +5105,10 @@
                   }
                 },
                 "url": {
-                  "raw": "http://20.250.144.221:3000/api/v1/student/certificates/6/reexam",
+                  "raw": "http://localhost:3000/api/v1/student/certificates/9/reexam",
                   "protocol": "http",
                   "host": [
-                    "20",
-                    "250",
-                    "144",
-                    "221"
+                    "localhost"
                   ],
                   "port": "3000",
                   "path": [
@@ -3851,8 +5116,377 @@
                     "v1",
                     "student",
                     "certificates",
-                    "6",
+                    "9",
                     "reexam"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "معرفة الاجراء المسموح للطالب",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjI1LCJyb2xlcyI6WyJTVFVERU5UIl0sInRva2VuVmVyc2lvbiI6MCwiaWF0IjoxNzg1NjM2MDU2LCJleHAiOjE3ODU2MzY5NTZ9.clYIF8HWwvxye5lBBcZWKZ_g3Dwh2xATHUut_HaeS_Y",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/student/certificates/eligibility",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "student",
+                    "certificates",
+                    "eligibility"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "قسم و مسارات الدورات",
+          "item": [
+            {
+              "name": "عرض جميع الدورات",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODU2MzgzNjMsImV4cCI6MTc4NTYzOTI2M30.wz61mGul8bvIoW1IyQqtlFac7--Iz05R86mHb9vOwNo",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/reception/certificate-courses",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "reception",
+                    "certificate-courses"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "عرض كل تفاصيل دورة محددة",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODU2MzgzNjMsImV4cCI6MTc4NTYzOTI2M30.wz61mGul8bvIoW1IyQqtlFac7--Iz05R86mHb9vOwNo",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/reception/certificate-courses/2",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "reception",
+                    "certificate-courses",
+                    "2"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "تصدير جميع طلاب الدورة كملف بي دي اف",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODU2MzQzNTgsImV4cCI6MTc4NTYzNTI1OH0.Ur1jsTTcBBbuV_XAX_f66eH77LTmc2JQxNTXL37Yk7E",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"format\" : \"pdf\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/reception/certificate-courses/1/export",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "reception",
+                    "certificate-courses",
+                    "1",
+                    "export"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "انشاء رقم دورة جديدة لمجموعة طلبات شهادات",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODU2NDM5MzAsImV4cCI6MTc4NTY0NDgzMH0.jyIf8IGoEGH-MBySkYhKRAHVlNji_3wlj4P7RADg8fc",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"certificateIds\": [10 , 11],\r\n  \"courseNumber\": 184,\r\n  \"allowSmallCourse\": true\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/reception/certificate-courses",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "reception",
+                    "certificate-courses"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "ادخال مواعيد الجلسات لدورة محددة",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODU2MzY1ODksImV4cCI6MTc4NTYzNzQ4OX0.dWxoNgxMBFi932gx56_GcQ4UaaQfrWE1BjLvFGg96yU",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"sessions\": [\r\n    { \"sessionNumber\": 1, \"scheduledAt\": \"2026-04-04T09:00:00+03:00\" },\r\n    { \"sessionNumber\": 2, \"scheduledAt\": \"2026-04-05T09:00:00+03:00\" },\r\n    { \"sessionNumber\": 3, \"scheduledAt\": \"2026-04-06T09:00:00+03:00\" }\r\n  ],\r\n  \"notify\": true\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/reception/certificate-courses/2/sessions",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "reception",
+                    "certificate-courses",
+                    "2",
+                    "sessions"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "تحديد موعد امتحان الدورة",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODU2MzgzNjMsImV4cCI6MTc4NTYzOTI2M30.wz61mGul8bvIoW1IyQqtlFac7--Iz05R86mHb9vOwNo",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"scheduledAt\": \"2026-08-10T09:00:00+03:00\",\r\n  \"notify\": true\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/reception/certificate-courses/2/exam-schedule",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "reception",
+                    "certificate-courses",
+                    "2",
+                    "exam-schedule"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "عرض قائمة الممتحنين",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODU2MzE3MzQsImV4cCI6MTc4NTYzMjYzNH0.biVjkc8-ED5ZueVxLvNs-LEh8yvoURsyO-lfHF7bX2E",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/reception/certificate-courses/2/roster",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "reception",
+                    "certificate-courses",
+                    "2",
+                    "roster"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "ادخال نتائج دورة كاملة",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODU2Mzg4NjYsImV4cCI6MTc4NTYzOTc2Nn0.NkO08naY3NUgvTg8qZ_YE2hUoPknCe4cOfu8ekI0bvQ",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"items\": [\r\n    {\r\n      \"certificateId\": 15,\r\n      \"theory\": \"PASS\",\r\n      \"practical\": \"PASS\"\r\n    },\r\n    {\r\n      \"certificateId\": 16,\r\n      \"theory\": \"FAIL\"\r\n    },\r\n    {\r\n      \"certificateId\": 17,\r\n      \"practical\": \"PASS\"\r\n    }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/v1/reception/certificate-courses/2/results",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "reception",
+                    "certificate-courses",
+                    "2",
+                    "results"
                   ]
                 }
               },
@@ -3864,7 +5498,592 @@
           "name": "S",
           "request": {
             "method": "GET",
-            "header": []
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "settings",
+      "item": [
+        {
+          "name": "get all settings",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/settings",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "settings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update value in settings",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"key\" : \"lesson_price:FEMALE:MANUAL:STUDENT_CAR\",\r\n    \"value\" : \"1700\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/settings",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "settings"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "FCM Token",
+      "item": [
+        {
+          "name": "تسجيل توكن جديد او تحديث قديم",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODQzMDQ3MTIsImV4cCI6MTc4NDMwNTYxMn0.GkFLMRlQQVZD-ZyidNFtHH660UnAT6w6GqbAQ-tZptg",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"token\": \"fake-fcm-token-123\",\r\n \"platform\": \"ANDROID\" }\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/devices/token",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "devices",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "حذف توكن الجهاز",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODQzMDQ3MTIsImV4cCI6MTc4NDMwNTYxMn0.GkFLMRlQQVZD-ZyidNFtHH660UnAT6w6GqbAQ-tZptg",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"token\": \"fake-fcm-token-123\" }\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/devices/token",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "devices",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "General Expenses",
+      "item": [
+        {
+          "name": "add new general expenses",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODUwMjI1OTQsImV4cCI6MTc4NTAyMzQ5NH0.Vk7FQYgyeU8cz3XtV_IltTwF3ktxZKY4PuN3mJlqtHo",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"type\":\"ELECTRICITY\", \"amount\":120000, \"paymentMethod\":\"CASH\", \"note\":\"فاتورة تموز\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/general-expenses",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "general-expenses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All General Expenses",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODUwMDk5MjQsImV4cCI6MTc4NTAxMDgyNH0.1ebaH4LA9rh644qb1ihaJ6_-B6jleoLu5XYGPKV0UfM",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/general-expenses?type=WATER&paymentMethod=CASH&from=2026-07-01&to=2026-07-31&page=1&limit=20",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "general-expenses"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "WATER",
+                  "description": "{water,electricity,internet,kitchen,supplies,other}"
+                },
+                {
+                  "key": "paymentMethod",
+                  "value": "CASH"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-07-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-07-31"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Summary",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODUwMDg2NDIsImV4cCI6MTc4NTAwOTU0Mn0.MZOKdOCgTf4Df_MsyubZQHpfvVbTpnCGH0LAAKGD310",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/general-expenses/summary?from=2026-07-01&to=2026-08-31",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "general-expenses",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-07-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-08-31"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete General Expenses",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODUwMTEzMzMsImV4cCI6MTc4NTAxMjIzM30.8pAIHXVAgQw1DSTyZgI2-5FU9TAgxVGBdzCo9GFzCXk",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/general-expenses/22",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "general-expenses",
+                "22"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Employee Accounting",
+      "item": [
+        {
+          "name": "صرف فاتورة راتب او مكافئة لموظف",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODUwMjE2NTksImV4cCI6MTc4NTAyMjU1OX0.lnUQh8ltLvd1J8QzwW3zgubtmQLAikPTkyjNGmJvN5c",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "// راتب\r\n// { \"type\": \"SALARY\",  \"month\": \"2026-08\", \"paymentMethod\": \"CASH\" , \"expenseDate\":\"2026-07-22\" , \"note\" : \"الراتب الشهري\" }\r\n\r\n// مكافأة\r\n{ \"type\": \"BONUS\", \"amount\": 50000, \"note\": \"عيدية العيد\" }\r\n\r\n// مصروف آخر (سلفة مثلاً)\r\n// { \"type\": \"OTHER\", \"amount\": 30000, \"paymentMethod\": \"SHAM_CASH\", \"note\": \"سلفة\" }\r\n\r\n\r\n/*\r\n\r\nBody (raw JSON):\r\n\r\nالبارامتر\tمطلوب؟\tالخيارات / القيم\tملاحظة\r\ntype\t✅ مطلوب\tSALARY | BONUS | OTHER\tنوع الصرف\r\namount\t✅ مطلوب\tرقم > 0 (حتى منزلتين عشريتين)\tالمبلغ\r\nmonth\t⚠️ مطلوب فقط لـ SALARY\tYYYY-MM (مثلاً 2026-07)\tشهر الراتب\r\npaymentMethod\tاختياري\tCASH | SHAM_CASH\tالافتراضي CASH\r\nexpenseDate\tاختياري\tYYYY-MM-DD\tالافتراضي تاريخ اليوم\r\nnote\tاختياري\tنص (حتى 255)\tملاحظة\r\n\r\n*/",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/employees/1/expenses",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "employees",
+                "1",
+                "expenses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "كشف فواتير موظف",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODUwMTEzMzMsImV4cCI6MTc4NTAxMjIzM30.8pAIHXVAgQw1DSTyZgI2-5FU9TAgxVGBdzCo9GFzCXk",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/employees/1/expenses?type=SALARY&paymentMethod=CASH&from=2026-07-10&to=2026-07-20&page=1&limit=1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "employees",
+                "1",
+                "expenses"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "SALARY",
+                  "description": "SALARY | BONUS | OTHER",
+                  "type": "text"
+                },
+                {
+                  "key": "paymentMethod",
+                  "value": "CASH",
+                  "description": "CASH | SHAM_CASH",
+                  "type": "text"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-07-10",
+                  "description": "YYYY-MM-DD (بداية الفترة على تاريخ الفاتورة)",
+                  "type": "text"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-07-20",
+                  "type": "text"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "limit",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ملخص فواتير كل الموظفين",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODUwMTEzMzMsImV4cCI6MTc4NTAxMjIzM30.8pAIHXVAgQw1DSTyZgI2-5FU9TAgxVGBdzCo9GFzCXk",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/employees/expenses/summary?from=2026-07-10&to=2026-07-20",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "employees",
+                "expenses",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-07-10",
+                  "type": "text"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-07-20",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "حذف فاتورة لموظف",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODUwMTEzMzMsImV4cCI6MTc4NTAxMjIzM30.8pAIHXVAgQw1DSTyZgI2-5FU9TAgxVGBdzCo9GFzCXk",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/v1/employees/1/expenses/90",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "employees",
+                "1",
+                "expenses",
+                "90"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "لوحة المحاسبة",
+      "item": [
+        {
+          "name": "عرض اجمالي الداخل و الخارج",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODQzMDQ3MTIsImV4cCI6MTc4NDMwNTYxMn0.GkFLMRlQQVZD-ZyidNFtHH660UnAT6w6GqbAQ-tZptg",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/v1/accounting/overview",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "v1",
+                "accounting",
+                "overview"
+              ]
+            }
           },
           "response": []
         }
@@ -3898,12 +6117,11 @@
   "variable": [
     {
       "key": "url",
-      "value": ""
+      "value": "http://localhost:3000/api/v1"
     },
     {
       "key": "token",
-      "secret": true,
-      "source": {}
+      "value": ""
     }
   ]
 }

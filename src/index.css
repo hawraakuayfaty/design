@@ -187,3 +187,35 @@ textarea {
   scrollbar-width: none;
 }
 
+/* Vehicle Report Dashboard */
+.vrd-top-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.vrd-sessions-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.vrd-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.vrd-ledger-table-wrap {
+  overflow-x: auto;
+}
+
+@media (max-width: 1180px) {
+  .vrd-top-grid,
+  .vrd-sessions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
