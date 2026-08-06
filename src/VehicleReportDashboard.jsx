@@ -55,7 +55,8 @@ const PAYMENT_METHOD_FORM_OPTIONS = [["CASH", "نقداً"], ["SHAM_CASH", "شا
 function formatMoney(v) {
   if (v == null || v === "") return "—";
   const n = Number(v);
-  return isNaN(n) ? String(v) : `${n.toLocaleString("ar-SY")} ل.س`;
+  // en-US هنا يضبط شكل الأرقام (١٬٢٣٤ → 1,234) فقط — النص المحيط "ل.س" يبقى عربياً
+  return isNaN(n) ? String(v) : `${n.toLocaleString("en-US")} ل.س`;
 }
 
 function formatDateOnly(value) {

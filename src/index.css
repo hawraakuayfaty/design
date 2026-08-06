@@ -219,3 +219,36 @@ textarea {
   }
 }
 
+/* Instructor Report Dashboard */
+.ird-top-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.ird-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ird-table-wrap {
+  overflow-x: auto;
+}
+
+@media (max-width: 1180px) {
+  .ird-top-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.skeleton-pulse {
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+

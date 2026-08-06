@@ -48,6 +48,34 @@ const instructorsService = {
   deleteLeave(id, leaveId) {
     return client.delete(`/instructors/${id}/leaves/${leaveId}`);
   },
+
+  getReport(id, params) {
+    return client.get(`/instructors/${id}/report`, { params });
+  },
+
+  createBonus(id, data) {
+    return client.post(`/instructors/${id}/bonuses`, data);
+  },
+
+  deleteBonus(id, expenseId) {
+    return client.delete(`/instructors/${id}/bonuses/${expenseId}`);
+  },
+
+  getDues(id) {
+    return client.get(`/instructors/${id}/dues`);
+  },
+
+  settle(id, data) {
+    return client.post(`/instructors/${id}/settle`, data);
+  },
+
+  reverseSettlement(id, data) {
+    return client.post(`/instructors/${id}/settlements/reverse`, data);
+  },
+
+  getPayments(id, params) {
+    return client.get(`/instructors/${id}/payments`, { params });
+  },
 };
 
 export default instructorsService;

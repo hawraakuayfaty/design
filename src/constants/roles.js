@@ -57,5 +57,6 @@ export const P = {
 
   EXPENSES_READ: "expenses.read",
   EXPENSES_CREATE: "expenses.create",
+  EXPENSES_PAY: "expenses.pay",
   EXPENSES_DELETE: "expenses.delete",
 };

@@ -15,3 +15,4 @@ export { default as employeesService } from "./employees.service";
 export { default as dashboardService } from "./dashboard.service";
 export { default as generalExpensesService } from "./generalExpenses.service";
 export { default as employeeAccountingService } from "./employeeAccounting.service";
+export { default as bookingRevenueService } from "./bookingRevenue.service";

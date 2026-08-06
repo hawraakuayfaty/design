@@ -4,6 +4,8 @@ import AdminPro from "./AdminPro";
 import AccountantPro from "./AccountantPro";
 import ReceptionistPro from "./ReceptionistPro";
 import VehicleReportDashboard from "./VehicleReportDashboard";
+import InstructorReportDashboard from "./InstructorReportDashboard";
+import BookingRevenueReportDashboard from "./BookingRevenueReportDashboard";
 import { studentsService, instructorsService, vehiclesService, dashboardService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
@@ -3568,9 +3570,19 @@ function VehicleReportPicker({ t, onSelect }) {
 function PageReports({ t }) {
   const [vehicleReportOpen, setVehicleReportOpen] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
+  const [instructorReportOpen, setInstructorReportOpen] = useState(false);
+  const [bookingRevenueReportOpen, setBookingRevenueReportOpen] = useState(false);
 
   if (selectedVehicleId) {
     return <VehicleReportDashboard t={t} vehicleId={selectedVehicleId} onBack={() => setSelectedVehicleId(null)} />;
+  }
+
+  if (instructorReportOpen) {
+    return <InstructorReportDashboard t={t} onBack={() => setInstructorReportOpen(false)} />;
+  }
+
+  if (bookingRevenueReportOpen) {
+    return <BookingRevenueReportDashboard t={t} onBack={() => setBookingRevenueReportOpen(false)} />;
   }
 
   if (vehicleReportOpen) {
@@ -3605,7 +3617,7 @@ function PageReports({ t }) {
         {[
           {
             title: "تقرير الحجوزات",
-            desc: "إجمالي، مؤكد، مكتمل، ملغي، لم يحضر",
+            desc: "إيرادات مقبوضة، مستحقات قادمة، تفصيل يومي للدفعات",
             icon: <RiCalendarScheduleLine size={24} color="t.accent" />,
           },
           {
@@ -3636,10 +3648,19 @@ function PageReports({ t }) {
           },
         ].map((r) => {
           const isVehicleReport = r.title === "تقرير المركبات";
+          const isInstructorReport = r.title === "تقرير المدربين";
+          const isBookingRevenueReport = r.title === "تقرير الحجوزات";
+          const openReport = isVehicleReport
+            ? () => setVehicleReportOpen(true)
+            : isInstructorReport
+              ? () => setInstructorReportOpen(true)
+              : isBookingRevenueReport
+                ? () => setBookingRevenueReportOpen(true)
+                : undefined;
           return (
           <div
             key={r.title}
-            onClick={isVehicleReport ? () => setVehicleReportOpen(true) : undefined}
+            onClick={openReport}
             style={{
               background: t.bgSurface,
               borderRadius: 12,
@@ -3666,7 +3687,7 @@ function PageReports({ t }) {
               {["يومي", "أسبوعي", "شهري"].map((p) => (
                 <button
                   key={p}
-                  onClick={isVehicleReport ? (ev) => ev.stopPropagation() : undefined}
+                  onClick={openReport ? (ev) => ev.stopPropagation() : undefined}
                   style={{
                     padding: "4px 10px",
                     borderRadius: 6,
