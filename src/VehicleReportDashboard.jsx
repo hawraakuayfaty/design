@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { todayStr, currentYearMonth } from "./utils/dateUtils";
 import { vehiclesService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
@@ -55,8 +56,8 @@ const PAYMENT_METHOD_FORM_OPTIONS = [["CASH", "نقداً"], ["SHAM_CASH", "شا
 function formatMoney(v) {
   if (v == null || v === "") return "—";
   const n = Number(v);
-  // en-US هنا يضبط شكل الأرقام (١٬٢٣٤ → 1,234) فقط — النص المحيط "ل.س" يبقى عربياً
-  return isNaN(n) ? String(v) : `${n.toLocaleString("en-US")} ل.س`;
+  // "en" هنا يضبط شكل الأرقام (١٬٢٣٤ → 1,234) فقط — النص المحيط "ل.س" يبقى عربياً
+  return isNaN(n) ? String(v) : `${n.toLocaleString("en")} ل.س`;
 }
 
 function formatDateOnly(value) {
@@ -79,13 +80,8 @@ function formatMonthLabel(monthStr) {
   return ARABIC_MONTHS_SHORT[idx] ? `${ARABIC_MONTHS_SHORT[idx]} ${y}` : monthStr;
 }
 
-function currentMonthStr() {
-  return new Date().toISOString().slice(0, 7);
-}
-
-function currentDateStr() {
-  return new Date().toISOString().slice(0, 10);
-}
+const currentMonthStr = currentYearMonth;
+const currentDateStr  = todayStr;
 
 function isDarkTheme(t) {
   return t.bgSurface === "#27272a";

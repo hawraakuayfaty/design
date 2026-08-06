@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { todayStr, formatDate } from "./utils/dateUtils";
 import { FiChevronDown, FiChevronUp, FiDownload, FiCalendar } from "react-icons/fi";
 import { TbBus } from "react-icons/tb";
 import { IoIosCalendar } from "react-icons/io";
@@ -105,6 +106,8 @@ function Badge({s,t}){
     "مسجل":t.completed,"غير مسجل":t.expired,"حضر":t.completed,"مدفوع":t.completed,"معلق":t.pending,
     "تم الإثبات":t.qualified,"جديد":t.pending,"قيد التدريب":t.inprogress,"أنهى التدريب":t.accepted,
     "طلب شهادة":t.qualified,"ذكر":t.confirmed,"أنثى":t.noshow,
+    "العربون مدفوع":t.pending,"مدفوع بالكامل":t.completed,"عربون محروق":t.cancelled,
+    "رصيد محفوظ":t.inprogress,"رصيد مستهلك":t.expired,
   };
   const c=m[s]||t.expired;
   return <span style={{display:"inline-flex",alignItems:"center",gap:5,background:c.bg,color:c.text,padding:"2px 9px",borderRadius:20,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>{s}</span>;
@@ -148,7 +151,7 @@ function InvoiceModal({booking,t,onClose}){
           <span style={{color:t.textMuted}}>حسم (اختياري)</span>
           <div style={{display:"flex",gap:5,alignItems:"center"}}><input value={disc} onChange={e=>setDisc(e.target.value)} placeholder="0" type="number" style={{width:70,padding:"4px 7px",borderRadius:6,border:`1px solid ${t.border}`,background:t.bgSurface,color:t.text,fontSize:12,fontFamily:"inherit",textAlign:"center",outline:"none"}}/><span style={{fontSize:11,color:t.textMuted}}>ل.س</span></div>
         </div>
-        <div style={{display:"flex",justifyContent:"space-between",padding:"9px 0",fontSize:15,fontWeight:700}}><span style={{color:t.text}}>الإجمالي المستحق</span><span style={{color:t.accent}}>{total.toLocaleString()} ل.س</span></div>
+        <div style={{display:"flex",justifyContent:"space-between",padding:"9px 0",fontSize:15,fontWeight:700}}><span style={{color:t.text}}>الإجمالي المستحق</span><span style={{color:t.accent}}>{total.toLocaleString("en")} ل.س</span></div>
       </div>
     </div>
     <div style={{padding:"9px 12px",borderRadius:9,background:t.pending.bg,fontSize:12,color:t.pending.text,marginBottom:14}}>⚠ بعد التأكيد تُحفظ الفاتورة وتصبح الجلسة "مكتملة"</div>
@@ -242,34 +245,77 @@ function SectionStudents({t}){
     return () => { c = true; };
   }, [sel]);
 
-  // ── Fetch student bookings via dedicated endpoint ──
-  const fetchBookings = async () => {
+  // ── Fetch student bookings ──
+  const extractBkArr = (rd) => {
+    if (!rd) return [];
+    if (Array.isArray(rd)) return rd;
+    if (Array.isArray(rd?.data)) return rd.data;
+    if (Array.isArray(rd?.data?.data)) return rd.data.data;
+    const inner = rd?.data ?? rd;
+    if (inner && typeof inner === "object") {
+      for (const k of ["items", "bookings", "results", "rows"]) {
+        if (Array.isArray(inner[k])) return inner[k];
+      }
+    }
+    return [];
+  };
+
+  const fetchStudentBookings = async (cancelled = { v: false }) => {
     if (!sel) { setBookings([]); return; }
     setLoadingBk(true);
     try {
-      const res  = await studentsService.getBookings(sId(sel), { limit: 100 });
-      const body = res.data?.data ?? res.data;
-      const arr  = Array.isArray(body) ? body : (body?.data || body?.bookings || body?.items || []);
-      setBookings(arr);
-    } catch { setBookings([]); }
-    finally  { setLoadingBk(false); }
+      const selName = sName(sel);
+      console.log("👉 Fetching bookings for student:", selName, "| sel object:", sel);
+
+      // limit max is 50 per API validation; sanitize bookingStatus to underscore format
+      const params = { limit: 50 };
+      if (selName && selName !== "—") params.search = selName.trim();
+      if (bFilt) params.bookingStatus = bFilt.replace(/\s+/g, "_");
+
+      console.log("👉 Request params:", params);
+      const res = await bookingsService.getAll(params);
+      console.log("👉 Raw API response:", res);
+      console.log("👉 res.data:", res.data);
+
+      let list = extractBkArr(res.data);
+      console.log("👉 Extracted array length:", list.length, "| items:", list);
+
+      // Soft name filter as safety net (API search already narrows, this guards edge cases)
+      if (selName && selName !== "—") {
+        const nameLower = selName.trim().toLowerCase();
+        const byName = list.filter(b => (b.studentName || "").trim().toLowerCase().includes(nameLower));
+        if (byName.length > 0) list = byName;
+      }
+
+      // Fallback: if still empty, fetch all (limit 50) and soft-match by first name token
+      if (list.length === 0 && selName && selName !== "—") {
+        console.warn("⚠️ Name search returned 0 — running fallback full-list fetch...");
+        const fbParams = { limit: 50 };
+        if (bFilt) fbParams.bookingStatus = bFilt.replace(/\s+/g, "_");
+        const allRes = await bookingsService.getAll(fbParams);
+        console.log("👉 Fallback response:", allRes.data);
+        const allList = extractBkArr(allRes.data);
+        const firstName = selName.trim().split(/\s+/)[0].toLowerCase();
+        list = allList.filter(b => (b.studentName || "").trim().toLowerCase().includes(firstName));
+        console.log("👉 Fallback matched", list.length, "bookings by first name token:", firstName);
+      }
+
+      if (!cancelled.v) setBookings(list);
+    } catch (err) {
+      console.error("❌ fetchStudentBookings error:", err);
+      if (!cancelled.v) setBookings([]);
+    } finally {
+      if (!cancelled.v) setLoadingBk(false);
+    }
   };
 
+  const fetchBookings = () => fetchStudentBookings();
+
   useEffect(() => {
-    let c = false;
-    (async () => {
-      if (!sel) { setBookings([]); return; }
-      setLoadingBk(true);
-      try {
-        const res  = await studentsService.getBookings(sId(sel), { limit: 100 });
-        const body = res.data?.data ?? res.data;
-        const arr  = Array.isArray(body) ? body : (body?.data || body?.bookings || body?.items || []);
-        if (!c) setBookings(arr);
-      } catch { if (!c) setBookings([]); }
-      finally  { if (!c) setLoadingBk(false); }
-    })();
-    return () => { c = true; };
-  }, [sel]);
+    const guard = { v: false };
+    fetchStudentBookings(guard);
+    return () => { guard.v = true; };
+  }, [sel, bFilt]);
 
   // ── Update booking status ──
   const handleUpdateStatus = async (bookingId, status) => {
@@ -300,7 +346,7 @@ function SectionStudents({t}){
     pay:       PAYMENT_STATUS_MAP[b.paymentStatus] || b.paymentStatus || "—",
     rawStatus: b.bookingStatus,
   }));
-  const shownBookings = mappedBookings.filter(b => !bFilt || b.rawStatus === bFilt);
+  const shownBookings = mappedBookings;
 
   const dotColor = (raw) => {
     if (raw === "COMPLETED")       return t.completed.dot;
@@ -429,7 +475,7 @@ function SectionStudents({t}){
                     <InfoRow k="نوع التدريب"     v={ttLabel(d?.trainingType)} t={t} />
                     {d?.nationalId  && <InfoRow k="رقم الهوية"       v={String(d.nationalId)}                                          t={t} />}
                     {d?.createdAt   && <InfoRow k="تاريخ التسجيل"   v={new Date(d.createdAt).toLocaleDateString("ar-SY")}            t={t} />}
-                    {d?.balance != null && <InfoRow k="الرصيد"        v={`${Number(d.balance).toLocaleString("ar-SY")} ل.س`}          t={t} />}
+                    {d?.balance != null && <InfoRow k="الرصيد"        v={`${Number(d.balance).toLocaleString("en")} ل.س`}          t={t} />}
                   </>
                 )}
               </Card>
@@ -507,7 +553,6 @@ const GENDER_FILTER = [
 const DAY_OF_WEEK_ORDER = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const DAY_OF_WEEK_LABELS = { SUN: "الأحد", MON: "الاثنين", TUE: "الثلاثاء", WED: "الأربعاء", THU: "الخميس", FRI: "الجمعة", SAT: "السبت" };
 
-function todayStr() { return new Date().toISOString().slice(0, 10); }
 
 // dayOfWeek/periods come back from GET /instructors/{id}/schedule as e.g. { dayOfWeek: "SAT", periods: [{ startTime: "08:00:00", endTime: "14:00:00" }] }
 // the update endpoint expects "HH:MM" (no seconds), so times are normalized on read.
@@ -536,7 +581,7 @@ function extractList(body, keys) {
 function formatMoney(v) {
   if (v == null || v === "") return "—";
   const n = Number(v);
-  return isNaN(n) ? String(v) : `${n.toLocaleString("ar-SY")} ل.س`;
+  return isNaN(n) ? String(v) : `${n.toLocaleString("en")} ل.س`;
 }
 
 function formatLeaveRange(l) {
@@ -1304,9 +1349,12 @@ const BOOKING_STATUS_MAP = {
   CANCELLED: "ملغي", NO_SHOW: "لم يحضر", EXPIRED: "منتهي",
 };
 const PAYMENT_STATUS_MAP = {
-  DEPOSIT_PAID: "مدفوع", FULLY_PAID: "مدفوع", PENDING_DEPOSIT: "معلق",
-  DEPOSIT_NON_REFUNDABLE: "غير مسترد", DEPOSIT_AVAILABLE_FOR_REBOOKING: "قابل لإعادة الحجز",
-  DEPOSIT_USED_IN_REBOOKING: "مُستخدم",
+  DEPOSIT_PAID: "العربون مدفوع",
+  FULLY_PAID: "مدفوع بالكامل",
+  PENDING_DEPOSIT: "معلق",
+  DEPOSIT_NON_REFUNDABLE: "عربون محروق",
+  DEPOSIT_AVAILABLE_FOR_REBOOKING: "رصيد محفوظ",
+  DEPOSIT_USED_IN_REBOOKING: "رصيد مستهلك",
 };
 const TRAINING_MAP = { MANUAL: "عادي", AUTOMATIC: "أوتوماتيك" };
 const BOOKING_STATUS_FILTER = [
@@ -1317,10 +1365,11 @@ const BOOKING_STATUS_FILTER = [
 
 function formatBookingDate(b) {
   if (b.dayName && b.date && b.startTime) {
-    const d = new Date(b.date);
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = d.toLocaleDateString("ar-SY", { month: "long" });
-    return `${b.dayName} ${day} ${month} ${b.startTime}`;
+    const [year, month, day] = b.date.split("T")[0].split("-");
+    const localDate = new Date(Number(year), Number(month) - 1, Number(day));
+    const dayPadded = String(Number(day)).padStart(2, "0");
+    const monthName = localDate.toLocaleDateString("ar-SY", { month: "long" });
+    return `${b.dayName} ${dayPadded} ${monthName} ${b.startTime}`;
   }
   if (b.startAt) {
     const d = new Date(b.startAt);
@@ -1801,6 +1850,217 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
   );
 }
 
+function PayRemainingModal({ booking, t, onClose, onSuccess }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [detail, setDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDetailLoading(true);
+    bookingsService.getById(booking.id)
+      .then(res => {
+        if (!cancelled) setDetail(res.data?.data ?? res.data);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setDetailLoading(false); });
+    return () => { cancelled = true; };
+  }, [booking.id]);
+
+  // charges is an array from GET /reception/bookings/:id
+  const chargesArr = Array.isArray(detail?.charges) ? detail.charges : [];
+  // Sum unpaid portions across all charges (amountDue - sum of payments)
+  const chargesRemaining = chargesArr.length > 0
+    ? chargesArr.reduce((sum, c) => {
+        const due  = parseFloat(c.amountDue  ?? c.remainingAmount ?? 0);
+        const paid = (c.payments || []).reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+        return sum + Math.max(0, due - paid);
+      }, 0)
+    : null;
+
+  const remaining =
+    (chargesRemaining != null && chargesRemaining > 0 ? chargesRemaining : null) ??
+    detail?.booking?.remainingAmount ??
+    booking.raw?.remainingAmount ??
+    booking.remainingAmount ??
+    null;
+
+  const totalAmt =
+    detail?.booking?.totalAmount ??
+    detail?.booking?.price ??
+    booking.raw?.totalAmount ??
+    booking.raw?.price ??
+    null;
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    setError("");
+    try {
+      await bookingsService.payRemainder(booking.id);
+      onSuccess();
+    } catch (err) {
+      setError(err?.response?.data?.message || "حدث خطأ أثناء تنفيذ الدفع");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal title="تحصيل باقي المبلغ" onClose={onClose} t={t} width={440}>
+      <div style={{ background: t.bgElevated, borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+        <InfoRow k="الطالب"     v={booking.student}  t={t} />
+        <InfoRow k="الجلسة"     v={booking.dateTime} t={t} />
+        <InfoRow k="حالة الدفع" v={booking.pay}      t={t} />
+        {totalAmt != null && (
+          <InfoRow k="المبلغ الكلي" v={`${Number(totalAmt).toLocaleString("en")} ل.س`} t={t} />
+        )}
+      </div>
+
+      {/* Remaining amount — always shown, prominent */}
+      <div style={{
+        borderRadius: 10, padding: "14px 16px", marginBottom: 14,
+        background: t.confirmed?.bg || "#f0fdf4",
+        border: `1.5px solid ${t.confirmed?.dot || "#16a34a"}`,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: t.confirmed?.text || "#15803d" }}>
+          المبلغ المتبقي للتحصيل
+        </span>
+        <span style={{ fontSize: 17, fontWeight: 800, color: t.confirmed?.text || "#15803d" }}>
+          {detailLoading
+            ? "جارٍ التحميل..."
+            : remaining != null
+              ? `${Number(remaining).toLocaleString("en")} ل.س`
+              : "—"}
+        </span>
+      </div>
+
+      <div style={{ padding: "10px 12px", borderRadius: 8, background: t.pending.bg, color: t.pending.text, fontSize: 12, marginBottom: 14 }}>
+        ℹ يتم تسجيل الدفع نقداً تلقائياً — بعد التأكيد تصبح حالة الدفع "مدفوع بالكامل"
+      </div>
+
+      {error && (
+        <div style={{ padding: "8px 12px", borderRadius: 8, background: t.cancelled.bg, color: t.cancelled.text, fontSize: 12, marginBottom: 12 }}>{error}</div>
+      )}
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <Btn label={submitting ? "جارٍ التنفيذ..." : "✓ تأكيد الدفع"} onClick={handleSubmit} t={t} style={{ flex: 1 }} disabled={submitting || detailLoading} />
+        <Btn label="إلغاء" onClick={onClose} t={t} v="ghost" />
+      </div>
+    </Modal>
+  );
+}
+
+const CANCEL_PARTIES = [
+  { value: "STUDENT",    label: "الطالب"  },
+  { value: "INSTRUCTOR", label: "المدرب"  },
+  { value: "VEHICLE",    label: "السيارة" },
+  { value: "SCHOOL",     label: "المدرسة" },
+];
+
+function CancelBookingModal({ booking, t, onClose, onSuccess }) {
+  const [party,      setParty]      = useState("");
+  const [reason,     setReason]     = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error,      setError]      = useState("");
+
+  const isStudentParty = party === "STUDENT";
+  const canSubmit = party && reason.trim().length >= 1 && reason.trim().length <= 255;
+
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const res = await bookingsService.cancel(booking.id, {
+        cancellationParty:  party,
+        cancellationReason: reason.trim(),
+      });
+      const msg = (res.data?.data ?? res.data)?.message || "تم إلغاء الحجز بنجاح";
+      onSuccess(msg);
+    } catch (err) {
+      setError(err?.response?.data?.message || "حدث خطأ أثناء إلغاء الحجز");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal title="إلغاء الحجز" onClose={onClose} t={t} width={460}>
+      <div style={{ background: t.bgElevated, borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+        <InfoRow k="الطالب"     v={booking.student}  t={t} />
+        <InfoRow k="الجلسة"     v={booking.dateTime} t={t} />
+        <InfoRow k="حالة الحجز" v={booking.status}   t={t} />
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: t.textSec, marginBottom: 8 }}>الجهة المُلغِية</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {CANCEL_PARTIES.map(({ value, label }) => (
+            <button key={value} type="button" onClick={() => setParty(value)} style={{
+              padding: "9px 18px", borderRadius: 9, border: "none",
+              cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+              background: party === value ? (value === "STUDENT" ? "#b91c1c" : "#778a3b") : t.bgElevated,
+              color:      party === value ? "#fff" : t.textSec,
+              outline:    party === value ? "none" : `1.5px solid ${t.border}`,
+            }}>{label}</button>
+          ))}
+        </div>
+      </div>
+
+      {party && (
+        <div style={{
+          padding: "10px 12px", borderRadius: 8, marginBottom: 14, fontSize: 12,
+          background: isStudentParty ? "#fef2f2" : t.pending.bg,
+          color:      isStudentParty ? "#b91c1c"  : t.pending.text,
+          border: `1px solid ${isStudentParty ? "#fca5a5" : t.pending.dot + "50"}`,
+        }}>
+          {isStudentParty
+            ? "⚠ تنبيه: العربون غير مسترد ويُصبح محروقاً نهائياً (DEPOSIT_NON_REFUNDABLE)"
+            : "ℹ يُحفَظ العربون كرصيد للطالب لاستخدامه في حجز آخر (DEPOSIT_AVAILABLE_FOR_REBOOKING)"}
+        </div>
+      )}
+
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 6 }}>
+          سبب الإلغاء <span style={{ color: "#b91c1c" }}>*</span>
+        </label>
+        <textarea
+          value={reason}
+          onChange={e => setReason(e.target.value.slice(0, 255))}
+          placeholder="أدخل سبب الإلغاء..."
+          rows={3}
+          style={{
+            width: "100%", boxSizing: "border-box",
+            padding: "10px 12px", borderRadius: 9, resize: "vertical",
+            border: `1.5px solid ${t.border}`, background: t.bgElevated, color: t.text,
+            fontFamily: "inherit", fontSize: 13, outline: "none",
+          }}
+        />
+        <div style={{ fontSize: 11, color: t.textMuted, textAlign: "left", marginTop: 3 }}>
+          {reason.trim().length}/255
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ padding: "8px 12px", borderRadius: 8, background: t.cancelled.bg, color: t.cancelled.text, fontSize: 12, marginBottom: 12 }}>{error}</div>
+      )}
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <Btn
+          label={submitting ? "جارٍ التنفيذ..." : "✓ تأكيد الإلغاء"}
+          onClick={handleSubmit}
+          t={t}
+          style={{ flex: 1, ...(canSubmit && !submitting ? { background: "#b91c1c", color: "#fff" } : {}) }}
+          disabled={!canSubmit || submitting}
+        />
+        <Btn label="تراجع" onClick={onClose} t={t} v="ghost" />
+      </div>
+    </Modal>
+  );
+}
+
 function SectionBookings({ t }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1810,6 +2070,12 @@ function SectionBookings({ t }) {
   const [invModal, setInvModal] = useState(null);
   const [nsModal, setNsModal] = useState(null);
   const [detailModal, setDetailModal] = useState(null);
+  const [payModal, setPayModal] = useState(null);
+  const [payToast, setPayToast] = useState(null);
+  const [cancelModal, setCancelModal] = useState(null);
+  const [cancelToast, setCancelToast] = useState(null);
+  const [nsBusy, setNsBusy] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const extractBookings = (responseData) => {
     console.log("[Bookings] Raw response.data:", responseData);
@@ -1864,6 +2130,27 @@ function SectionBookings({ t }) {
     return () => { cancelled = true; };
   }, [tab, search]);
 
+  const handlePayRemainder = (b) => setPayModal(b);
+
+  const handleNoShow = async () => {
+    if (!nsModal) return;
+    setNsBusy(true);
+    try { await bookingsService.updateStatus(nsModal.id, "NO_SHOW"); setNsModal(null); await fetchBookings(); }
+    catch { /* silent */ }
+    finally { setNsBusy(false); }
+  };
+
+  const openDetail = async (b) => {
+    setDetailModal({ ...b, apiDetail: null });
+    setDetailLoading(true);
+    try {
+      const res = await bookingsService.getById(b.id);
+      const body = res.data?.data ?? res.data;
+      if (body) setDetailModal({ ...b, apiDetail: body });
+    } catch { /* keep list data */ }
+    finally { setDetailLoading(false); }
+  };
+
   const mapBooking = (b) => {
     const student = b.studentName || b.student?.user?.name || "—";
     const inst = b.instructorName || b.instructor?.user?.name || "—";
@@ -1885,11 +2172,34 @@ function SectionBookings({ t }) {
       pay,
       rawStatus: b.bookingStatus,
       rawPayment: b.paymentStatus,
+      remainingAmount: b.remainingAmount ?? null,
+      canPayRemainder: b.canPayRemainder ?? null,
       raw: b,
     };
   };
 
   const mapped = (Array.isArray(bookings) ? bookings : []).map(mapBooking);
+
+  const sorted = (() => {
+    const now = new Date();
+    return [...mapped].sort((a, b) => {
+      const rawA = a.raw || {};
+      const rawB = b.raw || {};
+      const dtA = rawA.date && rawA.startTime
+        ? new Date(`${rawA.date.split("T")[0]}T${rawA.startTime}`)
+        : new Date(0);
+      const dtB = rawB.date && rawB.startTime
+        ? new Date(`${rawB.date.split("T")[0]}T${rawB.startTime}`)
+        : new Date(0);
+
+      const isPastA = dtA < now;
+      const isPastB = dtB < now;
+
+      if (isPastA !== isPastB) return isPastA ? 1 : -1;  // future first
+      if (!isPastA) return dtA - dtB;                    // upcoming: nearest first
+      return dtB - dtA;                                  // past: most recent first
+    });
+  })();
 
   const dotColor = (s) => {
     if (s === "مكتمل") return t.completed.dot;
@@ -1901,29 +2211,37 @@ function SectionBookings({ t }) {
   };
 
   return (
-    <div style={{ padding: "18px 22px", overflowY: "auto", flex: 1 }}>
-      <div style={{ display: "flex", gap: 3, marginBottom: 14, background: t.bgElevated, borderRadius: 9, padding: 3, overflowX: "auto" }}>
-        {BOOKING_STATUS_FILTER.map((f) => (
-          <button key={f.value} onClick={() => setTab(f.value)} style={{
-            padding: "7px 12px", borderRadius: 7, border: "none", cursor: "pointer",
-            fontFamily: "inherit", fontSize: 11, fontWeight: tab === f.value ? 700 : 400,
-            whiteSpace: "nowrap", background: tab === f.value ? t.bgSurface : "transparent",
-            color: tab === f.value ? t.text : t.textMuted, boxShadow: tab === f.value ? t.shadow : "none",
-          }}>{f.label}</button>
-        ))}
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+      {/* Sticky control bar */}
+      <div style={{
+        position: "sticky", top: 0, zIndex: 20,
+        background: t.bgPage, borderBottom: `1px solid ${t.border}`,
+        padding: "12px 22px 10px",
+      }}>
+        <div style={{ display: "flex", gap: 3, marginBottom: 10, background: t.bgElevated, borderRadius: 9, padding: 3, overflowX: "auto" }}>
+          {BOOKING_STATUS_FILTER.map((f) => (
+            <button key={f.value} onClick={() => setTab(f.value)} style={{
+              padding: "7px 12px", borderRadius: 7, border: "none", cursor: "pointer",
+              fontFamily: "inherit", fontSize: 11, fontWeight: tab === f.value ? 700 : 400,
+              whiteSpace: "nowrap", background: tab === f.value ? t.bgSurface : "transparent",
+              color: tab === f.value ? t.text : t.textMuted, boxShadow: tab === f.value ? t.shadow : "none",
+            }}>{f.label}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <SearchBar placeholder="بحث باسم الطالب..." t={t} value={search} onChange={setSearch} />
+          <Btn label="+ حجز جديد" onClick={() => setCreateModal(true)} t={t} />
+        </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        <SearchBar placeholder="بحث باسم الطالب..." t={t} value={search} onChange={setSearch} />
-        <Btn label="+ حجز جديد" onClick={() => setCreateModal(true)} t={t} />
-      </div>
-
+      {/* Scrollable bookings list */}
+      <div style={{ overflowY: "auto", flex: 1, padding: "14px 22px" }}>
       {loading ? (
         <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>جارٍ تحميل الحجوزات...</div>
-      ) : mapped.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>لا توجد حجوزات</div>
       ) : (
-        mapped.map((b) => (
+        sorted.map((b) => (
           <div key={b.id} style={{
             background: t.bgSurface, borderRadius: 11, border: `1px solid ${t.borderCard}`,
             padding: "13px 16px", marginBottom: 7, boxShadow: t.shadow,
@@ -1952,24 +2270,76 @@ function SectionBookings({ t }) {
                 <Badge s={b.pay} t={t} />
                 <Badge s={b.status} t={t} />
               </div>
-              <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-                {b.rawStatus === "BOOKED" && b.rawPayment === "DEPOSIT_PAID" && (
-                  <Btn label="دفع المتبقي" onClick={() => setInvModal(b)} t={t} sz="sm" />
+              <div style={{ display: "flex", gap: 5, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                {(
+                  b.canPayRemainder === true ||
+                  Number(b.remainingAmount) > 0 ||
+                  (b.rawStatus === "BOOKED" && b.rawPayment === "DEPOSIT_PAID")
+                ) && (
+                  <Btn label="دفع المتبقي" onClick={() => handlePayRemainder(b)} t={t} sz="sm" style={{ background: "#6b723a", color: "#fff" }} />
                 )}
                 {b.rawStatus === "BOOKED" && (
                   <Btn label="لم يحضر" onClick={() => setNsModal(b)} t={t} sz="sm" v="danger" />
                 )}
-                <Btn label="تفاصيل" onClick={() => setDetailModal(b)} t={t} sz="sm" v="ghost" />
+                {(b.rawStatus === "BOOKED" || b.rawStatus === "PENDING_PAYMENT") && (
+                  <Btn label="إلغاء الحجز" onClick={(e) => { e.stopPropagation(); setCancelModal(b); }} t={t} sz="sm" v="danger" />
+                )}
+                <Btn label="تفاصيل" onClick={(e) => { e.stopPropagation(); openDetail(b); }} t={t} sz="sm" v="ghost" />
               </div>
             </div>
           </div>
         ))
       )}
+      </div>{/* /scrollable list */}
 
       {createModal && (
         <CreateBookingModal t={t} onClose={() => setCreateModal(false)} onSuccess={() => { setCreateModal(false); fetchBookings(); }} />
       )}
       {invModal && <InvoiceModal booking={invModal} t={t} onClose={() => setInvModal(null)} />}
+      {payModal && (
+        <PayRemainingModal
+          booking={payModal}
+          t={t}
+          onClose={() => setPayModal(null)}
+          onSuccess={() => {
+            setPayModal(null);
+            setPayToast("✓ تم تسجيل الدفع بنجاح — حالة الدفع أصبحت مدفوع بالكامل");
+            setTimeout(() => setPayToast(null), 3500);
+            fetchBookings();
+          }}
+        />
+      )}
+      {payToast && (
+        <div style={{
+          position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
+          background: t.completed.bg, color: t.completed.text,
+          border: `1px solid ${t.completed.dot}40`,
+          padding: "11px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+          zIndex: 2000, whiteSpace: "nowrap", boxShadow: t.shadowMd,
+        }}>{payToast}</div>
+      )}
+      {cancelModal && (
+        <CancelBookingModal
+          booking={cancelModal}
+          t={t}
+          onClose={() => setCancelModal(null)}
+          onSuccess={(msg) => {
+            setCancelModal(null);
+            setCancelToast(msg);
+            setTimeout(() => setCancelToast(null), 4000);
+            fetchBookings();
+          }}
+        />
+      )}
+      {cancelToast && (
+        <div style={{
+          position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
+          background: t.cancelled.bg, color: t.cancelled.text,
+          border: `1px solid ${t.cancelled.dot}40`,
+          padding: "11px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+          zIndex: 2000, whiteSpace: "nowrap", boxShadow: t.shadowMd,
+        }}>{cancelToast}</div>
+      )}
       {nsModal && (
         <Modal title="تأكيد: لم يحضر" onClose={() => setNsModal(null)} t={t} width={370}>
           <div style={{ padding: "10px 12px", borderRadius: 9, background: t.noshow.bg, marginBottom: 12, fontSize: 12, color: t.noshow.text }}>
@@ -1978,28 +2348,70 @@ function SectionBookings({ t }) {
           <InfoRow k="الطالب" v={nsModal.student} t={t} />
           <InfoRow k="الجلسة" v={nsModal.dateTime} t={t} />
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            <Btn label="تأكيد No-Show" onClick={() => setNsModal(null)} t={t} v="danger" style={{ flex: 1 }} />
+            <Btn label={nsBusy ? "جارٍ..." : "تأكيد No-Show"} onClick={handleNoShow} t={t} v="danger" style={{ flex: 1 }} disabled={nsBusy} />
             <Btn label="إلغاء" onClick={() => setNsModal(null)} t={t} v="ghost" />
           </div>
         </Modal>
       )}
       {detailModal && (() => {
-        const r = detailModal.raw;
-        const vehicle = r.vehicleSource === "STUDENT_CAR"
-          ? "سيارة الطالب"
-          : (r.vehiclePlate || "—");
-        const type = TRAINING_MAP[r.trainingType] || r.trainingType || "—";
-        const payLabel = PAYMENT_STATUS_MAP[r.paymentStatus] || r.paymentStatus || "—";
-        const statusLabel = BOOKING_STATUS_MAP[r.bookingStatus] || r.bookingStatus || "—";
-        const dateStr = r.dayName && r.date
-          ? `${r.dayName} ${r.date}`
-          : r.date || "—";
-        const timeStr = r.startTime && r.endTime
-          ? `من ${r.startTime} إلى ${r.endTime}`
-          : r.startTime || "—";
-        const remaining = r.remainingAmount != null
-          ? `${Number(r.remainingAmount).toLocaleString("ar-SY")} ل.س`
-          : "—";
+        // api = nested response { booking, student, instructor, vehicle, ... } from GET /reception/bookings/:id
+        // raw = flat booking object from the list API (always preserved)
+        const api = detailModal.apiDetail;
+        const r = detailModal.raw || {};
+
+        const bk = api?.booking || r;
+        const studentName = api?.student?.name || r.studentName || detailModal.student || "—";
+        const instructorName = api?.instructor?.name || r.instructorName || detailModal.inst || "—";
+
+        const vehicleStr = (() => {
+          if (api?.vehicle) {
+            const v = api.vehicle;
+            const src = api.booking?.vehicleSource || v.vehicleSource;
+            return src === "STUDENT_CAR" ? "سيارة الطالب" : (`${v.model || ""} ${v.plateNumber || ""}`.trim() || "—");
+          }
+          return r.vehicleSource === "STUDENT_CAR" ? "سيارة الطالب" : (r.vehiclePlate || detailModal.vehicle || "—");
+        })();
+
+        const type = TRAINING_MAP[bk.trainingType] || bk.trainingType || detailModal.type || "—";
+        const payLabel = PAYMENT_STATUS_MAP[bk.paymentStatus] || bk.paymentStatus || detailModal.pay || "—";
+        const statusLabel = BOOKING_STATUS_MAP[bk.bookingStatus] || bk.bookingStatus || detailModal.status || "—";
+
+        // Deposit amount shown next to "العربون مدفوع"
+        const depositAmt = (() => {
+          // 1. Direct field on the booking object
+          const direct = bk.collectedAmount ?? bk.depositAmount ?? bk.depositPaid ?? null;
+          if (direct != null && parseFloat(direct) > 0) return parseFloat(direct);
+          // 2. Payments on a DEPOSIT-type charge
+          const depositCharge = detailCharges.find(c =>
+            /deposit/i.test(c.chargeReason || "") ||
+            c.chargeReason === "BOOKING_DEPOSIT"
+          );
+          if (depositCharge) {
+            const paid = (depositCharge.payments || []).reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+            if (paid > 0) return paid;
+          }
+          // 3. Total of all payments across all charges (what was actually collected so far)
+          const totalPaid = detailCharges.reduce(
+            (sum, c) => sum + (c.payments || []).reduce((s, p) => s + parseFloat(p.amount || 0), 0), 0
+          );
+          return totalPaid > 0 ? totalPaid : null;
+        })();
+        const payLabelFull = (bk.paymentStatus === "DEPOSIT_PAID" && depositAmt != null)
+          ? `${payLabel} (${Number(depositAmt).toLocaleString("en")} ل.س)`
+          : payLabel;
+        const dateStr = bk.dayName && bk.date ? `${bk.dayName} ${bk.date}` : (bk.date || "—");
+        const timeStr = bk.startTime && bk.endTime ? `من ${bk.startTime} إلى ${bk.endTime}` : (bk.startTime || "—");
+        const detailCharges = Array.isArray(api?.charges) ? api.charges : [];
+        const chargesRem = detailCharges.length > 0
+          ? detailCharges.reduce((sum, c) => {
+              const due  = parseFloat(c.amountDue ?? c.remainingAmount ?? 0);
+              const paid = (c.payments || []).reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+              return sum + Math.max(0, due - paid);
+            }, 0)
+          : null;
+        const remainingAmt = (chargesRem != null && chargesRem > 0 ? chargesRem : null) ?? bk.remainingAmount ?? null;
+        const remainingStr = remainingAmt != null ? `${Number(remainingAmt).toLocaleString("en")} ل.س` : "—";
+        const bookingId = bk.id || detailModal.id;
 
         const sectionTitle = (text) => (
           <div style={{
@@ -2010,21 +2422,22 @@ function SectionBookings({ t }) {
         );
 
         return (
-          <Modal title={`تفاصيل الحجز كاملة #${r.id}`} onClose={() => setDetailModal(null)} t={t} width={480}>
+          <Modal title={`تفاصيل الحجز كاملة #${bookingId}`} onClose={() => setDetailModal(null)} t={t} width={480}>
+            {detailLoading && <div style={{textAlign:"center",padding:"6px 0 10px",fontSize:12,color:t.textMuted}}>جارٍ تحميل التفاصيل...</div>}
             {sectionTitle("معلومات الطالب والمدرب")}
-            <InfoRow k="اسم الطالب" v={r.studentName || detailModal.student} t={t} />
-            <InfoRow k="اسم المدرب" v={r.instructorName || detailModal.inst} t={t} />
+            <InfoRow k="اسم الطالب" v={studentName} t={t} />
+            <InfoRow k="اسم المدرب" v={instructorName} t={t} />
 
             {sectionTitle("تفاصيل التدريب والجدولة")}
             <InfoRow k="نوع التدريب" v={type} t={t} />
             <InfoRow k="تاريخ الجلسة" v={dateStr} t={t} />
             <InfoRow k="وقت الجلسة" v={timeStr} t={t} />
-            <InfoRow k="المركبة" v={vehicle} t={t} />
+            <InfoRow k="المركبة" v={vehicleStr} t={t} />
 
             {sectionTitle("التفاصيل المالية")}
-            <InfoRow k="حالة الدفع" v={payLabel} t={t} />
+            <InfoRow k="حالة الدفع" v={payLabelFull} t={t} />
             <InfoRow k="حالة الحجز" v={statusLabel} t={t} />
-            <InfoRow k="المبلغ المتبقي" v={remaining} t={t} />
+            <InfoRow k="المبلغ المتبقي" v={remainingStr} t={t} />
 
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
               <Btn label="إغلاق" onClick={() => setDetailModal(null)} t={t} v="ghost" style={{ minWidth: 100 }} />
@@ -2119,7 +2532,7 @@ function SectionVehicles({t}){
                   <Btn label=" تعبئة جديدة" onClick={()=>setFModal(true)} t={t} sz="sm"/>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:9,marginBottom:12}}>
-                  {[["٨٣ لتر","هذا الشهر",t.accent],[`${sel.fm.toLocaleString()} ل.س`,"تكلفة الشهر",t.pending.text],["٣","عمليات تعبئة",t.text]].map(([v,l,c],i)=>(
+                  {[["83 لتر","هذا الشهر",t.accent],[`${sel.fm.toLocaleString("en")} ل.س`,"تكلفة الشهر",t.pending.text],["3","عمليات تعبئة",t.text]].map(([v,l,c],i)=>(
                     <div key={i} style={{background:t.bgSurface,borderRadius:9,border:`1px solid ${t.borderCard}`,padding:12,textAlign:"center"}}>
                       <div style={{fontSize:18,fontWeight:700,color:c}}>{v}</div>
                       <div style={{fontSize:10,color:t.textMuted,marginTop:3}}>{l}</div>
@@ -2128,7 +2541,7 @@ function SectionVehicles({t}){
                 </div>
                 {FUEL_LOG.map((f,i)=>(
                   <div key={i} style={{background:t.bgSurface,borderRadius:9,border:`1px solid ${t.borderCard}`,padding:"11px 14px",marginBottom:7}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:13,fontWeight:700,color:t.text}}>{f.date}</span><span style={{fontSize:13,fontWeight:700,color:t.accent}}>{f.total.toLocaleString()} ل.س</span></div>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:13,fontWeight:700,color:t.text}}>{f.date}</span><span style={{fontSize:13,fontWeight:700,color:t.accent}}>{f.total.toLocaleString("en")} ل.س</span></div>
                     <div style={{fontSize:12,color:t.textSec}}>{f.liters} لتر × {f.ppl} ل.س/لتر{f.note&&` • ${f.note}`}</div>
                   </div>
                 ))}
@@ -2138,7 +2551,7 @@ function SectionVehicles({t}){
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 {[{l:"جلسات الشهر",v:sel.lm,max:60,c:t.accent},{l:"تكلفة الوقود/شهر",v:sel.fm,suf:" ل.س",c:t.pending.text},{l:"تكلفة الصيانة/شهر",v:sel.maint,suf:" ل.س",c:t.cancelled.text},{l:"معدل التوفر",v:93,suf:"٪",c:t.completed.text}].map((s,i)=>(
                   <Card key={i} t={t} p={16} mb={0}>
-                    <div style={{fontSize:20,fontWeight:700,color:s.c}}>{typeof s.v==="number"?s.v.toLocaleString():s.v}{s.suf||""}</div>
+                    <div style={{fontSize:20,fontWeight:700,color:s.c}}>{typeof s.v==="number"?s.v.toLocaleString("en"):s.v}{s.suf||""}</div>
                     <div style={{fontSize:11,color:t.textMuted,marginTop:3}}>{s.l}</div>
                     {s.max&&<div style={{marginTop:8,height:5,background:t.border,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${(s.v/s.max)*100}%`,background:s.c,borderRadius:3}}/></div>}
                   </Card>
@@ -2155,7 +2568,7 @@ function SectionVehicles({t}){
             <div key={i}><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>{f.l}</label><input value={f.v} onChange={e=>f.set(e.target.value)} type="number" placeholder="0" style={{width:"100%",padding:"8px 10px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/></div>
           ))}
         </div>
-        {liters&&ppl&&<div style={{padding:"10px 12px",borderRadius:9,background:t.accentLight,marginBottom:10,display:"flex",justifyContent:"space-between",fontSize:13}}><span style={{color:t.accentText}}>الإجمالي</span><span style={{fontWeight:700,color:t.accent}}>{(parseFloat(liters)*parseFloat(ppl)).toLocaleString()} ل.س</span></div>}
+        {liters&&ppl&&<div style={{padding:"10px 12px",borderRadius:9,background:t.accentLight,marginBottom:10,display:"flex",justifyContent:"space-between",fontSize:13}}><span style={{color:t.accentText}}>الإجمالي</span><span style={{fontWeight:700,color:t.accent}}>{(parseFloat(liters)*parseFloat(ppl)).toLocaleString("en")} ل.س</span></div>}
         <div style={{marginBottom:14}}><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>ملاحظة</label><input type="text" placeholder="اختيارية" style={{width:"100%",padding:"8px 10px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/></div>
         <div style={{display:"flex",gap:8}}><Btn label="✓ حفظ وإصدار فاتورة" onClick={()=>setFModal(false)} t={t} style={{flex:1}}/><Btn label="إلغاء" onClick={()=>setFModal(false)} t={t} v="ghost"/></div>
       </Modal>}
@@ -2243,7 +2656,7 @@ function SectionTransport({t}){
                   مسجل
                 </span>
                 <span style={{ fontWeight: 700, color: t.accent }}>
-                  {s.price.toLocaleString()} ل.س
+                  {s.price.toLocaleString("en")} ل.س
                 </span>
               </div>
             </div>
@@ -2281,7 +2694,7 @@ function SectionTransport({t}){
             </div>
             <div style={{ textAlign: "left" }}>
               <div style={{ fontSize: 19, fontWeight: 800, color: t.accent }}>
-                {sel.price.toLocaleString()} ل.س
+                {sel.price.toLocaleString("en")} ل.س
               </div>
               <div style={{ fontSize: 10, color: t.textMuted }}>
                 رسوم التسجيل
@@ -3262,16 +3675,16 @@ function SectionCertificate({t}){
                         <span style={{fontSize:12,fontWeight:700,color:csColor}}>{cs}</span>
                       </div>
                       <div style={{display:"flex",gap:16}}>
-                        <span style={{fontSize:11,color:t.textMuted}}>المستحق: <strong style={{color:t.text}}>{due.toLocaleString("ar-SY")} ل.س</strong></span>
-                        {paid>0&&<span style={{fontSize:11,color:t.textMuted}}>المدفوع: <strong style={{color:t.completed.text}}>{paid.toLocaleString("ar-SY")} ل.س</strong></span>}
-                        {remaining>0&&<span style={{fontSize:11,color:t.textMuted}}>المتبقي: <strong style={{color:t.failed.text}}>{remaining.toLocaleString("ar-SY")} ل.س</strong></span>}
+                        <span style={{fontSize:11,color:t.textMuted}}>المستحق: <strong style={{color:t.text}}>{due.toLocaleString("en")} ل.س</strong></span>
+                        {paid>0&&<span style={{fontSize:11,color:t.textMuted}}>المدفوع: <strong style={{color:t.completed.text}}>{paid.toLocaleString("en")} ل.س</strong></span>}
+                        {remaining>0&&<span style={{fontSize:11,color:t.textMuted}}>المتبقي: <strong style={{color:t.failed.text}}>{remaining.toLocaleString("en")} ل.س</strong></span>}
                       </div>
                       {ch.payments?.length>0&&(
                         <div style={{marginTop:5,paddingRight:8,borderRight:`2px solid ${t.border}`}}>
                           {ch.payments.map((p,j)=>(
                             <div key={j} style={{display:"flex",justifyContent:"space-between",fontSize:11,color:t.textSec,padding:"2px 0"}}>
                               <span>{fmtDate(p.paidAt||p.createdAt)}</span>
-                              <span style={{fontWeight:600}}>{parseFloat(p.amount||0).toLocaleString("ar-SY")} ل.س</span>
+                              <span style={{fontWeight:600}}>{parseFloat(p.amount||0).toLocaleString("en")} ل.س</span>
                             </div>
                           ))}
                         </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { todayStr, firstOfMonthStr } from "./utils/dateUtils";
 import qeyadahLogo from "./assets/qeyadah-logo.jpg";
 import AdminPro from "./AdminPro";
 import AccountantPro from "./AccountantPro";
@@ -6,14 +7,13 @@ import ReceptionistPro from "./ReceptionistPro";
 import VehicleReportDashboard from "./VehicleReportDashboard";
 import InstructorReportDashboard from "./InstructorReportDashboard";
 import BookingRevenueReportDashboard from "./BookingRevenueReportDashboard";
-import { studentsService, instructorsService, vehiclesService, dashboardService } from "./api";
+import { studentsService, instructorsService, vehiclesService, dashboardService, accountingService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
 import { CiSettings } from "react-icons/ci";
 import { PiChartLineDown, PiChartLineUp, PiUsersThin } from "react-icons/pi";
 import { TbReport } from "react-icons/tb";
 import { FaRegAddressCard } from "react-icons/fa";
-import { CiCreditCard1 } from "react-icons/ci";
 import { TbBus } from "react-icons/tb";
 import { FaCar } from "react-icons/fa";
 
@@ -178,13 +178,6 @@ const navItems = [
     page: "Certificate",
   },
   { id: "transport", label: "خدمة النقل", icon: <TbBus />, page: "Transport" },
-  {
-    id: "payments",
-    label: "الدفعات والعربون",
-    icon: <CiCreditCard1 />,
-    page: "Payments",
-  },
-
   { id: "reports", label: "التقارير", icon: <TbReport />, page: "Reports" },
   {
     id: "users",
@@ -273,7 +266,7 @@ function StatCard({ label, value, color, icon, t }) {
         fontSize: 20,
         lineHeight: 1,
       }}>{icon}</div>
-      <div style={{ fontSize: 30, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 26, fontWeight: 800, color, lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
       <div style={{ fontSize: 13, color: t.textMuted }}>{label}</div>
     </div>
   );
@@ -458,7 +451,7 @@ function metaBadge(meta, key, t) {
 function formatMoney(v) {
   if (v == null || v === "") return "—";
   const n = Number(v);
-  return isNaN(n) ? String(v) : `${n.toLocaleString("ar-SY")} ل.س`;
+  return isNaN(n) ? String(v) : `${n.toLocaleString("en")} ل.س`;
 }
 
 function formatArabicDate(date) {
@@ -3340,152 +3333,220 @@ function PagePayments({ t }) {
 // PAGE: ACCOUNTING
 // ═══════════════════════════════════════════════
 function PageAccounting({ t }) {
+  const [from, setFrom] = useState(firstOfMonthStr());
+  const [to,   setTo]   = useState(todayStr());
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await accountingService.getOverview({ from, to });
+        if (!cancelled) setData(res.data?.data ?? res.data ?? null);
+      } catch {
+        if (!cancelled) setError("تعذّر تحميل البيانات. تحقق من الاتصال وأعد المحاولة.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [from, to]);
+
+  const fmt$ = (v) => {
+    if (v == null) return "—";
+    const n = Number(v);
+    return n < 0
+      ? `${Math.abs(n).toLocaleString("en")}- ل.س`
+      : `${n.toLocaleString("en")} ل.س`;
+  };
+
+  const net      = data?.net      ?? {};
+  const expenses = data?.expenses ?? {};
+  const revenue  = data?.revenue  ?? {};
+  const gov      = data?.governmentHoldings ?? {};
+
+  const resultColor = (v) =>
+    v == null ? t.textMuted : v >= 0 ? "#16a34a" : "#dc2626";
+
+  const cardStyle = {
+    background: t.bgSurface,
+    borderRadius: 12,
+    border: `0.5px solid ${t.borderCard}`,
+    padding: 16,
+  };
+  const sectionTitle = (text) => (
+    <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 12 }}>
+      {text}
+    </div>
+  );
+
   return (
     <div>
       <SectionHeader
         title="المحاسبة التشغيلية"
-        subtitle="إيرادات ومصاريف ومستحقات المدربين"
+        subtitle="إيرادات ومصاريف النتيجة التشغيلية"
         t={t}
       />
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4,1fr)",
-          gap: 12,
-          marginBottom: 20,
-        }}
-      >
+
+      {/* Date range picker */}
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <label style={{ fontSize: 12, color: t.textSec, fontWeight: 600 }}>من</label>
+          <input
+            type="date" value={from} onChange={e => setFrom(e.target.value)}
+            style={{
+              padding: "7px 10px", borderRadius: 8, border: `1px solid ${t.border}`,
+              background: t.bgElevated, color: t.text, fontSize: 13, fontFamily: "inherit",
+            }}
+          />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <label style={{ fontSize: 12, color: t.textSec, fontWeight: 600 }}>إلى</label>
+          <input
+            type="date" value={to} onChange={e => setTo(e.target.value)}
+            style={{
+              padding: "7px 10px", borderRadius: 8, border: `1px solid ${t.border}`,
+              background: t.bgElevated, color: t.text, fontSize: 13, fontFamily: "inherit",
+            }}
+          />
+        </div>
+        {loading && (
+          <span style={{ fontSize: 12, color: t.textMuted }}>جارٍ التحميل...</span>
+        )}
+        {error && (
+          <span style={{ fontSize: 12, color: "#dc2626" }}>{error}</span>
+        )}
+      </div>
+
+      {/* ─── Summary Cards ─── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14, marginBottom: 20 }}>
         <StatCard
-          label="إيرادات الشهر"
-          value="١٢٠,٠٠٠ ل.س"
+          label="دخل المدرسة الصافي"
+          value={fmt$(net.schoolIncome)}
           color={t.accent}
           icon={<PiChartLineUp />}
           t={t}
         />
         <StatCard
-          label="مصاريف الشهر"
-          value="٣٥,٠٠٠ ل.س"
-          color="#E24B4A"
+          label="إجمالي المصاريف"
+          value={fmt$(net.totalExpenses)}
+          color={t.accent}
           icon={<PiChartLineDown />}
           t={t}
         />
         <StatCard
-          label="صافي الشهر"
-          value="٨٥,٠٠٠ ل.س"
-          color={t.accent}
+          label="صافي الربح التشغيلي"
+          value={fmt$(net.operatingResult)}
+          color={resultColor(net.operatingResult)}
           icon={<FaChartLine />}
           t={t}
         />
         <StatCard
-          label="مستحقات مدربين"
-          value="١٨,٠٠٠ ل.س"
-          color={t.accent}
-          icon={<FaUserTie />}
+          label="صافي التدفق النقدي"
+          value={fmt$(net.operatingResultCash)}
+          color={resultColor(net.operatingResultCash)}
+          icon={<FaChartColumn />}
           t={t}
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {/* Revenues */}
-        <div
-          style={{
-            background: t.bgSurface,
-            borderRadius: 12,
-            border: `0.5px solid ${t.borderCard}`,
-            padding: 16,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: t.text,
-              marginBottom: 12,
-            }}
-          >
-            الإيرادات حسب النوع
-          </div>
+      {/* ─── Expenses & Revenue tables side by side ─── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+
+        {/* Expenses breakdown */}
+        <div style={cardStyle}>
+          {sectionTitle("المصاريف حسب النوع")}
           <Table
             t={t}
-            headers={["النوع", "هذا الشهر", "اليوم"]}
+            headers={["النوع", "الإجمالي", "التفاصيل"]}
             rows={[
-              ["عربونات دروس", "٤٥,٠٠٠ ل.س", "٤,٥٠٠ ل.س"],
-              ["باقي مبالغ دروس", "٤٨,٠٠٠ ل.س", "٣,٠٠٠ ل.س"],
-              ["رسوم شهادة حكومية", "١٥,٠٠٠ ل.س", "—"],
-              ["رسوم نقل", "٨,٠٠٠ ل.س", "—"],
-              ["رسوم إعادة فحص", "٤,٠٠٠ ل.س", "—"],
+              [
+                "وقود ومركبات",
+                fmt$(expenses.vehicles?.total),
+                <div key="v"><div>نقدي {fmt$(expenses.vehicles?.cash)}</div><div>شام {fmt$(expenses.vehicles?.shamCash)}</div></div>,
+              ],
+              [
+                "مستحقات المدربين",
+                fmt$(expenses.instructors?.total),
+                <div key="i"><div>مدفوع {fmt$(expenses.instructors?.paid)}</div><div>متبقي {fmt$(expenses.instructors?.unpaid)}</div></div>,
+              ],
+              [
+                "رواتب الموظفين",
+                fmt$(expenses.employees?.total),
+                <div key="e">نقدي {fmt$(expenses.employees?.cash)}</div>,
+              ],
+              [
+                "المصاريف العامة",
+                fmt$(expenses.general?.total),
+                <div key="g"><div>نقدي {fmt$(expenses.general?.cash)}</div><div>شام {fmt$(expenses.general?.shamCash)}</div></div>,
+              ],
+              [
+                "الإجمالي الكلي",
+                fmt$(expenses.grandTotal?.total),
+                <div key="gt"><div>مدفوع {fmt$(expenses.grandTotal?.paid)}</div><div>متبقي {fmt$(expenses.grandTotal?.unpaid)}</div></div>,
+              ],
             ]}
           />
         </div>
-        {/* Expenses */}
-        <div
-          style={{
-            background: t.bgSurface,
-            borderRadius: 12,
-            border: `0.5px solid ${t.borderCard}`,
-            padding: 16,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: t.text,
-              marginBottom: 12,
-            }}
-          >
-            المصاريف حسب النوع
-          </div>
+
+        {/* Revenue breakdown */}
+        <div style={cardStyle}>
+          {sectionTitle("الإيرادات حسب النوع")}
           <Table
             t={t}
-            headers={["النوع", "هذا الشهر", "اليوم"]}
+            headers={["النوع", "الإجمالي", "التفاصيل"]}
             rows={[
-              ["مستحقات مدربين", "١٨,٠٠٠ ل.س", "٤,٣٥٠ ل.س"],
-              ["وقود مركبات", "٦,٠٠٠ ل.س", "—"],
-              ["صيانة مركبات", "٤,٠٠٠ ل.س", "—"],
-              ["إيجار وكهرباء", "٥,٠٠٠ ل.س", "—"],
-              ["رواتب موظفين", "٢,٠٠٠ ل.س", "—"],
+              [
+                "إيرادات الدروس",
+                fmt$(revenue.lessons?.total),
+                <div key="l"><div>نقدي {fmt$(revenue.lessons?.cash)}</div><div>شام {fmt$(revenue.lessons?.shamCash)}</div></div>,
+              ],
+              [
+                "رسوم الشهادة الحكومية",
+                fmt$(revenue.certificates?.total),
+                <div key="c"><div>حصة الحكومة {fmt$(revenue.certificates?.governmentShare)}</div><div>حصة المدرسة {fmt$(revenue.certificates?.schoolShare)}</div></div>,
+              ],
+              [
+                "إجمالي إيرادات المدرسة الصافية",
+                fmt$(revenue.schoolNetRevenue?.total),
+                <div key="n"><div>دروس {fmt$(revenue.schoolNetRevenue?.lessons)}</div><div>شهادات {fmt$(revenue.schoolNetRevenue?.certificatesSchoolShare)}</div></div>,
+              ],
             ]}
           />
         </div>
       </div>
 
-      {/* Instructor dues */}
-      <div
-        style={{
-          marginTop: 16,
-          background: t.bgSurface,
-          borderRadius: 12,
-          border: `0.5px solid ${t.borderCard}`,
-          padding: 16,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 14,
-            fontWeight: 700,
-            color: t.text,
-            marginBottom: 12,
-          }}
-        >
-          مستحقات المدربين اليومية
+      {/* ─── Government Holdings ─── */}
+      <div style={{ ...cardStyle, marginBottom: 16 }}>
+        {sectionTitle("مستحقات الحكومة (محصَّل لحسابها)")}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 14 }}>
+          {[
+            { label: "المبلغ المحصَّل", value: fmt$(gov.collected) },
+            { label: "المبلغ المُسلَّم", value: fmt$(gov.remitted) },
+            { label: "الرصيد القائم",   value: fmt$(gov.outstanding) },
+          ].map(({ label, value }) => (
+            <div key={label} style={{
+              background: t.bgElevated, borderRadius: 9,
+              padding: "12px 14px", textAlign: "center",
+            }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: t.accent, marginBottom: 4 }}>{value}</div>
+              <div style={{ fontSize: 12, color: t.textMuted }}>{label}</div>
+            </div>
+          ))}
         </div>
-        <Table
-          t={t}
-          headers={[
-            "المدرب",
-            "جلسات مكتملة",
-            "أجر الجلسة",
-            "المستحق اليوم",
-            "الحالة",
-          ]}
-          rows={[
-            ["خالد عمر", "٣", "٥٠٠ ل.س", "١,٥٠٠ ل.س", "معلق"],
-            ["ليلى سعد", "٣", "٥٠٠ ل.س", "١,٥٠٠ ل.س", "معلق"],
-            ["أحمد الزيد", "٢", "٤٥٠ ل.س", "٩٠٠ ل.س", "معلق"],
-            ["ماهر العلي", "١", "٤٥٠ ل.س", "٤٥٠ ل.س", "معلق"],
-          ]}
-        />
+        {gov.note && (
+          <div style={{
+            padding: "10px 13px", borderRadius: 8, fontSize: 12, lineHeight: 1.7,
+            background: t.bgPage, color: t.textSec,
+            border: `1px solid ${t.border}`,
+          }}>
+            ℹ {gov.note}
+          </div>
+        )}
       </div>
     </div>
   );

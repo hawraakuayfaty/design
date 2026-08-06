@@ -55,8 +55,8 @@ const ARABIC_MONTHS_FULL = ["يناير", "فبراير", "مارس", "أبري�
 function formatMoney(v) {
   if (v == null || v === "") return "—";
   const n = Number(v);
-  // en-US هنا يضبط شكل الأرقام (١٬٢٣٤ → 1,234) فقط — النص المحيط "ل.س" يبقى عربياً
-  return isNaN(n) ? String(v) : `${n.toLocaleString("en-US")} ل.س`;
+  // "en" هنا يضبط شكل الأرقام (١٬٢٣٤ → 1,234) فقط — النص المحيط "ل.س" يبقى عربياً
+  return isNaN(n) ? String(v) : `${n.toLocaleString("en")} ل.س`;
 }
 
 // تنسيق 24 ساعة صريح (hour12: false) — يمنع أي التباس AM/PM في وقت الصرف
