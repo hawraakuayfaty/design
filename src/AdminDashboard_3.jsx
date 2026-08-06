@@ -3,6 +3,7 @@ import qeyadahLogo from "./assets/qeyadah-logo.jpg";
 import AdminPro from "./AdminPro";
 import AccountantPro from "./AccountantPro";
 import ReceptionistPro from "./ReceptionistPro";
+import VehicleReportDashboard from "./VehicleReportDashboard";
 import { studentsService, instructorsService, vehiclesService, dashboardService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
@@ -1612,9 +1613,10 @@ function PageInstructors({ t }) {
 // ═══════════════════════════════════════════════
 // PAGE: VEHICLES
 // ═══════════════════════════════════════════════
+// status الفعلية القادمة من الباك اند هي ACTIVE | ARCHIVED فقط — "في الصيانة" حالة
+// مشتقة من inMaintenanceNow (GET /vehicles/:id)، وليست قيمة status (راجع vehicles-api.md §1)
 const VEHICLE_STATUS_MAP = {
   ACTIVE: "متاحة",
-  INACTIVE: "في الصيانة",
   ARCHIVED: "غير متاحة",
 };
 
@@ -1626,7 +1628,6 @@ const VEHICLE_TYPE_MAP = {
 const VEHICLE_STATUS_OPTIONS = [
   { value: "", label: "كل الحالات" },
   { value: "ACTIVE", label: "متاحة" },
-  { value: "INACTIVE", label: "في الصيانة" },
   { value: "ARCHIVED", label: "مؤرشفة" },
 ];
 
@@ -1642,6 +1643,47 @@ function formatMaintDateTime(s) {
   if (!s) return "—";
   const [datePart, timePart] = s.split("T");
   return timePart ? `${datePart} ${timePart.slice(0, 5)}` : datePart;
+}
+
+// "date time" هو نص من رمزين مفصولين بمسافة — داخل حاوية RTL بدون عزل اتجاه صريح
+// يقلب المتصفح ترتيبهما بصرياً (تعرض "time date" بدل "date time")، رغم أن القيمة
+// المخزّنة والمرسلة للخادم صحيحة دائماً. dir="ltr" هون منع فعلي لهاي المشكلة البصرية.
+function MaintRange({ start, end }) {
+  return <span dir="ltr">{formatMaintDateTime(start)} — {formatMaintDateTime(end)}</span>;
+}
+
+const HOURS_24 = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+const MINUTES_60 = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
+
+// بديل عن <input type="datetime-local"> الأصلي لحقول مواعيد الصيانة: عرض/إدخال الوقت
+// بأداة المتصفح المدمجة بيتبع لغة نظام تشغيل/متصفح المستخدم نفسه (ممكن يطلع 12 ساعة
+// AM/PM) وهاد مش قابل للتحكم من الصفحة إطلاقاً. هون منولّد قيمة YYYY-MM-DDTHH:mm يدوياً
+// من تاريخ + select ساعة/دقيقة نصهم ثابت (مش مترجم من المتصفح) فتضمن 24 ساعة دايماً.
+function DateTime24Field({ t, value, onChange, style }) {
+  const [datePart, timePart] = value ? value.split("T") : ["", ""];
+  const [hh, mm] = timePart ? timePart.split(":") : ["", ""];
+
+  const commit = (d, h, m) => {
+    if (!d) { onChange(""); return; }
+    onChange(`${d}T${h || "00"}:${m || "00"}`);
+  };
+
+  const selectStyle = { ...style, flex: "0 0 60px", textAlign: "center", padding: "10px 2px" };
+
+  return (
+    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+      <input type="date" dir="ltr" value={datePart || ""} onChange={(ev) => commit(ev.target.value, hh, mm)} style={{ ...style, flex: 1, minWidth: 0 }} />
+      <select value={hh || ""} onChange={(ev) => commit(datePart, ev.target.value, mm)} disabled={!datePart} style={selectStyle}>
+        <option value="">−−</option>
+        {HOURS_24.map((h) => <option key={h} value={h}>{h}</option>)}
+      </select>
+      <span style={{ color: t.textMuted, fontWeight: 700 }}>:</span>
+      <select value={mm || ""} onChange={(ev) => commit(datePart, hh, ev.target.value)} disabled={!datePart} style={selectStyle}>
+        <option value="">−−</option>
+        {MINUTES_60.map((m) => <option key={m} value={m}>{m}</option>)}
+      </select>
+    </div>
+  );
 }
 
 function ActionResultBanner({ t, result, onDismiss }) {
@@ -2161,7 +2203,7 @@ function UpcomingPeriodRow({ t, vehicleId, period, onChanged, onError }) {
         background: t.cancelled.bg, marginBottom: 8,
       }}>
         <div style={{ fontSize: 12, color: t.cancelled.text, marginBottom: 10 }}>
-          هل أنت متأكد من إلغاء فترة الصيانة {formatMaintDateTime(period.startAt)} — {formatMaintDateTime(period.endAt)}؟
+          هل أنت متأكد من إلغاء فترة الصيانة <MaintRange start={period.startAt} end={period.endAt} />؟
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={handleDelete} disabled={busy} style={{
@@ -2181,11 +2223,11 @@ function UpcomingPeriodRow({ t, vehicleId, period, onChanged, onError }) {
     return (
       <form onSubmit={handleUpdate} style={{ padding: "10px 12px", borderRadius: 10, border: `0.5px solid ${t.border}`, marginBottom: 8 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: t.text, marginBottom: 8 }}>
-          تعديل فترة الصيانة — تبدأ {formatMaintDateTime(period.startAt)}
+          تعديل فترة الصيانة — تبدأ <span dir="ltr">{formatMaintDateTime(period.startAt)}</span>
         </div>
         <div style={{ marginBottom: 8 }}>
           <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: t.textSec, marginBottom: 4 }}>نهاية الصيانة</label>
-          <input type="datetime-local" value={endAt} onChange={(ev) => setEndAt(ev.target.value)} style={smallFieldStyle} />
+          <DateTime24Field t={t} value={endAt} onChange={setEndAt} style={smallFieldStyle} />
         </div>
         <div style={{ marginBottom: 10 }}>
           <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: t.textSec, marginBottom: 4 }}>ملاحظات</label>
@@ -2211,7 +2253,7 @@ function UpcomingPeriodRow({ t, vehicleId, period, onChanged, onError }) {
       padding: "10px 12px", borderRadius: 10, border: `0.5px solid ${t.border}`, marginBottom: 8, gap: 10,
     }}>
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{formatMaintDateTime(period.startAt)} — {formatMaintDateTime(period.endAt)}</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}><MaintRange start={period.startAt} end={period.endAt} /></div>
         {period.notes && <div style={{ fontSize: 12, color: t.textMuted }}>{period.notes}</div>}
       </div>
       <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
@@ -2286,14 +2328,21 @@ function MaintenanceModal({ t, vehicle, onClose, onVehicleChanged }) {
   const handleSchedule = async (ev) => {
     ev.preventDefault();
     setActionError("");
-    if (!scheduleForm.startAt || !scheduleForm.endAt) { setActionError("تاريخ البداية والنهاية مطلوبان"); return; }
-    if (scheduleForm.endAt <= scheduleForm.startAt) { setActionError("يجب أن يكون تاريخ النهاية بعد تاريخ البداية"); return; }
-    if (new Date(scheduleForm.startAt).getTime() < Date.now()) { setActionError("لا يمكن أن يبدأ موعد الصيانة في الماضي — اختر الآن أو وقتاً مستقبلياً"); return; }
+    // startAt وendAt كلاهما اختياري حسب التوثيق: إغفال endAt = صيانة مفتوحة النهاية
+    // (حالة عطل مفاجئ لا نعرف متى تنتهي)، وإغفال startAt = تبدأ الآن.
+    if (scheduleForm.startAt && scheduleForm.endAt && scheduleForm.endAt <= scheduleForm.startAt) {
+      setActionError("يجب أن يكون تاريخ النهاية بعد تاريخ البداية");
+      return;
+    }
+    if (scheduleForm.startAt && new Date(scheduleForm.startAt).getTime() < Date.now()) {
+      setActionError("لا يمكن أن يبدأ موعد الصيانة في الماضي — اختر الآن أو وقتاً مستقبلياً");
+      return;
+    }
     setScheduling(true);
     try {
       const { data } = await vehiclesService.sendVehicleToMaintenance(vehicle.id, {
-        startAt: scheduleForm.startAt,
-        endAt: scheduleForm.endAt,
+        ...(scheduleForm.startAt ? { startAt: scheduleForm.startAt } : {}),
+        ...(scheduleForm.endAt ? { endAt: scheduleForm.endAt } : {}),
         notes: scheduleForm.notes.trim() || null,
       });
       setScheduleForm({ startAt: "", endAt: "", notes: "" });
@@ -2308,13 +2357,12 @@ function MaintenanceModal({ t, vehicle, onClose, onVehicleChanged }) {
   const handleReturn = async (ev) => {
     ev.preventDefault();
     setActionError("");
-    // نقرأ periodId من periods.current مباشرة عند الإرسال — وليس من أي حالة محفوظة مسبقاً —
-    // فإن لم توجد فترة حالية فعلية الآن، نرفض الإرسال بدل مناداة الخادم بمعرّف غير صالح.
-    const currentPeriodId = periods?.current?.id;
-    if (!currentPeriodId) { setActionError("لا توجد فترة صيانة حالية لإرجاع المركبة منها"); return; }
+    // نتحقق من periods.current مباشرة عند الإرسال — وليس من أي حالة محفوظة مسبقاً —
+    // فإن لم توجد فترة حالية فعلية الآن، نرفض الإرسال بدل مناداة الخادم بلا داعٍ.
+    if (!periods?.current) { setActionError("لا توجد فترة صيانة حالية لإرجاع المركبة منها"); return; }
     setReturning(true);
     try {
-      const { data } = await vehiclesService.returnFromMaintenance(currentPeriodId, {
+      const { data } = await vehiclesService.returnFromMaintenance(vehicle.id, {
         notes: returnNotes.trim() || null,
       });
       setReturnNotes("");
@@ -2377,7 +2425,7 @@ function MaintenanceModal({ t, vehicle, onClose, onVehicleChanged }) {
               {periods?.current ? (
                 <div style={{ padding: 14, borderRadius: 10, background: t.pending.bg, border: `0.5px solid ${t.pending.text}30` }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: t.pending.text, marginBottom: 4 }}>
-                    المركبة في الصيانة الآن: {formatMaintDateTime(periods.current.startAt)} — {formatMaintDateTime(periods.current.endAt)}
+                    المركبة في الصيانة الآن: <MaintRange start={periods.current.startAt} end={periods.current.endAt} />
                   </div>
                   {periods.current.notes && <div style={{ fontSize: 12, color: t.textSec, marginBottom: 10 }}>{periods.current.notes}</div>}
                   <form onSubmit={handleReturn}>
@@ -2395,15 +2443,18 @@ function MaintenanceModal({ t, vehicle, onClose, onVehicleChanged }) {
               ) : (
                 <form onSubmit={handleSchedule} style={{ padding: 14, borderRadius: 10, border: `0.5px solid ${t.border}` }}>
                   <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 12 }}>لا توجد صيانة حالية — جدولة نافذة صيانة جديدة</div>
-                  <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-                    <div style={{ flex: 1, minWidth: 160 }}>
-                      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: t.textSec, marginBottom: 4 }}>البداية</label>
-                      <input type="datetime-local" value={scheduleForm.startAt} onChange={(ev) => setScheduleForm({ ...scheduleForm, startAt: ev.target.value })} style={fieldStyle} />
+                  <div style={{ display: "flex", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: 220 }}>
+                      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: t.textSec, marginBottom: 4 }}>البداية (اختياري — الافتراضي الآن)</label>
+                      <DateTime24Field t={t} value={scheduleForm.startAt} onChange={(v) => setScheduleForm({ ...scheduleForm, startAt: v })} style={fieldStyle} />
                     </div>
-                    <div style={{ flex: 1, minWidth: 160 }}>
-                      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: t.textSec, marginBottom: 4 }}>النهاية</label>
-                      <input type="datetime-local" value={scheduleForm.endAt} onChange={(ev) => setScheduleForm({ ...scheduleForm, endAt: ev.target.value })} style={fieldStyle} />
+                    <div style={{ flex: 1, minWidth: 220 }}>
+                      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: t.textSec, marginBottom: 4 }}>النهاية (اختياري)</label>
+                      <DateTime24Field t={t} value={scheduleForm.endAt} onChange={(v) => setScheduleForm({ ...scheduleForm, endAt: v })} style={fieldStyle} />
                     </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 12 }}>
+                    اترك النهاية فارغة لعطل مفاجئ لا تعرف متى ينتهي — أرجع المركبة للعمل من هنا نفسه لما تجهز.
                   </div>
                   <div style={{ marginBottom: 12 }}>
                     <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: t.textSec, marginBottom: 4 }}>ملاحظات (اختياري)</label>
@@ -2435,7 +2486,7 @@ function MaintenanceModal({ t, vehicle, onClose, onVehicleChanged }) {
               <div style={{ fontSize: 13, fontWeight: 700, color: t.textSec, marginBottom: 8 }}>الفترات السابقة</div>
               {periods?.past?.length ? periods.past.map((p) => (
                 <div key={p.id} style={{ padding: "10px 12px", borderRadius: 10, background: t.bgElevated, marginBottom: 6 }}>
-                  <div style={{ fontSize: 13, color: t.text }}>{formatMaintDateTime(p.startAt)} — {formatMaintDateTime(p.endAt)}</div>
+                  <div style={{ fontSize: 13, color: t.text }}><MaintRange start={p.startAt} end={p.endAt} /></div>
                   {p.notes && <div style={{ fontSize: 12, color: t.textMuted }}>{p.notes}</div>}
                 </div>
               )) : <div style={{ fontSize: 13, color: t.textMuted }}>لا توجد فترات سابقة</div>}
@@ -2514,13 +2565,18 @@ function VehicleDetailsModal({ t, vehicleId, onClose }) {
             {detailRow("الموديل", details.model)}
             {detailRow("اللون", details.color)}
             {detailRow("النوع", VEHICLE_TYPE_MAP[details.type] || details.type)}
-            {detailRow("الحالة", VEHICLE_STATUS_MAP[details.status] || details.status)}
+            {detailRow("الحالة",
+              details.status === "ARCHIVED"
+                ? VEHICLE_STATUS_MAP.ARCHIVED
+                : details.inMaintenanceNow
+                  ? "في الصيانة"
+                  : (VEHICLE_STATUS_MAP[details.status] || details.status)
+            )}
             {detailRow("ملاحظات الإدارة", details.adminNotes)}
-            {detailRow("تاريخ الإنشاء", details.createdAt ? new Date(details.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }) : null)}
-            {detailRow("قيد الصيانة الآن", details.inMaintenanceNow ? "نعم" : "لا")}
+            {detailRow("تاريخ الإنشاء", details.createdAt ? new Date(details.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, numberingSystem: "latn" }) : null)}
             {details.currentMaintenancePeriod && detailRow(
               "الفترة الحالية",
-              `${formatMaintDateTime(details.currentMaintenancePeriod.startAt)} — ${formatMaintDateTime(details.currentMaintenancePeriod.endAt)}`
+              <MaintRange start={details.currentMaintenancePeriod.startAt} end={details.currentMaintenancePeriod.endAt} />
             )}
             {details.upcomingMaintenancePeriods?.length > 0 && detailRow("فترات صيانة قادمة", `${details.upcomingMaintenancePeriods.length}`)}
           </div>
@@ -2662,15 +2718,12 @@ function PageVehicles({ t }) {
     return () => { cancelled = true; };
   }, [search, statusFilter, typeFilter]);
 
-  const maintenanceVehicles = vehicles.filter((v) => v.status === "INACTIVE");
-
   const tableRows = vehicles.map((v) => [
     v.plateNumber || "—",
     v.model || "—",
     VEHICLE_TYPE_MAP[v.type] || v.type || "—",
     v.color || "—",
     VEHICLE_STATUS_MAP[v.status] || v.status || "—",
-    String(v.todayBookings ?? v._count?.bookings ?? "—"),
     v,
   ]);
 
@@ -2728,7 +2781,7 @@ function PageVehicles({ t }) {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
             <thead>
               <tr style={{ background: t.bgElevated }}>
-                {["رقم اللوحة", "الموديل", "النوع", "اللون", "الحالة", "حجوزات اليوم", "إجراءات"].map((h, i) => (
+                {["رقم اللوحة", "الموديل", "النوع", "اللون", "الحالة", "إجراءات"].map((h, i) => (
                   <th key={i} style={{
                     padding: "10px 14px", textAlign: "right",
                     color: t.textMuted, fontWeight: 600,
@@ -2739,13 +2792,13 @@ function PageVehicles({ t }) {
             </thead>
             <tbody>
               {tableRows.map((row, ri) => {
-                const vehicle = row[6];
+                const vehicle = row[5];
                 return (
                 <tr key={ri} style={{
                   background: ri % 2 === 0 ? t.bgSurface : t.bgPage,
                   borderBottom: `0.5px solid ${t.border}`,
                 }}>
-                  {row.slice(0, 6).map((cell, ci) => (
+                  {row.slice(0, 5).map((cell, ci) => (
                     <td key={ci} style={{ padding: "10px 14px", color: t.text, fontSize: 14 }}>
                       {typeof cell === "string" && ["متاحة", "في الصيانة", "غير متاحة", "عادي", "أوتوماتيك"].includes(cell)
                         ? <Badge status={cell} t={t} />
@@ -2790,16 +2843,6 @@ function PageVehicles({ t }) {
               })}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {maintenanceVehicles.length > 0 && (
-        <div style={{ marginTop: 16, padding: "12px 16px", background: t.pending.bg, borderRadius: 10, border: `0.5px solid ${t.pending.text}30` }}>
-          {maintenanceVehicles.map((mv) => (
-            <div key={mv.id} style={{ fontSize: 12, fontWeight: 700, color: t.pending.text, padding: "2px 0" }}>
-              تنبيه: مركبة {mv.plateNumber} في الصيانة — لن تظهر في أوقات الحجز المتاحة
-            </div>
-          ))}
         </div>
       )}
 
@@ -3449,7 +3492,102 @@ function PageAccounting({ t }) {
 // ═══════════════════════════════════════════════
 // PAGE: REPORTS
 // ═══════════════════════════════════════════════
+function VehicleReportPicker({ t, onSelect }) {
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const params = {};
+        if (search.trim()) params.search = search.trim();
+        const { data } = await vehiclesService.getAll(params);
+        if (!cancelled) setVehicles(Array.isArray(data) ? data : data.data || []);
+      } catch {
+        if (!cancelled) setVehicles([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [search]);
+
+  return (
+    <div>
+      <input
+        placeholder="بحث برقم اللوحة..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{
+          width: "100%", maxWidth: 320, padding: "8px 12px", borderRadius: 7,
+          border: `0.5px solid ${t.border}`, background: t.bgElevated, color: t.text,
+          fontSize: 13, marginBottom: 14,
+        }}
+      />
+      {loading ? (
+        <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>جارٍ تحميل المركبات...</div>
+      ) : vehicles.length === 0 ? (
+        <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>لا توجد مركبات</div>
+      ) : (
+        <div style={{ borderRadius: 10, border: `0.5px solid ${t.border}`, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <thead>
+              <tr style={{ background: t.bgElevated }}>
+                {["رقم اللوحة", "الموديل", "اللون", "الحالة", ""].map((h, i) => (
+                  <th key={i} style={{ padding: "10px 14px", textAlign: "right", color: t.textMuted, fontWeight: 600, fontSize: 12, borderBottom: `0.5px solid ${t.border}` }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {vehicles.map((v, ri) => (
+                <tr key={v.id} style={{ background: ri % 2 === 0 ? t.bgSurface : t.bgPage, borderBottom: `0.5px solid ${t.border}` }}>
+                  <td style={{ padding: "10px 14px", color: t.text }}>{v.plateNumber || "—"}</td>
+                  <td style={{ padding: "10px 14px", color: t.text }}>{v.model || "—"}</td>
+                  <td style={{ padding: "10px 14px", color: t.text }}>{v.color || "—"}</td>
+                  <td style={{ padding: "10px 14px" }}><Badge status={VEHICLE_STATUS_MAP[v.status] || v.status || "—"} t={t} /></td>
+                  <td style={{ padding: "10px 14px" }}>
+                    <button onClick={() => onSelect(v.id)} style={{
+                      padding: "5px 12px", borderRadius: 6, background: t.accentLight, color: t.accentText,
+                      border: "none", fontSize: 12, cursor: "pointer", fontWeight: 700,
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                    }}><LuEye size={13} /> عرض التقرير</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PageReports({ t }) {
+  const [vehicleReportOpen, setVehicleReportOpen] = useState(false);
+  const [selectedVehicleId, setSelectedVehicleId] = useState(null);
+
+  if (selectedVehicleId) {
+    return <VehicleReportDashboard t={t} vehicleId={selectedVehicleId} onBack={() => setSelectedVehicleId(null)} />;
+  }
+
+  if (vehicleReportOpen) {
+    return (
+      <div>
+        <button onClick={() => setVehicleReportOpen(false)} style={{
+          display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none",
+          color: t.accentText, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: 0, marginBottom: 16,
+        }}>→ رجوع للتقارير</button>
+        <SectionHeader title="تقرير المركبات" subtitle="اختر مركبة لعرض تقرير الأداء والمصاريف التفصيلي" t={t} />
+        <div style={{ marginTop: 16 }}>
+          <VehicleReportPicker t={t} onSelect={(id) => setSelectedVehicleId(id)} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <SectionHeader
@@ -3496,9 +3634,12 @@ function PageReports({ t }) {
             desc: "إيرادات، مصاريف، صافي، مستحقات",
             icon: <TbReportMoney size={24} color="t.accent" />,
           },
-        ].map((r) => (
+        ].map((r) => {
+          const isVehicleReport = r.title === "تقرير المركبات";
+          return (
           <div
             key={r.title}
+            onClick={isVehicleReport ? () => setVehicleReportOpen(true) : undefined}
             style={{
               background: t.bgSurface,
               borderRadius: 12,
@@ -3525,6 +3666,7 @@ function PageReports({ t }) {
               {["يومي", "أسبوعي", "شهري"].map((p) => (
                 <button
                   key={p}
+                  onClick={isVehicleReport ? (ev) => ev.stopPropagation() : undefined}
                   style={{
                     padding: "4px 10px",
                     borderRadius: 6,
@@ -3541,7 +3683,8 @@ function PageReports({ t }) {
               ))}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
