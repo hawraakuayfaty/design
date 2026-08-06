@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { todayStr, firstOfMonthStr, currentYearMonth } from "./utils/dateUtils";
 import { TbBus } from "react-icons/tb";
 import { TbReceiptTax } from "react-icons/tb";
 import { PiChartLineDown } from "react-icons/pi";
@@ -456,10 +457,10 @@ const EMP_EXP_TYPES=[
 ];
 const EMP_EXP_LABEL={SALARY:"راتب شهري",BONUS:"مكافأة",OTHER:"سلفة / مصروف آخر"};
 const EMP_PAY_LABEL={CASH:"نقداً",SHAM_CASH:"شام كاش"};
-const _eToday=()=>new Date().toISOString().split("T")[0];
-const _eYM=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;};
-const _eFom=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-01`;};
-const fmtM=n=>(n!=null&&n!=="")?(Number(n).toLocaleString("ar-SY")):"—";
+const _eToday = todayStr;
+const _eYM    = currentYearMonth;
+const _eFom   = firstOfMonthStr;
+const fmtM=n=>(n!=null&&n!=="")?(Number(n).toLocaleString("en")):"—";
 const empFldSt=(t,err)=>({width:"100%",padding:"9px 12px",borderRadius:9,border:`1.5px solid ${err?"#c74848":t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none"});
 
 function IssueExpenseModal({t,employee,onClose,onSuccess}){
@@ -844,7 +845,7 @@ function PgEmployees({ t }) {
                       </div>
                     </td>
                     <td style={{ padding: "11px 14px" }}><Badge s={status} t={t} /></td>
-                    <td style={{ padding: "11px 14px", color: t.textSec, fontSize: 12 }}>{emp.monthlySalary ? `${Number(emp.monthlySalary).toLocaleString()} ل.س` : "—"}</td>
+                    <td style={{ padding: "11px 14px", color: t.textSec, fontSize: 12 }}>{emp.monthlySalary ? `${Number(emp.monthlySalary).toLocaleString("en")} ل.س` : "—"}</td>
                     <td style={{ padding: "11px 14px", color: t.textMuted, fontSize: 12 }}>{emp.hireDate || "—"}</td>
                     <td style={{ padding: "8px 14px" }}>
                       <div style={{ display: "flex", gap: 6 }}>

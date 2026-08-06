@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { todayStr, firstOfMonthStr } from "./utils/dateUtils";
 import { TbReportMoney } from "react-icons/tb";
 import { FaUserTie } from "react-icons/fa";
 import { PiChartLineDown } from "react-icons/pi";
@@ -479,7 +480,7 @@ function PgPayroll({t}){
             <div key={i} onClick={()=>{setSel(inst);setBonus("");setDeduct("");}} style={{padding:"13px 12px",cursor:"pointer",borderBottom:`1px solid ${t.border}`,background:sel?.name===inst.name?t.accentLight:t.bgSurface,borderRight:sel?.name===inst.name?`3px solid ${t.accent}`:"3px solid transparent"}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
                 <span style={{fontSize:13,fontWeight:600,color:t.text}}>{inst.name}</span>
-                <span style={{fontSize:13,fontWeight:700,color:t.accent}}>{inst.base.toLocaleString()} ل.س</span>
+                <span style={{fontSize:13,fontWeight:700,color:t.accent}}>{inst.base.toLocaleString("en")} ل.س</span>
               </div>
               <div style={{fontSize:11,color:t.textMuted}}>{inst.sessions.length} جلسات غير مدفوعة</div>
             </div>
@@ -497,7 +498,7 @@ function PgPayroll({t}){
             <Btn label="✓ صرف المستحقات" onClick={()=>setPayModal(sel)} t={t}/>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
-            {[{l:"إجمالي الجلسات",v:sel.sessions.length,c:t.text},{l:"المستحق الأساسي",v:`${sel.base.toLocaleString()} ل.س`,c:t.accent},{l:"جلسات هذا الشهر",v:"٤٢",c:t.text}].map((s,i)=>(
+            {[{l:"إجمالي الجلسات",v:sel.sessions.length,c:t.text},{l:"المستحق الأساسي",v:`${sel.base.toLocaleString("en")} ل.س`,c:t.accent},{l:"جلسات هذا الشهر",v:"42",c:t.text}].map((s,i)=>(
               <div key={i} style={{background:t.bgSurface,borderRadius:9,border:`1px solid ${t.borderCard}`,padding:12,textAlign:"center"}}>
                 <div style={{fontSize:18,fontWeight:700,color:s.c}}>{s.v}</div>
                 <div style={{fontSize:10,color:t.textMuted,marginTop:3}}>{s.l}</div>
@@ -527,7 +528,7 @@ function PgPayroll({t}){
       {payModal&&<Modal title={`صرف مستحقات ${payModal.name}`} onClose={()=>setPayModal(null)} t={t} width={440}>
         <div style={{background:t.bgElevated,borderRadius:10,padding:14,marginBottom:14}}>
           <InfoRow k="إجمالي الجلسات" v={`${payModal.sessions.length} جلسات`} t={t}/>
-          <InfoRow k="المستحق الأساسي" v={`${payModal.base.toLocaleString()} ل.س`} t={t}/>
+          <InfoRow k="المستحق الأساسي" v={`${payModal.base.toLocaleString("en")} ل.س`} t={t}/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,margin:"10px 0"}}>
             {[{l:"زيادة (ل.س)",v:bonus,set:setBonus},{l:"حسم (ل.س)",v:deduct,set:setDeduct}].map((f,i)=>(
               <div key={i}><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>{f.l}</label><input value={f.v} onChange={e=>f.set(e.target.value)} type="number" placeholder="0" style={{width:"100%",padding:"7px 9px",borderRadius:7,border:`1px solid ${t.border}`,background:t.bgSurface,color:t.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/></div>
@@ -535,7 +536,7 @@ function PgPayroll({t}){
           </div>
           <div style={{display:"flex",justifyContent:"space-between",padding:"9px 0",fontSize:15,fontWeight:700,borderTop:`1px solid ${t.border}`,marginTop:4}}>
             <span style={{color:t.text}}>الإجمالي المدفوع</span>
-            <span style={{color:t.accent}}>{(payModal.base+(parseFloat(bonus)||0)-(parseFloat(deduct)||0)).toLocaleString()} ل.س</span>
+            <span style={{color:t.accent}}>{(payModal.base+(parseFloat(bonus)||0)-(parseFloat(deduct)||0)).toLocaleString("en")} ل.س</span>
           </div>
         </div>
         <div style={{padding:"9px 12px",borderRadius:9,background:t.accentLight,fontSize:11,color:t.accentText,marginBottom:14}}>💡 ستُولَّد فاتورة بالجلسات المدفوعة وتُخزَّن في قاعدة البيانات</div>
@@ -859,9 +860,9 @@ const SUM_META={
   other:       {lbl:"أخرى",           clr:"#6B7280"},
 };
 const PAY_LABEL={CASH:"نقداً",SHAM_CASH:"شام كاش"};
-const _today=()=>new Date().toISOString().split("T")[0];
-const _fom=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-01`;};
-const fmtAmt=n=>(n!=null&&n!=="")?(Number(n).toLocaleString("ar-SY")):"—";
+const _today = todayStr;
+const _fom   = firstOfMonthStr;
+const fmtAmt=n=>(n!=null&&n!=="")?(Number(n).toLocaleString("en")):"—";
 
 const inputSt=(t,err)=>({
   padding:"9px 12px",borderRadius:9,border:`1.5px solid ${err?`#c74848`:t.border}`,
