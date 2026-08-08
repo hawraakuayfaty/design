@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تطبيق الطالب — الشهادات</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="topbar" id="topbar"></div>
+
+<div class="wrap">
+  <div class="grid2">
+
+    <!-- الجهة اليسرى: الجوّال -->
+    <div>
+      <div class="phone">
+        <div class="phone__bar">
+          <button class="phone__back" id="backBtn" hidden>‹</button>
+          <span id="screenTitle">شهادتي</span>
+        </div>
+        <div class="phone__body" id="screen">
+          <div class="empty">…جاري التحميل</div>
+        </div>
+      </div>
+      <div class="row" style="justify-content:center;margin-top:12px">
+        <button class="btn btn--ghost btn--sm" id="reload" style="color:var(--brand);background:var(--brand-lt);border:none">↻ تحديث الشاشة</button>
+      </div>
+    </div>
+
+    <!-- الجهة اليمنى: بيانات الخادم -->
+    <div style="display:flex;flex-direction:column;gap:1rem">
+      <div class="card">
+        <div class="card__head">
+          <h2>ما يعرفه الخادم عن هذا الطالب</h2>
+          <span class="route explain">GET /student/certificates/eligibility</span>
+        </div>
+        <p class="card__sub">
+          الشاشة على اليسار لا تحسب شيئاً — تعرض هذا الجواب حرفياً.
+        </p>
+        <div id="decision"></div>
+      </div>
+
+      <div class="note explain">
+        <strong>لماذا لا يحسب التطبيق الأهلية بنفسه</strong><br>
+        لأن الدالة التي تنتج هذا القرار على الخادم هي نفسها التي تحرس الدفع.
+        أي حساب موازٍ في التطبيق سيكون عرضةً للتلاعب، وسيظهر زرين مزيفين عند ضغطه.
+      </div>
+
+      <div id="logHost"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+/* =============================================================================
+ * تطبيق الطالب — خمس مسارات
+ * /eligibility يحدد ما تعرضه الشاشة. لا نفحص requestStatus ولا exams
+ * محليًا لإظهار زر — الخادم يرسله.
+ * ========================================================================== */
+
+const screenEl  = document.getElementById('screen');
+const titleEl   = document.getElementById('screenTitle');
+const backBtn   = document.getElementById('backBtn');
+const decisionEl = document.getElementById('decision');
+
+mountLogDrawer(document.getElementById('logHost'));
+
+let me = null;
+let view = { name: 'home' };
+let countdownTimer = null;
+
+const getIdentity = mountTopbar(document.getElementById('topbar'), {
+  title: '📱 تطبيق الطالب — الشهادات',
+  page: 'student.html',
+  identityKind: 'student',
+  onIdentity: (id) => { me = id; go({ name: 'home' }); },
+  onClock: () => render(),
+});
+me = getIdentity();
+
+document.getElementById('reload').onclick = () => render();
+backBtn.onclick = () => go({ name: 'home' });
+
+function go(next) { view = next; render(); }
+
+async function render() {
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+  backBtn.hidden = view.name === 'home';
+  try {
+    if      (view.name === 'home')   await screenHome();
+    else if (view.name === 'list')   await screenList();
+    else if (view.name === 'detail') await screenDetail(view.id);
+    else if (view.name === 'new')    await screenNew();
+    else if (view.name === 'reexam') await screenReexam();
+  } catch (e) {
+    screenEl.innerHTML = `<div class="mcard">
+      <div class="mcard__t" style="color:var(--err)">تعذّر التحميل</div>
+      <div class="mcard__s">${esc(e.message)}</div>
+    </div>`;
+  }
+}
+
+/* ─── خطوات التقدم ───────────────────────────────────────────────────────── */
+const FLOW = [
+  ['WAITING_FOR_TRAINING_SCHEDULE', 'تقديم الطلب'],
+  ['IN_GOVERNMENT_TRAINING',        'التدريب الحكومي'],
+  ['WAITING_FOR_THEORETICAL_EXAM',  'الامتحان النظري'],
+  ['WAITING_FOR_PRACTICAL_EXAM',    'الامتحان العملي'],
+  ['COMPLETED',                     'الحصول على الرخصة'],
+];
+
+function timeline(status) {
+  const i = FLOW.findIndex(([k]) => k === status);
+  if (i < 0) return '';
+  return `<ul class="tl">${FLOW.map(([, label], n) =>
+    `<li class="${n < i ? 'past' : n === i ? 'on' : ''}">${label}</li>`
+  ).join('')}</ul>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * الشاشة الرئيسية
+ * ═══════════════════════════════════════════════════════════════════════ */
+async function screenHome() {
+  titleEl.textContent = 'شهادتي';
+  screenEl.innerHTML = '<div class="empty">…جاري التحميل</div>';
+
+  const e = await call(me, 'GET', '/student/certificates/eligibility');
+  paintDecision(e);
+
+  const nr = e.newRequest || {};
+  const rx = e.reexam    || {};
+  let html = '';
+
+  /* ── الطلب الحالي ── */
+  if (e.activeCertificateId) {
+    html += `<div class="mcard mcard--hero">
+      <div class="mcard__t">${STATUS_AR[e.requestStatus] || esc(e.requestStatus)}</div>
+      <div class="mcard__s">
+        طلب رقم ${esc(String(e.activeCertificateId))}
+        ${e.courseNumber ? ` · الدورة ${esc(e.courseNumber)}` : ' · لم يُسند لدورة بعد'}
+      </div>
+      ${timeline(e.requestStatus)}
+      <button class="bigbtn" style="margin-top:10px"
+              onclick="go({name:'detail',id:'${e.activeCertificateId}'})">عرض تفاصيل الطلب</button>
+    </div>`;
+  }
+
+  /* ── إعادة الامتحان ── */
+  if (rx.eligible) {
+    html += `<div class="mcard mcard--hero">
+      <div class="mcard__t">🔁 يمكنك إعادة امتحان ${EXAM_AR[rx.examType] || ''}</div>
+      <div class="mcard__s">
+        موعد الامتحان<br><strong style="color:#fff">${esc(rx.examScheduledLabel || '—')}</strong><br><br>
+        الرسم المطلوب<br><strong style="color:#fff">${money(rx.fee)} ل.س</strong><br><br>
+        آخر موعد للتسجيل<br><strong style="color:#fff">${esc(rx.registrationClosesLabel || '—')}</strong>
+        ${rx.registrationClosesAt ? `<br>يتبقى <span class="countdown" id="cd"></span>` : ''}
+      </div>
+      <button class="bigbtn" onclick="go({name:'reexam'})">ادفع وسجّل الآن</button>
+    </div>`;
+  } else if (e.activeCertificateId && rx.message) {
+    html += `<div class="mcard mcard--wait">
+      <div class="mcard__s">${esc(rx.message)}</div>
+      <div class="explain" style="margin-top:8px">
+        <span class="pill pill--mute">${esc(rx.reason || '')}</span>
+      </div>
+    </div>`;
+  }
+
+  /* ── طلب جديد ── */
+  if (nr.allowed) {
+    const extra = (nr.completedCategories || []).length > 0;
+    html += `<div class="mcard mcard--hero">
+      <div class="mcard__t">${extra ? '✅ طلب شهادة إضافية' : '✅ طلب شهادة قيادة'}</div>
+      <div class="mcard__s">${esc(nr.message || '')}</div>
+      <button class="bigbtn" onclick="go({name:'new'})">ابدأ الطلب</button>
+    </div>`;
+  } else if (nr.reason === 'ALL_CATEGORIES_COMPLETED') {
+    html += `<div class="mcard mcard--done">
+      <div class="mcard__t">🏆 أتممت شهاداتك</div>
+      <div class="mcard__s">${esc(nr.message || '')}</div>
+    </div>`;
+  }
+
+  /* ── الرخص المكتملة ── */
+  if ((nr.completedCategories || []).length) {
+    html += `<div class="mcard">
+      <div class="mcard__t">رخص حصلت عليها</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px">
+        ${nr.completedCategories.map((c) => `<span class="pill pill--ok">${esc(c)}</span>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  /* ── رابط كل الطلبات ── */
+  html += `<button class="btn btn--block" style="background:rgba(28,95,176,.12);color:var(--brand);border:none;border-radius:10px;padding:.75rem;font-size:.85rem"
+            onclick="go({name:'list'})">📋 كل طلباتي</button>`;
+
+  screenEl.innerHTML = html;
+  if (rx.eligible && rx.registrationClosesAt) startCountdown(new Date(rx.registrationClosesAt));
+}
+
+function startCountdown(closesAt) {
+  const el = document.getElementById('cd');
+  if (!el) return;
+  const tick = () => {
+    const ms = closesAt - simNow();
+    if (ms <= 0) { el.textContent = 'انتهت المهلة'; clearInterval(countdownTimer); return; }
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    el.textContent = `${h}س ${String(m).padStart(2,'0')}د ${String(s).padStart(2,'0')}ث`;
+  };
+  tick();
+  countdownTimer = setInterval(tick, 1000);
+}
+
+function paintDecision(e) {
+  const nr = e.newRequest || {};
+  const rx = e.reexam    || {};
+  const yes = (v) => v
+    ? '<span class="pill pill--ok">نعم</span>'
+    : '<span class="pill pill--mute">لا</span>';
+
+  decisionEl.innerHTML = `
+    <div class="tablewrap">
+      <table>
+        <tbody>
+          <tr><th style="width:50%">هل يستطيع تقديم طلب جديد؟</th><td>${yes(e.canSubmitNewRequest)}</td></tr>
+          <tr><th>أنواع الناقل المتاحة له</th><td>${
+            (nr.availableTransmissionTypes || []).length
+              ? nr.availableTransmissionTypes.map((t) => `<span class="pill">${TRANSMISSION_AR[t] || esc(t)}</span>`).join(' ')
+              : '<span class="locked">لا شيء</span>'
+          }</td></tr>
+          <tr><th>رخص يملكها</th><td>${
+            (nr.completedCategories || []).length
+              ? nr.completedCategories.join('، ')
+              : '<span class="locked">لا شيء</span>'
+          }</td></tr>
+          <tr><th>هل يستطيع إعادة الامتحان؟</th><td>${yes(rx.eligible)}</td></tr>
+          <tr><th>الامتحان الذي يعيده</th><td>${rx.examType ? (EXAM_AR[rx.examType] || rx.examType) : '<span class="locked">—</span>'}</td></tr>
+          <tr><th>سبب المنع</th><td>${rx.eligible ? '<span class="locked">لا مانع</span>' : esc(rx.message || '—')}</td></tr>
+          <tr class="explain"><th>رمز السبب</th><td><span class="pill pill--mute">${esc(rx.reason || '—')}</span></td></tr>
+          <tr class="explain"><th>رمز منع الطلب الجديد</th><td><span class="pill pill--mute">${esc(nr.reason || '—')}</span></td></tr>
+        </tbody>
+      </table>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * قائمة الطلبات
+ * ═══════════════════════════════════════════════════════════════════════ */
+async function screenList() {
+  titleEl.textContent = 'كل طلباتي';
+  screenEl.innerHTML = '<div class="empty">…جاري التحميل</div>';
+
+  const data = await call(me, 'GET', '/student/certificates?limit=50');
+  const rows = Array.isArray(data) ? data : (data?.data || data || []);
+
+  screenEl.innerHTML = rows.length
+    ? rows.map((c) => `
+        <div class="mcard" onclick="go({name:'detail',id:'${c.id}'})" style="cursor:pointer">
+          <div class="mcard__t">${TRANSMISSION_AR[c.transmissionType] || esc(c.transmissionType)}</div>
+          <div class="mcard__s">
+            ${STATUS_AR[c.requestStatus] || esc(c.requestStatus)}
+            ${c.courseNumber ? ` · الدورة ${esc(c.courseNumber)}` : ''}
+          </div>
+        </div>`).join('')
+    : '<div class="empty">لا طلبات بعد</div>';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * تفاصيل الطلب
+ * ═══════════════════════════════════════════════════════════════════════ */
+async function screenDetail(id) {
+  titleEl.textContent = 'تفاصيل الطلب';
+  screenEl.innerHTML = '<div class="empty">…جاري التحميل</div>';
+
+  const d = await call(me, 'GET', `/student/certificates/${id}`);
+  const c = d.certificate || d;
+
+  const exams = [...(d.exams || [])].sort((a, b) =>
+    a.examType === b.examType
+      ? a.attemptNumber - b.attemptNumber
+      : a.examType === 'THEORY' ? -1 : 1
+  );
+
+  const API_ORIGIN = (typeof API_BASE !== 'undefined' ? API_BASE : '').replace('/api/v1', '');
+
+  screenEl.innerHTML = `
+    <div class="mcard mcard--hero">
+      <div class="mcard__t">${STATUS_AR[c.requestStatus] || esc(c.requestStatus)}</div>
+      <div class="mcard__s">
+        ${TRANSMISSION_AR[c.transmissionType] || c.transmissionType} · الفئة ${esc(c.category || '—')}
+        ${c.courseNumber ? `<br>الدورة ${esc(c.courseNumber)}` : '<br>لم تُسند لدورة بعد'}
+        ${c.governmentStudentNumber ? `<br>رقمك الحكومي ${esc(c.governmentStudentNumber)}` : ''}
+        <br>${c.transportRequested
+          ? '<span class="pill" style="background:rgba(255,255,255,.25);color:#fff">طلبت فانٍ مدرسي</span>'
+          : '<span class="pill" style="background:rgba(255,255,255,.15);color:rgba(255,255,255,.7)">بلا نقل مدرسي</span>'}
+      </div>
+      ${timeline(c.requestStatus)}
+    </div>
+
+    <div class="mcard">
+      <div class="mcard__t">مواعيد التدريب الحكومي</div>
+      ${(d.sessions || []).length
+        ? d.sessions.map((s) =>
+            `<div class="mcard__s">
+              <strong>الجلسة ${s.sessionNumber}</strong> — ${esc(s.label || formatSchoolTime(s.scheduledAt))}
+            </div>`).join('')
+        : '<div class="mcard__s">لم تصدر المواعيد بعد</div>'}
+    </div>
+
+    <div class="mcard">
+      <div class="mcard__t">الامتحانات</div>
+      ${exams.length
+        ? exams.map((x) =>
+            `<div class="mcard__s" style="margin-bottom:5px">
+              ${EXAM_AR[x.examType] || x.examType} — محاولة ${x.attemptNumber}
+              ${x.examResult
+                ? `<span class="pill pill--${x.examResult === 'PASS' ? 'ok' : x.examResult === 'FAIL' ? 'err' : 'warn'}">${RESULT_AR[x.examResult] || x.examResult}</span>`
+                : '<span class="pill pill--warn">بانتظار النتيجة</span>'}
+              ${x.scheduledAt ? `<br><span style="font-size:11px;color:var(--ink-2)">موعد الامتحان: ${esc(formatSchoolTime(x.scheduledAt))}</span>` : ''}
+            </div>`).join('')
+        : '<div class="mcard__s">لم يبدأ الامتحان بعد</div>'}
+    </div>
+
+    <div class="mcard">
+      <div class="mcard__t">الدفعات</div>
+      ${(d.charges || []).map((ch) =>
+          `<div class="mcard__s" style="margin-bottom:5px">
+            ${CHARGE_AR[ch.chargeReason] || esc(ch.chargeReason)} — ${money(ch.amountDue)} ل.س
+            <span class="pill pill--${ch.chargeStatus === 'PAID' ? 'ok' : 'warn'}">${CHARGE_STATUS_AR[ch.chargeStatus] || ch.chargeStatus}</span>
+          </div>`).join('') || '<div class="mcard__s">لا مستحقات</div>'}
+    </div>
+
+    ${(d.documents && (d.documents.personalPhotoUrl || d.documents.idFrontUrl || d.documents.idBackUrl)) ? `
+    <div class="mcard">
+      <div class="mcard__t">الوثائق المرفوعة</div>
+      <div class="row" style="margin-top:8px;flex-wrap:nowrap;overflow-x:auto;gap:8px">
+        ${[['personalPhotoUrl','الصورة الشخصية'],['idFrontUrl','وجه الهوية الأمامي'],['idBackUrl','وجه الهوية الخلفي']]
+          .filter(([k]) => d.documents[k])
+          .map(([k, label]) => `
+            <a href="${API_ORIGIN}${d.documents[k]}" target="_blank" style="display:block;text-decoration:none;flex-shrink:0">
+              <img src="${API_ORIGIN}${d.documents[k]}" alt="${label}"
+                   style="width:96px;height:70px;object-fit:cover;border:1px solid var(--line);border-radius:8px;background:#f2f5f9;display:block"
+                   onerror="this.style.opacity=.35">
+              <div style="font-size:10.5px;color:var(--ink-2);margin-top:4px;text-align:center">${label}</div>
+            </a>`).join('')}
+      </div>
+    </div>` : ''}`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * تقديم طلب جديد
+ * ═══════════════════════════════════════════════════════════════════════ */
+async function screenNew() {
+  titleEl.textContent = 'طلب شهادة قيادة';
+  screenEl.innerHTML = '<div class="empty">…جاري التحميل</div>';
+
+  const e = await call(me, 'GET', '/student/certificates/eligibility');
+  const types = (e.newRequest && e.newRequest.availableTransmissionTypes) || [];
+
+  if (!types.length) {
+    screenEl.innerHTML = `<div class="mcard mcard--wait">
+      <div class="mcard__s">${esc((e.newRequest || {}).message || 'لا يمكن تقديم طلب جديد الآن')}</div>
+    </div>`;
+    return;
+  }
+
+  screenEl.innerHTML = `
+    <div class="mcard">
+      <div class="mcard__t">١. نوع الرخصة</div>
+      <select id="tt" style="width:100%;margin-top:8px">
+        ${types.map((t) => `<option value="${t}">${TRANSMISSION_AR[t] || t}</option>`).join('')}
+      </select>
+      <div class="mcard__s explain" style="margin-top:6px">
+        الخيارات جاءت من الخادم — الفئة التي تملكها محذوفة منها أصلاً.
+      </div>
+    </div>
+
+    <div class="mcard">
+      <div class="mcard__t">٢. الفان المدرسي</div>
+      <label class="check"><input type="checkbox" id="tr"> أرغب بخدمة النقل</label>
+    </div>
+
+    <div class="mcard">
+      <div class="mcard__t">٣. الوثائق المطلوبة</div>
+      <div class="mcard__s">صورة شخصية + وجها الهوية. ستُولَّد صور وهمية تلقائياً إن لم تختر.</div>
+      <input type="file" id="files" multiple accept="image/*" style="width:100%;margin-top:8px">
+    </div>
+
+    <div class="mcard">
+      <div class="mcard__t">٤. الدفع عبر شاه ماش</div>
+      <div class="row" style="margin-top:8px">
+        <input id="txn" value="${randomTxnId()}" maxlength="9" style="flex:1;direction:ltr">
+        <button class="btn btn--ghost btn--sm" id="regen">رقم آخر</button>
+      </div>
+      <div class="mcard__s explain" style="margin-top:6px">
+        ٩ أرقام. تحت الباقاس يقبل أي رقم غير مستعمل.
+      </div>
+    </div>
+
+    <button class="bigbtn" id="submit">إرسال الطلب والدفع</button>`;
+
+  document.getElementById('regen').onclick = () => {
+    document.getElementById('txn').value = randomTxnId();
+  };
+
+  document.getElementById('submit').onclick = guard(async (ev) => {
+    ev.target.disabled = true;
+    ev.target.textContent = '…جاري الإرسال';
+    try {
+      const fd = new FormData();
+      fd.append('transmissionType', document.getElementById('tt').value);
+      fd.append('transportRequested', document.getElementById('tr').checked ? 'true' : 'false');
+      fd.append('transactionId', document.getElementById('txn').value);
+
+      const picked = document.getElementById('files').files;
+      const names  = ['personalPhoto', 'idFront', 'idBack'];
+      for (let i = 0; i < 3; i++) {
+        if (picked[i]) fd.append(names[i], picked[i], picked[i].name);
+        else           fd.append(names[i], await fakeImageBlob(names[i]), `${names[i]}.jpg`);
+      }
+
+      const r = await call(me, 'POST', '/student/certificates', { form: fd });
+      toast(`أُرسل طلبك — رقم ${r.certificateId || r.id || '✓'}`);
+      go({ name: 'home' });
+    } finally {
+      ev.target.disabled = false;
+      ev.target.textContent = 'إرسال الطلب والدفع';
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * دفع الإعادة
+ * ═══════════════════════════════════════════════════════════════════════ */
+async function screenReexam() {
+  titleEl.textContent = 'إعادة الامتحان';
+  screenEl.innerHTML = '<div class="empty">…جاري التحميل</div>';
+
+  const e = await call(me, 'GET', '/student/certificates/eligibility');
+  const rx = e.reexam || {};
+
+  if (!rx.eligible) {
+    screenEl.innerHTML = `<div class="mcard mcard--wait">
+      <div class="mcard__t" style="color:var(--err)">لم يعد التسجيل متاحاً</div>
+      <div class="mcard__s">${esc(rx.message || '')}</div>
+      <div class="explain" style="margin-top:8px">
+        <span class="pill pill--err">${esc(rx.reason || '')}</span>
+      </div>
+    </div>`;
+    return;
+  }
+
+  screenEl.innerHTML = `
+    <div class="mcard mcard--hero">
+      <div class="mcard__t">إعادة امتحان ${EXAM_AR[rx.examType] || ''}</div>
+      <div class="mcard__s">
+        موعد الامتحان<br><strong style="color:#fff">${esc(rx.examScheduledLabel || '—')}</strong><br><br>
+        التسجيل مفتوح حتى<br><strong style="color:#fff">${esc(rx.registrationClosesLabel || '—')}</strong><br><br>
+        الرسم<br><strong style="color:#fff;font-size:16px">${money(rx.fee)} ل.س</strong>
+      </div>
+    </div>
+
+    <div class="mcard">
+      <div class="mcard__t">رقم عملية شاه ماش</div>
+      <div class="row" style="margin-top:8px">
+        <input id="txn" value="${randomTxnId()}" maxlength="9" style="flex:1;direction:ltr">
+        <button class="btn btn--ghost btn--sm" id="regen">رقم آخر</button>
+      </div>
+      <div class="mcard__s explain" style="margin-top:6px">
+        الرقم لا يُرسل — الخادم يشتقل من نتائجه.
+      </div>
+    </div>
+
+    <button class="bigbtn" id="pay">ادفع ${money(rx.fee)} ل.س وسجّل</button>`;
+
+  document.getElementById('regen').onclick = () => {
+    document.getElementById('txn').value = randomTxnId();
+  };
+
+  document.getElementById('pay').onclick = guard(async (ev) => {
+    ev.target.disabled = true;
+    try {
+      const r = await call(me, 'POST',
+        `/student/certificates/${e.activeCertificateId}/reexam`,
+        { json: { transactionId: document.getElementById('txn').value } }
+      );
+      toast(`تم التسجيل — ${EXAM_AR[r.examType] || ''} محاولة ${r.attemptNumber}`);
+      go({ name: 'home' });
+    } finally {
+      ev.target.disabled = false;
+    }
+  });
+}
+
+/* تشغيل */
+render();
+</script>
+</body>
+</html>

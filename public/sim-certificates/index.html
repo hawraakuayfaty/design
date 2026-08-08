@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>محاكاة نظام الشهادات</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="topbar" id="topbar"></div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <h1>🏛 محاكاة نظام الشهادات</h1>
+    <p>شاشتان تستدعيان الـAPI الحقيقي — بلا تسجيل دخول، ويتحوّلان بالوقت بنقرة.</p>
+  </div>
+
+  <div class="tiles">
+    <a class="tile" href="staff.html">
+      <h3>🖥️ شاشة الموظف</h3>
+      <p>من تجميع الطلبات إلى إغلاق النتائج — بمؤشر يراقب كل مرحلة من أول أمر.</p>
+    </a>
+    <a class="tile" href="student.html">
+      <h3>📱 تطبيق الطالب</h3>
+      <p>طلب الشهادة، متابعة الحالة، دفع إعادة الامتحان.</p>
+    </a>
+  </div>
+
+  <!-- فحص الاتصال -->
+  <div class="card">
+    <div class="card__head"><h2>حالة الخادم</h2></div>
+    <div class="row">
+      <label style="font-size:12.5px;color:var(--ink-2)">عنوان API</label>
+      <input id="base" style="flex:1;min-width:220px;direction:ltr">
+      <button class="btn" style="background:var(--brand-lt);color:var(--brand);border:none" id="save">حفظ</button>
+      <button class="btn" id="check">فحص الاتصال</button>
+    </div>
+    <div id="status" style="margin-top:12px"></div>
+  </div>
+
+  <!-- التشغيل -->
+  <div class="card">
+    <div class="card__head"><h2>التشغيل</h2></div>
+    <ol class="docs">
+      <li>شغّل الخادم — <code>npm run start:dev</code></li>
+      <li>ابذر الطلاب بلا شهادات — <code>SEED_CERTIFICATES=false npm run seed:dev</code></li>
+      <li>افتح الصفحة مباشرةً أو عبر serve:
+        <br><code>npx --yes serve docs/sim-certificates -l 5500</code></li>
+    </ol>
+  </div>
+
+  <!-- سيناريو كامل -->
+  <div class="card">
+    <div class="card__head">
+      <h2>سيناريو كامل في الصور</h2>
+    </div>
+    <p class="card__sub">يغطي الدورة كاملاً من عشر خطوات — والساعة في الأعلى تختصر الأيام.</p>
+    <ol class="docs">
+      <li><strong>تطبيق الطالب</strong> — اختر «طالب ١» وقدّم طلب شهادة. كرّرها بطالبين أو ثلاثة.</li>
+      <li><strong>شاشة الموظف</strong> — «طلبات بانتظار دورة» — حدّدهم وأنشئ دورة. لاحظ الرقم التسلسلي.</li>
+      <li>في صفحة الدورة: أدخل <strong>الجلسات الثلاث</strong> واتركها — إشعار الطلاب يكمل وحده.</li>
+      <li>عند تطبيق الطالب — الحالة صارت «في التدريب الحكومي» والمواعيد ظاهرة.</li>
+      <li><strong>الموظف</strong> — اضبط <strong>موعد الامتحان</strong> (بعد ٤ أيام).</li>
+      <li>اضغط <strong>+يوم</strong> في الأعلى أربع مرات — صرت في يوم الامتحان بلا انتظار.</li>
+      <li><strong>الموظف</strong> — زر «📝 إدخال نتائج الامتحان» — أرسلها أحدهم ناجح والباقين راسب.</li>
+      <li>الراسب الآن مؤهل للإعادة: افتح تطبيق الطالب بهويّته — ظهر الزر والعدّاد.</li>
+      <li>أنشئ دورة ثانية واضبط لها موعداً — سيُدرج الراسب تلقائياً.</li>
+      <li>قدِّم الساعة بعد ليلة التسجيل — اختفى الزر وردّ الخادم «انتهت المهلة».</li>
+    </ol>
+  </div>
+
+  <!-- الحسابات -->
+  <div class="card">
+    <div class="card__head">
+      <h2>الحسابات</h2>
+      <span class="pill pill--mute">كلمة المرور Test@12345 · المدير Admin@12345</span>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>الهوية</th><th class="num">الهاتف</th><th>الشاشة</th></tr></thead>
+        <tbody id="accounts"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="logHost"></div>
+</div>
+
+<script src="api.js"></script>
+<script>
+mountTopbar(document.getElementById('topbar'), {
+  title: '🏛 محاكاة نظام الشهادات',
+  page: 'index.html',
+});
+mountLogDrawer(document.getElementById('logHost'));
+
+/* ── عنوان API ── */
+const baseInput = document.getElementById('base');
+baseInput.value = API_BASE;
+
+document.getElementById('save').onclick = () => {
+  const v = baseInput.value.trim().replace(/\/$/, '');
+  if (!v) return;
+  localStorage.setItem('sim.apiBase', v);
+  toast('تم الحفظ — أعد تحميل الصفحة لتطبيق العنوان الجديد');
+};
+
+/* ── فحص الاتصال ── */
+document.getElementById('check').onclick = async () => {
+  const box = document.getElementById('status');
+  box.innerHTML = '<div class="empty" style="padding:.75rem">…جاري الفحص</div>';
+  try {
+    await login('manager');
+    const who = JSON.parse(localStorage.getItem('sim.user.manager') || '{}');
+    box.innerHTML = `<div class="toast toast--ok" style="animation:none;display:inline-block">
+      ✓ الخادم يعمل والبذور موجودة — دخل «${esc(who.name || 'المدير')}»
+      بـ${(who.permissions || []).length} صلاحية.</div>`;
+  } catch (e) {
+    box.innerHTML = `<div class="toast toast--err" style="animation:none;display:inline-block">
+      ✗ ${esc(e.message)}<br>
+      <small>تأكد أن الخادم يعمل على <code>${esc(API_BASE)}</code> وأن البذور مزروعة.</small>
+    </div>`;
+  }
+};
+
+/* ── جدول الحسابات ── */
+document.getElementById('accounts').innerHTML = Object.entries(IDENTITIES)
+  .map(([, v]) => `<tr>
+    <td><strong>${esc(v.label)}</strong></td>
+    <td class="num" dir="ltr">${esc(v.phone)}</td>
+    <td>${v.kind === 'staff' ? 'شاشة الموظف' : 'تطبيق الطالب'}</td>
+  </tr>`).join('');
+</script>
+</body>
+</html>

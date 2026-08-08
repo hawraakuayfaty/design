@@ -1,0 +1,1356 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>محاكاة — الشهادات الحكومية (موظف الاستقبال)</title>
+<link rel="stylesheet" href="./app.css">
+<script src="./api.js"></script>
+<style>
+  .course-detail { border-right:3px solid var(--brand);padding-right:1rem;margin-top:1rem }
+  .session-row   { display:grid;grid-template-columns:1fr 1fr auto;gap:.75rem;align-items:end }
+  .result-row    { display:grid;grid-template-columns:2fr 1fr 1fr;gap:.75rem;align-items:center;margin-bottom:.5rem }
+  .roster-row    { display:grid;grid-template-columns:2fr 1fr;gap:.75rem;padding:.5rem 0;border-bottom:1px solid var(--border) }
+  .roster-row:last-child { border-bottom:none }
+  .search-box    { display:flex;gap:.5rem;margin-bottom:1.5rem }
+  .search-box input { flex:1 }
+  .rev-row       { display:flex;justify-content:space-between;align-items:center;padding:.55rem 0;border-bottom:1px solid var(--border);font-size:.875rem;gap:.75rem }
+  .rev-row:last-child { border-bottom:none }
+  .detail-grid   { display:grid;grid-template-columns:1fr 1fr;gap:.5rem 1.5rem;font-size:.875rem }
+  .detail-lbl    { color:var(--text-lt);font-size:.78rem }
+  .actions-row   { display:flex;flex-wrap:wrap;gap:.5rem }
+  .pool-toolbar  { display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem }
+  .pool-check    { display:flex;align-items:center;gap:.5rem }
+  .row-clickable { cursor:pointer }
+  .row-clickable:hover td { background:var(--bg-elevated) }
+  .savebar       { display:flex;gap:.75rem;margin-top:1.25rem;flex-wrap:wrap;align-items:center }
+  .kpi           { background:var(--bg-elevated);border-radius:var(--r-sm);padding:.75rem 1rem }
+  .kpi-label     { font-size:.78rem;color:var(--text-lt);margin-bottom:.25rem }
+  .kpi-value     { font-size:1.35rem;font-weight:700 }
+  .seg           { display:flex;gap:2px;background:var(--line);border-radius:6px;padding:2px }
+  .seg button    { border:none;background:transparent;padding:.3rem .75rem;border-radius:4px;font-size:.8rem;cursor:pointer;color:var(--ink-2) }
+  .seg button.active { background:var(--bg-elevated);color:var(--ink);font-weight:600 }
+  .step          { display:flex;flex-direction:column;align-items:center;cursor:pointer;gap:.35rem;min-width:72px }
+  .step-dot      { width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;background:var(--line);color:var(--ink-2) }
+  .step.active .step-dot { background:var(--brand);color:#fff }
+  .step.done  .step-dot  { background:var(--ok);color:#fff }
+  .step-label    { font-size:.75rem;color:var(--ink-2);text-align:center }
+  .step.active .step-label { color:var(--brand);font-weight:600 }
+  .steps         { display:flex;gap:.5rem;margin:1rem 0;overflow-x:auto;padding-bottom:.25rem }
+  .btn-loading   { opacity:.6;pointer-events:none }
+  .check         { cursor:pointer;display:inline-flex;align-items:center;gap:.5rem;font-size:.875rem }
+  .font-semi     { font-weight:600 }
+  .text-xs       { font-size:.75rem }
+  .mt-2          { margin-top:.5rem }
+  .mt-3          { margin-top:.75rem }
+  .mt-4          { margin-top:1rem }
+  .mb-1          { margin-bottom:.25rem }
+  .mb-2          { margin-bottom:.5rem }
+  .mb-3          { margin-bottom:.75rem }
+  .mb-4          { margin-bottom:1rem }
+</style>
+</head>
+<body>
+
+<div id="topbar-mount"></div>
+
+<div class="page" id="app">
+
+  <!-- Tabs -->
+  <div class="tabs" role="tablist">
+    <button class="tab-btn active" role="tab" data-tab="pool">طلبات المجموعات</button>
+    <button class="tab-btn" role="tab" data-tab="courses">إدارة الدورات</button>
+    <button class="tab-btn" role="tab" data-tab="search">بحث عن طالب</button>
+    <button class="tab-btn" role="tab" data-tab="revenue">لوحة الإيرادات</button>
+  </div>
+
+  <!-- ═══ TAB 1 — POOL ════════════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-pool">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">الطلبات غير المسندة</span>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" id="btn-preview-export">معاينة التصدير</button>
+          <button class="btn btn-primary btn-sm" id="btn-create-course" disabled>إنشاء دورة للمحددين</button>
+        </div>
+      </div>
+      <div class="pool-toolbar">
+        <label class="pool-check">
+          <input type="checkbox" id="chk-all">
+          <span style="font-size:.85rem;color:var(--text-lt)">تحديد الكل</span>
+        </label>
+        <span style="font-size:.85rem;color:var(--text-lt)" id="pool-count-label"></span>
+      </div>
+      <div id="pool-loader" class="loader"><div class="spinner"></div> جاري التحميل…</div>
+      <div id="pool-empty" class="empty hidden">
+        <div class="empty-icon">📋</div>
+        <div class="empty-text">لا توجد طلبات غير مسندة</div>
+      </div>
+      <div class="tablewrap hidden" id="pool-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:2rem"></th>
+              <th>الاسم</th>
+              <th>الفئة</th>
+              <th>ناقل الحركة</th>
+              <th>تاريخ الطلب</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody id="pool-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal: Create Course -->
+    <div class="modal-backdrop hidden" id="modal-create-course">
+      <div class="modal">
+        <div class="modal-header">
+          <span class="modal-title">إنشاء دورة جديدة</span>
+          <button class="modal-close" data-close="modal-create-course">✕</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1rem">
+          <p class="text-sm" style="color:var(--ink-2)">
+            سيتم إنشاء دورة تضمّ <strong id="cc-count">0</strong> طلباً محدداً.
+            الفئة وناقل الحركة يُستخرجان تلقائياً من الطلبات.
+          </p>
+          <label class="check">
+            <input type="checkbox" id="cc-allow-small">
+            <span>تجاوز تحذير العدد الأدنى (allowSmallCourse)</span>
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" data-close="modal-create-course">إلغاء</button>
+          <button class="btn btn-primary" id="btn-do-create-course">إنشاء الدورة</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB 2 — COURSES ══════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-courses">
+    <div id="courses-list-view">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">الدورات الحالية</span>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-courses">تحديث</button>
+        </div>
+        <div id="courses-loader" class="loader"><div class="spinner"></div> جاري التحميل…</div>
+        <div id="courses-empty" class="empty hidden">
+          <div class="empty-icon">📚</div>
+          <div class="empty-text">لا توجد دورات</div>
+        </div>
+        <div class="tablewrap hidden" id="courses-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>رقم الدورة</th>
+                <th>الطلاب</th>
+                <th>الحالة</th>
+                <th>تاريخ الإنشاء</th>
+                <th>موعد الامتحان</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="courses-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Course Detail -->
+    <div id="courses-detail-view" class="hidden">
+      <button class="btn btn-ghost btn-sm mb-4" id="btn-back-courses">← العودة للدورات</button>
+      <div class="card">
+        <div id="course-detail-header"></div>
+        <div class="steps" id="course-stepper"></div>
+        <div id="step-sessions" class="course-detail"></div>
+        <div id="step-exam"     class="course-detail hidden"></div>
+        <div id="step-roster"   class="course-detail hidden"></div>
+        <div id="step-results"  class="course-detail hidden"></div>
+        <div id="step-export"   class="course-detail hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB 3 — SEARCH & PROFILE ════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-search">
+    <div class="card mb-4">
+      <div class="card-title mb-2">بحث عن طالب</div>
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="اسم الطالب أو رقم الهاتف…">
+        <button class="btn btn-primary" id="btn-search">بحث</button>
+      </div>
+      <div id="search-loader" class="loader hidden"><div class="spinner"></div> جاري البحث…</div>
+      <div id="search-empty" class="empty hidden">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-text">لا توجد نتائج</div>
+      </div>
+      <div class="tablewrap hidden" id="search-results-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>الاسم</th>
+              <th>الفئة</th>
+              <th>ناقل الحركة</th>
+              <th>الحالة</th>
+              <th>تاريخ الطلب</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="search-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Profile Panel -->
+    <div id="profile-panel" class="hidden">
+      <button class="btn btn-ghost btn-sm mb-4" id="btn-back-search">← العودة للنتائج</button>
+      <div class="card">
+        <div id="profile-header"></div>
+        <div id="profile-actions" class="actions-row mt-4"></div>
+      </div>
+
+      <!-- Modal: Edit Student Data -->
+      <div class="modal-backdrop hidden" id="modal-edit-student">
+        <div class="modal">
+          <div class="modal-header">
+            <span class="modal-title">تعديل بيانات الطلب</span>
+            <button class="modal-close" data-close="modal-edit-student">✕</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:1rem" id="edit-form"></div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" data-close="modal-edit-student">إلغاء</button>
+            <button class="btn btn-primary" id="btn-save-student">حفظ</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Documents Upload -->
+      <div class="modal-backdrop hidden" id="modal-docs">
+        <div class="modal">
+          <div class="modal-header">
+            <span class="modal-title">استبدال الوثائق</span>
+            <button class="modal-close" data-close="modal-docs">✕</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:1rem">
+            <div class="form-group">
+              <label>صورة شخصية (personalPhoto)</label>
+              <input type="file" id="doc-personal" accept="image/*">
+            </div>
+            <div class="form-group">
+              <label>وجه الهوية (idFront)</label>
+              <input type="file" id="doc-id-front" accept="image/*">
+            </div>
+            <div class="form-group">
+              <label>ظهر الهوية (idBack)</label>
+              <input type="file" id="doc-id-back" accept="image/*">
+            </div>
+            <p class="text-sm" style="color:var(--text-lt)">الحقول اختيارية — كل ملف يُستبدل ما قبله تلقائياً.</p>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" data-close="modal-docs">إلغاء</button>
+            <button class="btn btn-primary" id="btn-upload-docs">رفع</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Individual Exam Result -->
+      <div class="modal-backdrop hidden" id="modal-ind-result">
+        <div class="modal">
+          <div class="modal-header">
+            <span class="modal-title">إدخال نتيجة فردية</span>
+            <button class="modal-close" data-close="modal-ind-result">✕</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:1rem" id="ind-result-form">
+            <!-- filled dynamically -->
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" data-close="modal-ind-result">إلغاء</button>
+            <button class="btn btn-primary" id="btn-save-ind-result">حفظ النتيجة</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB 4 — REVENUE ══════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-revenue">
+    <div class="grid-4 mb-4" id="rev-kpis" style="gap:.75rem"></div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">الإيرادات اليومية</span>
+        <div class="seg" id="rev-seg">
+          <button class="active" data-days="7">٧ أيام</button>
+          <button data-days="30">٣٠ يوم</button>
+          <button data-days="90">٩٠ يوم</button>
+        </div>
+      </div>
+      <div id="rev-daily-loader" class="loader hidden"><div class="spinner"></div></div>
+      <div id="rev-daily-list"></div>
+    </div>
+  </div>
+
+</div><!-- /.page -->
+
+<div id="log-drawer-mount"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   Bootstrap
+   ═══════════════════════════════════════════════════════════════════════ */
+let currentIdentity = 'reception';
+const getIdentity = mountTopbar(document.getElementById('topbar-mount'), {
+  title:        '🖥️ الشهادات الحكومية — استقبال',
+  page:         'staff.html',
+  identityKind: 'staff',
+  onIdentity:   (id) => { currentIdentity = id; },
+  onClock:      () => {},
+});
+currentIdentity = getIdentity?.() || 'reception';
+mountLogDrawer(document.getElementById('log-drawer-mount'));
+
+/* ── Tab switching ──────────────────────────────────────────────────── */
+const tabBtns   = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabBtns.forEach(b  => b.classList.remove('active'));
+    tabPanels.forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+    if (btn.dataset.tab === 'pool')    loadPool();
+    if (btn.dataset.tab === 'courses') loadCourses();
+    if (btn.dataset.tab === 'revenue') loadRevenue();
+  });
+});
+
+/* ── Modal helpers ──────────────────────────────────────────────────── */
+function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+document.querySelectorAll('[data-close]').forEach(btn =>
+  btn.addEventListener('click', () => closeModal(btn.dataset.close)));
+document.querySelectorAll('.modal-backdrop').forEach(b =>
+  b.addEventListener('click', e => { if (e.target === b) b.classList.add('hidden'); }));
+
+/* ── Local helpers ──────────────────────────────────────────────────── */
+const TRANS_LABEL   = { MANUAL: 'يدوي', AUTOMATIC: 'أوتوماتيك' };
+const EXAM_TYPE_AR  = { THEORY: 'نظري', PRACTICAL: 'عملي' };
+const COURSE_STATUS = {
+  SUBMITTED_TO_GOV: 'أرسلت للحكومة',
+  EXAM_SCHEDULED:   'موعد الامتحان محدد',
+  CLOSED:           'مغلقة',
+};
+const COURSE_PILL_KIND = {
+  SUBMITTED_TO_GOV: 'warn',
+  EXAM_SCHEDULED:   'warn',
+  CLOSED:           'ok',
+};
+const fmtDate  = d => d ? new Date(d).toLocaleDateString('ar-SY') : '—';
+const fmtMoney = v => v == null ? '—' : `${Number(v).toLocaleString('en')} ل.س`;
+
+/* Safely extract array from API response (handles both direct array and { data:[] }) */
+const toArr = raw =>
+  Array.isArray(raw)       ? raw :
+  Array.isArray(raw?.data) ? raw.data :
+  Array.isArray(raw?.items)? raw.items : [];
+
+/* Pill for course-level statuses (separate from certificate statusPill in api.js) */
+const coursePill = s =>
+  `<span class="pill pill--${COURSE_PILL_KIND[s] || 'mute'}">${COURSE_STATUS[s] || s || '—'}</span>`;
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TAB 1 — POOL
+   ═══════════════════════════════════════════════════════════════════════ */
+let poolItems  = [];
+let selectedIds = new Set();   /* stores String(c.id) — same type as c.id from API */
+
+const poolLoader = document.getElementById('pool-loader');
+const poolEmpty  = document.getElementById('pool-empty');
+const poolWrap   = document.getElementById('pool-table-wrap');
+const poolBody   = document.getElementById('pool-body');
+const chkAll     = document.getElementById('chk-all');
+const countLabel = document.getElementById('pool-count-label');
+const btnCreate  = document.getElementById('btn-create-course');
+
+const loadPool = guard(async () => {
+  console.log('[Pool] loadPool() — identity:', currentIdentity);
+  poolLoader.classList.remove('hidden');
+  poolEmpty.classList.add('hidden');
+  poolWrap.classList.add('hidden');
+  selectedIds.clear();
+  updatePoolToolbar();
+
+  console.log('[Pool] → GET /reception/certificates?unassigned=true&limit=50');
+  let rawPool;
+  try {
+    rawPool = await call(currentIdentity, 'GET', '/reception/certificates?unassigned=true&limit=50');
+  } catch (fetchErr) {
+    console.error('[Pool] ✖ fetch/parse error:', fetchErr);
+    throw fetchErr;
+  }
+  console.log('[Pool] ← rawPool (= parsed.data from envelope):', rawPool);
+  console.log('[Pool] typeof:', typeof rawPool,
+    '| isArray:', Array.isArray(rawPool),
+    '| keys:', rawPool && typeof rawPool === 'object' ? Object.keys(rawPool) : 'n/a');
+
+  poolItems = toArr(rawPool);
+  console.log('[Pool] poolItems after toArr() — length:', poolItems.length, poolItems);
+  poolLoader.classList.add('hidden');
+
+  if (!poolItems.length) {
+    console.warn('[Pool] EMPTY — rawPool was:', JSON.stringify(rawPool));
+    const debugNote = rawPool && !Array.isArray(rawPool)
+      ? `<div style="margin-top:8px;font-size:11px;color:var(--muted);direction:ltr;text-align:left">
+           رد الخادم: <code>${esc(JSON.stringify(rawPool).slice(0, 220))}</code>
+         </div>` : '';
+    poolEmpty.innerHTML = `
+      <div class="empty-icon">📋</div>
+      <div class="empty-text">لا توجد طلبات غير مسندة</div>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn--ghost btn--sm" id="debugAll">🔍 عرض جميع الطلبات بلا فلتر</button>
+        <button class="btn btn--ghost btn--sm" id="debugRefresh">↻ تحديث</button>
+      </div>${debugNote}`;
+    poolEmpty.classList.remove('hidden');
+
+    document.getElementById('debugRefresh')?.addEventListener('click', loadPool);
+    document.getElementById('debugAll')?.addEventListener('click', guard(async () => {
+      console.log('[Pool:debugAll] Loading all certs without filter');
+      poolEmpty.classList.add('hidden');
+      poolLoader.classList.remove('hidden');
+      const allRaw = await call(currentIdentity, 'GET', '/reception/certificates?limit=50');
+      console.log('[Pool:debugAll] allRaw:', allRaw);
+      poolItems = toArr(allRaw);
+      console.log('[Pool:debugAll] after toArr():', poolItems.length, 'items', poolItems);
+      poolLoader.classList.add('hidden');
+      if (!poolItems.length) {
+        console.warn('[Pool:debugAll] STILL empty — no certs exist at all');
+        poolEmpty.innerHTML = '<div class="empty-icon">📋</div><div class="empty-text">لا توجد شهادات إطلاقاً — تحقق من البذور</div>';
+        poolEmpty.classList.remove('hidden');
+        return;
+      }
+      poolWrap.classList.remove('hidden');
+      renderPool();
+      toast(`⚠ يعرض ${poolItems.length} شهادة بلا فلتر`, 'warn');
+    }));
+    return;
+  }
+  console.log('[Pool] renderPool() — rendering', poolItems.length, 'items');
+  poolWrap.classList.remove('hidden');
+  renderPool();
+});
+
+function renderPool() {
+  poolBody.innerHTML = poolItems.map(c => `
+    <tr>
+      <td><input type="checkbox" class="pool-chk" data-id="${esc(String(c.id))}"
+           ${selectedIds.has(String(c.id)) ? 'checked' : ''}></td>
+      <td>${esc(c.studentName || '—')}</td>
+      <td>${esc(c.category || '—')}</td>
+      <td>${esc(TRANS_LABEL[c.transmissionType] || c.transmissionType || '—')}</td>
+      <td>${fmtDate(c.requestedAt || c.createdAt)}</td>
+      <td>${statusPill(c.requestStatus)}</td>
+    </tr>
+  `).join('');
+  poolBody.querySelectorAll('.pool-chk').forEach(chk =>
+    chk.addEventListener('change', () => {
+      const id = String(chk.dataset.id);
+      chk.checked ? selectedIds.add(id) : selectedIds.delete(id);
+      updatePoolToolbar();
+    }));
+}
+
+function updatePoolToolbar() {
+  btnCreate.disabled     = selectedIds.size === 0;
+  countLabel.textContent = selectedIds.size > 0 ? `${selectedIds.size} محدد` : '';
+  chkAll.indeterminate   = selectedIds.size > 0 && selectedIds.size < poolItems.length;
+  chkAll.checked         = poolItems.length > 0 && selectedIds.size === poolItems.length;
+}
+
+chkAll.addEventListener('change', () => {
+  if (chkAll.checked) poolItems.forEach(c => selectedIds.add(String(c.id)));
+  else                selectedIds.clear();
+  renderPool();
+  updatePoolToolbar();
+});
+
+/* Export preview — certificateIds as Numbers, format required */
+document.getElementById('btn-preview-export').addEventListener('click', guard(async () => {
+  if (!selectedIds.size) { toast('اختر طلبات أولاً', 'warn'); return; }
+  const btn = document.getElementById('btn-preview-export');
+  btn.disabled = true;
+  try {
+    const blob = await call(currentIdentity, 'POST', '/reception/certificates/export-preview', {
+      json: { certificateIds: [...selectedIds].map(Number), format: 'pdf' },
+      raw:  true,
+    });
+    const url = URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'), { href: url, download: 'preview.pdf' }).click();
+    URL.revokeObjectURL(url);
+    toast('تم تحميل المعاينة');
+  } finally { btn.disabled = false; }
+}));
+
+/* Open create-course modal */
+document.getElementById('btn-create-course').addEventListener('click', () => {
+  document.getElementById('cc-count').textContent = selectedIds.size;
+  document.getElementById('cc-allow-small').checked = false;
+  openModal('modal-create-course');
+});
+
+/* Do create course — only certificateIds + allowSmallCourse */
+document.getElementById('btn-do-create-course').addEventListener('click', guard(async () => {
+  const btn = document.getElementById('btn-do-create-course');
+  btn.disabled = true;
+  try {
+    const res = await call(currentIdentity, 'POST', '/reception/certificate-courses', {
+      json: {
+        certificateIds:  [...selectedIds].map(Number),
+        allowSmallCourse: document.getElementById('cc-allow-small').checked,
+      },
+    });
+    closeModal('modal-create-course');
+    toast(`✓ دورة #${res?.courseNumber ?? ''} — ${res?.count ?? selectedIds.size} طالب`);
+    selectedIds.clear();
+    loadPool();
+  } finally { btn.disabled = false; }
+}));
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TAB 2 — COURSES
+   ═══════════════════════════════════════════════════════════════════════ */
+let coursesList    = [];
+let activeCourse   = null;   /* course object from { course, sessions, students } */
+let activeSessions = [];     /* sessions array */
+let activeStudents = [];     /* students array */
+
+const coursesLoader = document.getElementById('courses-loader');
+const coursesEmpty  = document.getElementById('courses-empty');
+const coursesWrap   = document.getElementById('courses-table-wrap');
+const coursesBody   = document.getElementById('courses-body');
+const listView      = document.getElementById('courses-list-view');
+const detailView    = document.getElementById('courses-detail-view');
+
+const loadCourses = guard(async () => {
+  coursesLoader.classList.remove('hidden');
+  coursesEmpty.classList.add('hidden');
+  coursesWrap.classList.add('hidden');
+
+  const raw = await call(currentIdentity, 'GET', '/reception/certificate-courses?limit=50');
+  coursesList = toArr(raw);
+  coursesLoader.classList.add('hidden');
+
+  if (!coursesList.length) { coursesEmpty.classList.remove('hidden'); return; }
+  coursesWrap.classList.remove('hidden');
+  renderCoursesList();
+});
+
+function renderCoursesList() {
+  coursesBody.innerHTML = coursesList.map(c => `
+    <tr class="row-clickable" data-id="${c.id}">
+      <td>${c.courseNumber}</td>
+      <td>${c.studentsCount ?? '—'}</td>
+      <td>${coursePill(c.status)}</td>
+      <td>${fmtDate(c.createdAt)}</td>
+      <td>${c.examScheduledLabel || '—'}</td>
+      <td><button class="btn btn-outline btn-sm">عرض</button></td>
+    </tr>
+  `).join('');
+  coursesBody.querySelectorAll('tr').forEach(row =>
+    row.addEventListener('click', () => openCourseDetail(Number(row.dataset.id))));
+}
+
+document.getElementById('btn-refresh-courses').addEventListener('click', loadCourses);
+document.getElementById('btn-back-courses').addEventListener('click', () => {
+  detailView.classList.add('hidden');
+  listView.classList.remove('hidden');
+  loadCourses();
+});
+
+async function openCourseDetail(id) {
+  listView.classList.add('hidden');
+  detailView.classList.remove('hidden');
+  document.getElementById('course-detail-header').innerHTML =
+    `<div class="loader"><div class="spinner"></div> جاري التحميل…</div>`;
+
+  /* Response: { course: {...}, sessions: [...], students: [...] } */
+  const res      = await call(currentIdentity, 'GET', `/reception/certificate-courses/${id}`);
+  activeCourse   = res?.course  ?? res;
+  activeSessions = res?.sessions || [];
+  activeStudents = res?.students || [];
+
+  renderCourseDetailHeader();
+  renderStepper();
+  showStep(0);
+}
+
+function renderCourseDetailHeader() {
+  const c = activeCourse;
+  document.getElementById('course-detail-header').innerHTML = `
+    <div class="card-header">
+      <div>
+        <div class="card-title">دورة #${c.courseNumber}</div>
+        <div class="text-sm text-muted">${c.studentsCount ?? activeStudents.length} طالب</div>
+      </div>
+      ${coursePill(c.status)}
+    </div>
+    <div class="detail-grid mt-3">
+      <div><div class="detail-lbl">تاريخ الإنشاء</div><div>${fmtDate(c.createdAt)}</div></div>
+      <div><div class="detail-lbl">موعد الامتحان</div><div>${c.examScheduledLabel || '—'}</div></div>
+      <div><div class="detail-lbl">آخر تسجيل إعادة</div><div>${c.reexamDeadlineAt ? fmtDate(c.reexamDeadlineAt) : '—'}</div></div>
+      <div><div class="detail-lbl">تاريخ الإغلاق</div><div>${c.closedAt ? fmtDate(c.closedAt) : '—'}</div></div>
+    </div>
+  `;
+}
+
+const STEP_DEFS = [
+  { label: 'الجلسات',        key: 'sessions' },
+  { label: 'موعد الامتحان', key: 'exam'     },
+  { label: 'قائمة الطلاب',  key: 'roster'   },
+  { label: 'النتائج',        key: 'results'  },
+  { label: 'التصدير',        key: 'export'   },
+];
+
+function renderStepper() {
+  document.getElementById('course-stepper').innerHTML = STEP_DEFS.map((s, i) => `
+    <div class="step" id="step-dot-${i}">
+      <div class="step-dot">${i + 1}</div>
+      <div class="step-label">${s.label}</div>
+    </div>
+  `).join('');
+  STEP_DEFS.forEach((_, i) =>
+    document.getElementById(`step-dot-${i}`).addEventListener('click', () => showStep(i)));
+}
+
+function showStep(idx) {
+  STEP_DEFS.forEach((s, i) => {
+    const panel = document.getElementById(`step-${s.key}`);
+    const dot   = document.getElementById(`step-dot-${i}`);
+    if (i === idx) {
+      panel.classList.remove('hidden');
+      dot.classList.add('active'); dot.classList.remove('done');
+    } else if (i < idx) {
+      panel.classList.add('hidden');
+      dot.classList.add('done'); dot.classList.remove('active');
+    } else {
+      panel.classList.add('hidden');
+      dot.classList.remove('active', 'done');
+    }
+  });
+  const key = STEP_DEFS[idx].key;
+  if (key === 'sessions') renderStepSessions();
+  if (key === 'exam')     renderStepExam();
+  if (key === 'roster')   renderStepRoster();
+  if (key === 'results')  renderStepResults();
+  if (key === 'export')   renderStepExport();
+}
+
+/* ── Step 1: Sessions ───────────────────────────────────────────────── */
+function renderStepSessions() {
+  const c = activeCourse;
+  /* Sessions editable ONLY when status === 'SUBMITTED_TO_GOV' */
+  const editable = c.status === 'SUBMITTED_TO_GOV';
+  const el = document.getElementById('step-sessions');
+
+  /* Build 3 fixed session rows */
+  const rows = [1, 2, 3].map(n => {
+    const existing = activeSessions.find(s => s.sessionNumber === n);
+    /* scheduledAt is UTC ISO — extract date and time */
+    const dateVal = existing?.scheduledAt ? existing.scheduledAt.slice(0, 10) : '';
+    const timeVal = existing?.scheduledAt
+      ? new Date(existing.scheduledAt).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', hour12:false })
+      : '09:00';
+
+    if (!editable) {
+      return `<div class="session-row mb-2">
+        <div class="form-group"><label>جلسة ${n} — التاريخ</label>
+          <input type="date" value="${dateVal}" disabled></div>
+        <div class="form-group"><label>الوقت</label>
+          <input type="time" value="${timeVal}" disabled></div>
+        <div>${existing?.label ? `<span class="text-xs" style="color:var(--muted)">${esc(existing.label)}</span>` : ''}</div>
+      </div>`;
+    }
+    return `<div class="session-row mb-2">
+      <div class="form-group"><label>جلسة ${n} — التاريخ</label>
+        <input type="date" class="sess-date" data-n="${n}" value="${dateVal}"></div>
+      <div class="form-group"><label>الوقت</label>
+        <input type="time" class="sess-time" data-n="${n}" value="${timeVal}"></div>
+      <div></div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="card-title mb-2">الجلسات التدريبية الثلاث</div>
+    ${!editable
+      ? `<div class="text-sm mb-2" style="color:var(--warn)">⚠ الجلسات لا تُعدَّل بعد ضبط موعد الامتحان.</div>`
+      : ''}
+    ${rows}
+    ${editable ? `
+      <label class="check mt-2">
+        <input type="checkbox" id="sess-notify" checked>
+        <span>إشعار الطلاب فور الحفظ</span>
+      </label>
+      <div class="savebar">
+        <button class="btn btn-primary" id="btn-save-sessions">حفظ الجلسات</button>
+        <button class="btn btn-outline" onclick="showStep(1)">التالي ←</button>
+      </div>
+    ` : `<div class="mt-3"><button class="btn btn-outline btn-sm" onclick="showStep(1)">التالي ←</button></div>`}
+  `;
+
+  if (editable) {
+    document.getElementById('btn-save-sessions').addEventListener('click', guard(async () => {
+      const dateInputs = document.querySelectorAll('.sess-date');
+      const timeInputs = document.querySelectorAll('.sess-time');
+      const sessions   = [1, 2, 3].map(n => ({
+        sessionNumber: n,
+        date: dateInputs[n - 1].value,
+        time: timeInputs[n - 1].value || '09:00',
+      }));
+
+      /* Validate: all 3 dates required, ascending and distinct */
+      if (sessions.some(s => !s.date)) { toast('أدخل تواريخ الجلسات الثلاث', 'warn'); return; }
+      const notify = document.getElementById('sess-notify').checked;
+
+      const btn = document.getElementById('btn-save-sessions');
+      btn.disabled = true;
+      try {
+        const res = await call(currentIdentity, 'PUT',
+          `/reception/certificate-courses/${activeCourse.id}/sessions`,
+          { json: { sessions, notify } });
+        toast(`✓ حُفظت الجلسات${res?.notified ? ` — أُشعر ${res.notified} طالب` : ''}`);
+        activeSessions = sessions;
+        renderStepSessions();
+      } finally { btn.disabled = false; }
+    }));
+  }
+}
+
+/* ── Step 2: Exam Schedule ──────────────────────────────────────────── */
+function renderStepExam() {
+  const c = activeCourse;
+  const canEdit = c.status === 'SUBMITTED_TO_GOV' || c.status === 'EXAM_SCHEDULED';
+  const existingDate = c.examScheduledAt ? c.examScheduledAt.slice(0, 10) : '';
+  const existingTime = c.examScheduledAt
+    ? new Date(c.examScheduledAt).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', hour12:false })
+    : '09:00';
+  const el = document.getElementById('step-exam');
+
+  el.innerHTML = `
+    <div class="card-title mb-2">موعد الامتحان الحكومي</div>
+    ${c.examScheduledLabel
+      ? `<div class="text-sm mb-3" style="color:var(--brand)">📅 المحدد حالياً: ${esc(c.examScheduledLabel)}</div>` : ''}
+    ${c.reexamDeadlineAt
+      ? `<div class="text-sm mb-2" style="color:var(--muted)">⏳ آخر موعد تسجيل إعادة: ${fmtDate(c.reexamDeadlineAt)}</div>` : ''}
+    ${canEdit ? `
+    <div style="display:flex;flex-direction:column;gap:1rem;max-width:420px">
+      <div class="form-group">
+        <label>تاريخ الامتحان</label>
+        <input type="date" id="exam-date" value="${existingDate}">
+      </div>
+      <div class="form-group">
+        <label>وقت الامتحان</label>
+        <input type="time" id="exam-time" value="${existingTime}">
+      </div>
+      <label class="check">
+        <input type="checkbox" id="exam-notify" checked>
+        <span>إشعار الطلاب</span>
+      </label>
+    </div>
+    <div class="savebar">
+      <button class="btn btn-primary" id="btn-save-exam">
+        ${c.examScheduledAt ? 'تعديل الموعد' : 'ضبط الموعد'}
+      </button>
+      <button class="btn btn-outline" onclick="showStep(2)">التالي ←</button>
+    </div>
+    ` : `
+    <div class="text-sm" style="color:var(--muted)">لا يمكن تعديل الموعد بعد تسجيل نتائج.</div>
+    <div class="mt-3"><button class="btn btn-outline btn-sm" onclick="showStep(2)">التالي ←</button></div>`}
+  `;
+
+  if (canEdit) {
+    document.getElementById('btn-save-exam').addEventListener('click', guard(async () => {
+      const date   = document.getElementById('exam-date').value;
+      const time   = document.getElementById('exam-time').value || '09:00';
+      const notify = document.getElementById('exam-notify').checked;
+      if (!date) { toast('أدخل تاريخ الامتحان', 'warn'); return; }
+
+      const btn = document.getElementById('btn-save-exam');
+      btn.disabled = true;
+      try {
+        const res = await call(currentIdentity, 'PUT',
+          `/reception/certificate-courses/${activeCourse.id}/exam-schedule`,
+          { json: { date, time, notify } });
+
+        toast(`✓ موعد الامتحان: ${res?.examScheduledLabel || `${date} ${time}`}`);
+        /* Update activeCourse so header and other steps reflect new state */
+        activeCourse.examScheduledAt    = res?.examScheduledAt    || `${date}T${time}:00.000Z`;
+        activeCourse.examScheduledLabel = res?.examScheduledLabel || `${date} ${time}`;
+        activeCourse.reexamDeadlineAt   = res?.reexamDeadlineAt   || null;
+        if (activeCourse.status === 'SUBMITTED_TO_GOV') activeCourse.status = 'EXAM_SCHEDULED';
+        renderCourseDetailHeader();
+        renderStepExam();
+      } finally { btn.disabled = false; }
+    }));
+  }
+}
+
+/* ── Step 3: Roster ─────────────────────────────────────────────────── */
+const renderStepRoster = guard(async () => {
+  const el = document.getElementById('step-roster');
+  el.innerHTML = `<div class="loader"><div class="spinner"></div> جاري تحميل القائمة…</div>`;
+
+  /* GET /reception/certificate-courses/:id/roster
+     → { course, registered:[...], invitedNotRegistered:[...], summary:{total,regular,reexam,pendingResults} } */
+  const res = await call(currentIdentity, 'GET',
+    `/reception/certificate-courses/${activeCourse.id}/roster`);
+
+  const registered = res?.registered          || [];
+  const invited    = res?.invitedNotRegistered || [];
+  const summary    = res?.summary              || {};
+
+  el.innerHTML = `
+    <div class="card-title mb-2">قائمة المسجلين في الامتحان</div>
+    <div class="grid-4 mb-3" style="gap:.75rem">
+      <div class="kpi"><div class="kpi-label">إجمالي</div><div class="kpi-value">${summary.total ?? '—'}</div></div>
+      <div class="kpi"><div class="kpi-label">عاديون</div><div class="kpi-value">${summary.regular ?? '—'}</div></div>
+      <div class="kpi"><div class="kpi-label">إعادة</div><div class="kpi-value">${summary.reexam ?? '—'}</div></div>
+      <div class="kpi"><div class="kpi-label">بانتظار نتيجة</div><div class="kpi-value">${summary.pendingResults ?? '—'}</div></div>
+    </div>
+
+    ${registered.length ? `
+    <div class="tablewrap mb-3">
+      <table>
+        <thead><tr><th>الاسم</th><th>نوع الامتحان</th><th>محاولة</th><th>النتيجة</th></tr></thead>
+        <tbody>
+          ${registered.flatMap(s =>
+            (s.sections || []).map(sec => `<tr>
+              <td>${esc(s.studentName)}${s.isReexam
+                ? ' <span class="pill pill--warn" style="font-size:10px">إعادة</span>' : ''}</td>
+              <td>${EXAM_TYPE_AR[sec.examType] || sec.examType}</td>
+              <td>${sec.attemptNumber}</td>
+              <td>${sec.examResult ? statusPill(sec.examResult) : '<span class="pill pill--mute">بانتظار</span>'}</td>
+            </tr>`)
+          ).join('')}
+        </tbody>
+      </table>
+    </div>` : '<div class="empty mb-3"><div class="empty-text text-sm">لا يوجد مسجلون</div></div>'}
+
+    ${invited.length ? `
+    <div class="card-title mb-1" style="font-size:.875rem">مدعوون لم يدفعوا (${invited.length})</div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>الاسم</th><th>دورته الأصلية</th><th>نوع الامتحان</th></tr></thead>
+        <tbody>
+          ${invited.map(s => `<tr>
+            <td>${esc(s.studentName)}</td>
+            <td>#${s.ownCourseNumber || '—'}</td>
+            <td>${EXAM_TYPE_AR[s.examType] || s.examType}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : ''}
+    <div class="mt-3"><button class="btn btn-outline btn-sm" onclick="showStep(3)">التالي ←</button></div>
+  `;
+});
+
+/* ── Step 4: Results ────────────────────────────────────────────────── */
+const renderStepResults = guard(async () => {
+  const el = document.getElementById('step-results');
+  el.innerHTML = `<div class="loader"><div class="spinner"></div> جاري تحميل القائمة…</div>`;
+
+  const res = await call(currentIdentity, 'GET',
+    `/reception/certificate-courses/${activeCourse.id}/roster`);
+
+  const registered = res?.registered || [];
+  const canSubmit  = activeCourse.status === 'EXAM_SCHEDULED';
+
+  /* Only students that have at least one section with examResult === null */
+  const pending = registered.filter(s => (s.sections || []).some(sec => sec.examResult === null));
+
+  el.innerHTML = `
+    <div class="card-title mb-2">إدخال نتائج الامتحان</div>
+    ${!canSubmit
+      ? '<div class="text-sm mb-2" style="color:var(--warn)">⚠ ضبط موعد الامتحان أولاً لتفعيل الإدخال.</div>'
+      : ''}
+    ${pending.length ? `
+    <div id="results-rows">
+      ${pending.map(s => {
+        const hasTh = s.sections.some(x => x.examType === 'THEORY'    && x.examResult === null);
+        const hasPr = s.sections.some(x => x.examType === 'PRACTICAL' && x.examResult === null);
+        return `<div class="result-row" data-cert-id="${esc(String(s.certificateId))}">
+          <div class="font-semi">${esc(s.studentName)}${s.isReexam ? ' <span title="إعادة">★</span>' : ''}</div>
+          ${hasTh ? `<div style="display:flex;gap:.4rem;align-items:center">
+            <label style="font-size:.78rem;color:var(--text-lt);white-space:nowrap">نظري:</label>
+            <select class="res-theory">
+              <option value="">—</option>
+              <option value="PASS">ناجح</option>
+              <option value="FAIL">راسب</option>
+              <option value="NOT_PRESENT">لم يحضر</option>
+            </select></div>` : '<div></div>'}
+          ${hasPr ? `<div style="display:flex;gap:.4rem;align-items:center">
+            <label style="font-size:.78rem;color:var(--text-lt);white-space:nowrap">عملي:</label>
+            <select class="res-practical">
+              <option value="">—</option>
+              <option value="PASS">ناجح</option>
+              <option value="FAIL">راسب</option>
+              <option value="NOT_PRESENT">لم يحضر</option>
+            </select></div>` : '<div></div>'}
+        </div>`;
+      }).join('')}
+    </div>
+    ${canSubmit ? `
+    <div class="savebar">
+      <button class="btn btn-primary" id="btn-save-results">حفظ النتائج</button>
+      <button class="btn btn-outline" onclick="showStep(4)">التالي ←</button>
+    </div>` : ''}
+    ` : `
+    <div class="empty"><div class="empty-text">لا توجد نتائج معلقة</div></div>
+    <div class="mt-3"><button class="btn btn-outline btn-sm" onclick="showStep(4)">التالي ←</button></div>`}
+  `;
+
+  if (canSubmit && pending.length) {
+    document.getElementById('btn-save-results').addEventListener('click', guard(async () => {
+      const rows  = document.querySelectorAll('#results-rows .result-row');
+      /* Build items: only include theory/practical if that field was filled */
+      const items = [...rows].map(r => {
+        const obj = { certificateId: Number(r.dataset.certId) };
+        const th  = r.querySelector('.res-theory')?.value;
+        const pr  = r.querySelector('.res-practical')?.value;
+        if (th) obj.theory    = th;
+        if (pr) obj.practical = pr;
+        return obj;
+      }).filter(o => o.theory || o.practical);
+
+      if (!items.length) { toast('أدخل نتيجة واحدة على الأقل', 'warn'); return; }
+
+      const btn = document.getElementById('btn-save-results');
+      btn.disabled = true;
+      try {
+        const res = await call(currentIdentity, 'POST',
+          `/reception/certificate-courses/${activeCourse.id}/results`,
+          { json: { items } });
+        toast(`✓ حُفظت ${items.length} نتيجة${res?.courseClosed ? ' — الدورة مغلقة تلقائياً' : ''}`);
+        if (res?.courseClosed) {
+          activeCourse.status = 'CLOSED';
+          renderCourseDetailHeader();
+        }
+        renderStepResults();
+      } finally { btn.disabled = false; }
+    }));
+  }
+});
+
+/* ── Step 5: Export ─────────────────────────────────────────────────── */
+function renderStepExport() {
+  const el = document.getElementById('step-export');
+  el.innerHTML = `
+    <div class="card-title mb-2">تصدير الدورة</div>
+    <p class="text-sm mb-4" style="color:var(--text-lt)">تصدير قائمة الطلاب والنتائج للجهات الحكومية.</p>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+      <button class="btn btn-primary" id="btn-export-pdf">تصدير PDF</button>
+      <button class="btn btn-outline" id="btn-export-xlsx">تصدير XLSX</button>
+    </div>
+  `;
+  [['pdf','btn-export-pdf'],['xlsx','btn-export-xlsx']].forEach(([fmt, btnId]) => {
+    document.getElementById(btnId).addEventListener('click', guard(async () => {
+      const btn = document.getElementById(btnId);
+      btn.disabled = true;
+      try {
+        const blob = await call(currentIdentity, 'POST',
+          `/reception/certificate-courses/${activeCourse.id}/export`,
+          { json: { format: fmt }, raw: true });
+        const url = URL.createObjectURL(blob);
+        Object.assign(document.createElement('a'), {
+          href: url, download: `course-${activeCourse.courseNumber}.${fmt}`,
+        }).click();
+        URL.revokeObjectURL(url);
+        toast(`✓ تم تصدير ${fmt.toUpperCase()}`);
+      } finally { btn.disabled = false; }
+    }));
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TAB 3 — SEARCH & PROFILE
+   ═══════════════════════════════════════════════════════════════════════ */
+let searchResults = [];
+/* activeProfile shape: { certificate, student, documents, sessions, exams, charges, actions } */
+let activeProfile = null;
+
+const searchLoader = document.getElementById('search-loader');
+const searchEmpty  = document.getElementById('search-empty');
+const searchWrap   = document.getElementById('search-results-wrap');
+const searchBody   = document.getElementById('search-body');
+const profilePanel = document.getElementById('profile-panel');
+
+document.getElementById('btn-search').addEventListener('click', doSearch);
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+
+const doSearch = guard(async () => {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) { toast('أدخل كلمة بحث', 'warn'); return; }
+
+  searchLoader.classList.remove('hidden');
+  searchEmpty.classList.add('hidden');
+  searchWrap.classList.add('hidden');
+  profilePanel.classList.add('hidden');
+
+  const raw = await call(currentIdentity, 'GET',
+    `/reception/certificates?search=${encodeURIComponent(q)}&limit=50`);
+  searchResults = toArr(raw);
+  searchLoader.classList.add('hidden');
+
+  if (!searchResults.length) { searchEmpty.classList.remove('hidden'); return; }
+  searchWrap.classList.remove('hidden');
+  renderSearchResults();
+});
+
+function renderSearchResults() {
+  searchBody.innerHTML = searchResults.map(c => `
+    <tr class="row-clickable" data-id="${esc(String(c.id))}">
+      <td>${esc(c.studentName || '—')}</td>
+      <td>${esc(c.category || '—')}</td>
+      <td>${esc(TRANS_LABEL[c.transmissionType] || '—')}</td>
+      <td>${statusPill(c.requestStatus)}</td>
+      <td>${fmtDate(c.requestedAt || c.createdAt)}</td>
+      <td><button class="btn btn-outline btn-sm">عرض الملف</button></td>
+    </tr>
+  `).join('');
+  searchBody.querySelectorAll('tr').forEach(row =>
+    row.addEventListener('click', () => openProfile(row.dataset.id)));
+}
+
+document.getElementById('btn-back-search').addEventListener('click', () => {
+  profilePanel.classList.add('hidden');
+  if (searchResults.length) searchWrap.classList.remove('hidden');
+});
+
+const openProfile = guard(async (id) => {
+  searchWrap.classList.add('hidden');
+  profilePanel.classList.remove('hidden');
+  document.getElementById('profile-header').innerHTML =
+    `<div class="loader"><div class="spinner"></div> جاري التحميل…</div>`;
+  document.getElementById('profile-actions').innerHTML = '';
+
+  /* Response: { certificate, student, documents, sessions, exams, charges, actions } */
+  activeProfile = await call(currentIdentity, 'GET', `/reception/certificates/${id}`);
+  renderProfile();
+});
+
+function renderProfile() {
+  if (!activeProfile) return;
+  const cert    = activeProfile.certificate;
+  const docs    = activeProfile.documents || {};
+  const exams   = activeProfile.exams    || [];
+  const charges = activeProfile.charges  || [];
+  const actions = activeProfile.actions  || {};
+
+  document.getElementById('profile-header').innerHTML = `
+    <div class="card-header">
+      <div>
+        <div class="card-title">${esc(cert.studentName || '—')}</div>
+        <div class="text-sm text-muted">${esc(activeProfile.student?.phone || cert.studentPhone || '')}</div>
+      </div>
+      ${statusPill(cert.requestStatus)}
+    </div>
+    <div class="detail-grid mt-3">
+      <div><div class="detail-lbl">الفئة</div><div>${esc(cert.category || '—')}</div></div>
+      <div><div class="detail-lbl">ناقل الحركة</div><div>${esc(TRANS_LABEL[cert.transmissionType] || cert.transmissionType || '—')}</div></div>
+      <div><div class="detail-lbl">تاريخ الطلب</div><div>${fmtDate(cert.requestedAt)}</div></div>
+      <div><div class="detail-lbl">رقم الدورة</div><div>${cert.courseNumber ? '#' + cert.courseNumber : '—'}</div></div>
+      <div><div class="detail-lbl">الرقم الحكومي</div><div>${esc(cert.governmentStudentNumber || '—')}</div></div>
+      <div><div class="detail-lbl">نقل مدرسي</div><div>${cert.transportRequested ? 'نعم ✓' : 'لا'}</div></div>
+    </div>
+
+    ${exams.length ? `
+    <div class="card-title mb-1 mt-3" style="font-size:.875rem">سجل الامتحانات</div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>النوع</th><th>المحاولة</th><th>الموعد</th><th>النتيجة</th></tr></thead>
+        <tbody>${exams.map(ex => `<tr>
+          <td>${EXAM_TYPE_AR[ex.examType] || ex.examType}</td>
+          <td>${ex.attemptNumber}</td>
+          <td>${ex.scheduledAt ? fmtDate(ex.scheduledAt) : '—'}</td>
+          <td>${ex.examResult ? statusPill(ex.examResult) : '<span class="pill pill--mute">بانتظار</span>'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>` : ''}
+
+    ${charges.length ? `
+    <div class="card-title mb-1 mt-3" style="font-size:.875rem">المستحقات المالية</div>
+    ${charges.map(ch => `
+      <div class="rev-row">
+        <span>${CHARGE_AR?.[ch.chargeReason] || esc(ch.chargeReason)}</span>
+        <span>${fmtMoney(Number(ch.amountDue))}</span>
+        <span>${statusPill(ch.chargeStatus)}</span>
+      </div>`).join('')}` : ''}
+  `;
+
+  const actionsEl = document.getElementById('profile-actions');
+  actionsEl.innerHTML = '';
+
+  /* Edit — only while WAITING_FOR_TRAINING_SCHEDULE and not submitted to gov */
+  if (cert.requestStatus === 'WAITING_FOR_TRAINING_SCHEDULE' && !cert.submittedToGovAt) {
+    const b = makeBtn('btn btn-outline btn-sm', 'تعديل البيانات');
+    b.addEventListener('click', () => openEditModal());
+    actionsEl.appendChild(b);
+  }
+
+  /* Replace documents (always available) */
+  const bDocs = makeBtn('btn btn-outline btn-sm', 'استبدال وثائق');
+  bDocs.addEventListener('click', () => {
+    /* Clear previous files */
+    ['doc-personal','doc-id-front','doc-id-back'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    openModal('modal-docs');
+  });
+  actionsEl.appendChild(bDocs);
+
+  /* Individual exam result — show only if there is a pending exam */
+  const pendingExams = exams.filter(e => e.examResult === null);
+  if (pendingExams.length) {
+    const bRes = makeBtn('btn btn-outline btn-sm', 'إدخال نتيجة فردية');
+    bRes.addEventListener('click', () => openIndResultModal(pendingExams, cert.id));
+    actionsEl.appendChild(bRes);
+  }
+
+  /* Reexam — only when eligible */
+  if (actions.reexam?.eligible) {
+    const info = actions.reexam;
+    const bRe  = makeBtn('btn btn-danger btn-sm',
+      `تسجيل إعادة ${EXAM_TYPE_AR[info.examType] || info.examType} — ${fmtMoney(info.fee)}`);
+    if (info.message) bRe.title = info.message;
+    bRe.addEventListener('click', guard(async () => {
+      bRe.disabled = true;
+      try {
+        const res = await call(currentIdentity, 'POST',
+          `/reception/certificates/${cert.id}/reexam`, { json: {} });
+        toast(`✓ تم التسجيل — المبلغ المحصل: ${fmtMoney(res?.collectedAmount)}`);
+        openProfile(cert.id);
+      } finally { bRe.disabled = false; }
+    }));
+    actionsEl.appendChild(bRe);
+  }
+
+  /* Wire upload-docs button */
+  document.getElementById('btn-upload-docs').onclick = guard(async () => {
+    const fd    = new FormData();
+    const photo = document.getElementById('doc-personal').files[0];
+    const idFr  = document.getElementById('doc-id-front').files[0];
+    const idBk  = document.getElementById('doc-id-back').files[0];
+    if (photo) fd.append('personalPhoto', photo);
+    if (idFr)  fd.append('idFront', idFr);
+    if (idBk)  fd.append('idBack',  idBk);
+    if (!photo && !idFr && !idBk) { toast('اختر ملفاً على الأقل', 'warn'); return; }
+
+    const btn = document.getElementById('btn-upload-docs');
+    btn.disabled = true;
+    try {
+      const res = await call(currentIdentity, 'PATCH',
+        `/reception/certificates/${cert.id}/documents`, { form: fd });
+      toast(`✓ تم الاستبدال: ${(res?.replaced || []).join(', ') || '—'}`);
+      closeModal('modal-docs');
+      openProfile(cert.id);
+    } finally { btn.disabled = false; }
+  });
+}
+
+function makeBtn(cls, text) {
+  const b = document.createElement('button');
+  b.className = cls; b.textContent = text;
+  return b;
+}
+
+function openEditModal() {
+  const cert = activeProfile.certificate;
+  document.getElementById('edit-form').innerHTML = `
+    <div class="form-group">
+      <label>الفئة</label>
+      <select id="edit-category">
+        ${['A','B','B1','C','D'].map(v =>
+          `<option ${cert.category === v ? 'selected' : ''} value="${v}">${v}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>ناقل الحركة</label>
+      <select id="edit-transmission">
+        <option ${cert.transmissionType === 'MANUAL'    ? 'selected' : ''} value="MANUAL">يدوي</option>
+        <option ${cert.transmissionType === 'AUTOMATIC' ? 'selected' : ''} value="AUTOMATIC">أوتوماتيك</option>
+      </select>
+    </div>
+    <label class="check">
+      <input type="checkbox" id="edit-transport" ${cert.transportRequested ? 'checked' : ''}>
+      <span>نقل مدرسي</span>
+    </label>
+  `;
+  openModal('modal-edit-student');
+
+  document.getElementById('btn-save-student').onclick = guard(async () => {
+    const btn = document.getElementById('btn-save-student');
+    btn.disabled = true;
+    try {
+      /* API requires BOTH category + transmissionType always */
+      await call(currentIdentity, 'PATCH', `/reception/certificates/${cert.id}`, {
+        json: {
+          category:          document.getElementById('edit-category').value,
+          transmissionType:  document.getElementById('edit-transmission').value,
+          transportRequested: document.getElementById('edit-transport').checked,
+        },
+      });
+      toast('✓ تم تحديث البيانات');
+      closeModal('modal-edit-student');
+      openProfile(cert.id);
+    } finally { btn.disabled = false; }
+  });
+}
+
+function openIndResultModal(pendingExams, certId) {
+  /* Build select from pending exams; examType + attemptNumber identify the record */
+  document.getElementById('ind-result-form').innerHTML = `
+    <div class="form-group">
+      <label>الامتحان المعلق</label>
+      <select id="ind-exam-sel">
+        ${pendingExams.map(e =>
+          `<option value="${e.examType}|${e.attemptNumber}">
+            ${EXAM_TYPE_AR[e.examType] || e.examType} — محاولة ${e.attemptNumber}
+          </option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>النتيجة</label>
+      <select id="ind-result-val">
+        <option value="PASS">ناجح</option>
+        <option value="FAIL">راسب</option>
+        <option value="NOT_PRESENT">لم يحضر</option>
+      </select>
+    </div>
+  `;
+  openModal('modal-ind-result');
+
+  document.getElementById('btn-save-ind-result').onclick = guard(async () => {
+    const [examType, attemptStr] = document.getElementById('ind-exam-sel').value.split('|');
+    const result = document.getElementById('ind-result-val').value;
+    const btn    = document.getElementById('btn-save-ind-result');
+    btn.disabled = true;
+    try {
+      /* POST /reception/certificates/:id/exam-results */
+      await call(currentIdentity, 'POST', `/reception/certificates/${certId}/exam-results`, {
+        json: { examType, attemptNumber: Number(attemptStr), result },
+      });
+      toast('✓ تم حفظ النتيجة');
+      closeModal('modal-ind-result');
+      openProfile(certId);
+    } finally { btn.disabled = false; }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TAB 4 — REVENUE
+   ═══════════════════════════════════════════════════════════════════════ */
+let revDays = 7;
+
+const loadRevenue = guard(async () => {
+  document.getElementById('rev-kpis').innerHTML =
+    `<div class="loader" style="grid-column:1/-1"><div class="spinner"></div> جاري التحميل…</div>`;
+  document.getElementById('rev-daily-list').innerHTML = '';
+  document.getElementById('rev-daily-loader').classList.remove('hidden');
+
+  /* Build date range from selected days */
+  const toDate   = new Date();
+  const fromDate = new Date(Date.now() - revDays * 86400000);
+  const fmt      = d => d.toISOString().slice(0, 10);
+
+  /* GET /certificates/revenue/summary?from=...&to=... */
+  const sum = await call(currentIdentity, 'GET',
+    `/certificates/revenue/summary?from=${fmt(fromDate)}&to=${fmt(toDate)}`);
+
+  const col = sum?.collected || {};
+  const svc = sum?.service   || {};
+  const rex = sum?.reexam    || {};
+
+  document.getElementById('rev-kpis').innerHTML = `
+    <div class="kpi">
+      <div class="kpi-label">إجمالي المحصول</div>
+      <div class="kpi-value">${fmtMoney(col.total)}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">دخل المدرسة (حصة)</div>
+      <div class="kpi-value">${fmtMoney(col.schoolShare)}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">رسوم الشهادات (${svc.count ?? 0})</div>
+      <div class="kpi-value">${fmtMoney(svc.total)}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">إعادة امتحانات (${rex.count ?? 0})</div>
+      <div class="kpi-value">${fmtMoney(rex.total)}</div>
+    </div>
+  `;
+
+  document.getElementById('rev-daily-loader').classList.add('hidden');
+  const byDay = sum?.byDay || [];
+  const list  = document.getElementById('rev-daily-list');
+
+  if (!byDay.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-text">لا توجد بيانات في هذه الفترة</div></div>`;
+    return;
+  }
+
+  /* Render daily rows; clicking loads payment detail via daily endpoint */
+  list.innerHTML = byDay.map(r => `
+    <div class="rev-row row-clickable" data-date="${r.date}" style="cursor:pointer">
+      <span>${fmtDate(r.date)}</span>
+      <span>${r.count ?? 0} دفعة</span>
+      <span class="font-semi">${fmtMoney(r.total)}</span>
+      <span class="text-xs" style="color:var(--muted)">مدرسة: ${fmtMoney(r.schoolShare)}</span>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.rev-row').forEach(row => {
+    row.addEventListener('click', guard(async () => {
+      /* Toggle detail panel */
+      const next = row.nextElementSibling;
+      if (next?.dataset?.detail) { next.remove(); return; }
+
+      const date  = row.dataset.date;
+      /* GET /certificates/revenue/daily?date=YYYY-MM-DD → { payments: [...] } */
+      const res   = await call(currentIdentity, 'GET', `/certificates/revenue/daily?date=${date}`);
+      const payments = res?.payments || [];
+
+      const detail = document.createElement('div');
+      detail.dataset.detail = '1';
+      detail.style.cssText  = 'padding:.5rem .75rem .75rem;background:var(--bg-elevated);border-radius:4px;margin-bottom:.5rem';
+      detail.innerHTML = payments.length
+        ? payments.map(p => `
+          <div class="rev-row" style="padding:.35rem 0">
+            <span>${esc(p.studentName || '—')}</span>
+            <span class="pill pill--mute" style="font-size:10px">${p.kind === 'service' ? 'شهادة' : 'إعادة'}</span>
+            <span>${fmtMoney(p.amount)}</span>
+            <span class="text-xs" style="color:var(--muted)">مدرسة: ${fmtMoney(p.schoolShare)}</span>
+          </div>`).join('')
+        : '<div class="text-sm" style="color:var(--muted);padding:.35rem 0">لا توجد دفعات في هذا اليوم</div>';
+      row.after(detail);
+    }));
+  });
+});
+
+document.getElementById('rev-seg').querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#rev-seg button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    revDays = Number(btn.dataset.days);
+    loadRevenue();
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Init
+   ═══════════════════════════════════════════════════════════════════════ */
+loadPool();
+</script>
+</body>
+</html>

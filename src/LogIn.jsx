@@ -123,18 +123,18 @@ const RoleCard = styled.button`
   align-items: center;
   justify-content: center;
   padding: 14px 10px;
-  background: ${(props) => (props.active ? "#e9e3d6" : "#f4f5f0")};
+  background: ${(props) => (props.$active ? "#e9e3d6" : "#f4f5f0")};
   border: 2px solid
-    ${(props) => (props.active ? "#715317" : "rgba(113, 83, 23, 0.1)")};
+    ${(props) => (props.$active ? "#715317" : "rgba(113, 83, 23, 0.1)")};
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.25s ease;
-  color: ${(props) => (props.active ? "#715317" : "#796c2c")};
+  color: ${(props) => (props.$active ? "#715317" : "#796c2c")};
 
   svg {
     font-size: 20px;
     margin-bottom: 8px;
-    color: ${(props) => (props.active ? "#715317" : "#a89b6c")};
+    color: ${(props) => (props.$active ? "#715317" : "#a89b6c")};
   }
 
   &:hover {
@@ -320,7 +320,7 @@ export default function LogIn() {
             <RoleContainer>
               <RoleCard
                 type="button"
-                active={devRole === "admin"}
+                $active={devRole === "admin"}
                 onClick={() => setDevRole("admin")}
               >
                 <FiShield />
@@ -329,7 +329,7 @@ export default function LogIn() {
 
               <RoleCard
                 type="button"
-                active={devRole === "receptionist"}
+                $active={devRole === "receptionist"}
                 onClick={() => setDevRole("receptionist")}
               >
                 <FaBellConcierge />
@@ -338,7 +338,7 @@ export default function LogIn() {
 
               <RoleCard
                 type="button"
-                active={devRole === "accountant"}
+                $active={devRole === "accountant"}
                 onClick={() => setDevRole("accountant")}
               >
                 <FiDollarSign />

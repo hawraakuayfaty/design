@@ -82,18 +82,18 @@ const RoleCard = styled.button`
   align-items: center;
   justify-content: center;
   padding: 12px 8px;
-  background: ${(props) => (props.active ? "#e9e3d6" : "#f4f5f0")};
+  background: ${(props) => (props.$active ? "#e9e3d6" : "#f4f5f0")};
   border: 2px solid
-    ${(props) => (props.active ? "#715317" : "rgba(113, 83, 23, 0.1)")};
+    ${(props) => (props.$active ? "#715317" : "rgba(113, 83, 23, 0.1)")};
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.25s ease;
-  color: ${(props) => (props.active ? "#715317" : "#796c2c")};
+  color: ${(props) => (props.$active ? "#715317" : "#796c2c")};
 
   svg {
     font-size: 20px;
     margin-bottom: 6px;
-    color: ${(props) => (props.active ? "#715317" : "#a89b6c")};
+    color: ${(props) => (props.$active ? "#715317" : "#a89b6c")};
   }
 
   &:hover {
@@ -296,7 +296,7 @@ export default function CreateAccount() {
             <RoleContainer>
               <RoleCard
                 type="button"
-                active={role === "receptionist"}
+                $active={role === "receptionist"}
                 onClick={() => {
                   setRole("receptionist");
                   setError("");
@@ -308,7 +308,7 @@ export default function CreateAccount() {
 
               <RoleCard
                 type="button"
-                active={role === "accountant"}
+                $active={role === "accountant"}
                 onClick={() => {
                   setRole("accountant");
                   setError("");
@@ -320,7 +320,7 @@ export default function CreateAccount() {
 
               <RoleCard
                 type="button"
-                active={role === "student"}
+                $active={role === "student"}
                 onClick={() => {
                   setRole("student");
                   setError("");

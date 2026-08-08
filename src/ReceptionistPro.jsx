@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { todayStr, formatDate } from "./utils/dateUtils";
-import { FiChevronDown, FiChevronUp, FiDownload, FiCalendar } from "react-icons/fi";
+import { todayStr } from "./utils/dateUtils";
 import { TbBus } from "react-icons/tb";
 import { IoIosCalendar } from "react-icons/io";
 
@@ -313,7 +312,7 @@ function SectionStudents({t}){
 
   useEffect(() => {
     const guard = { v: false };
-    fetchStudentBookings(guard);
+    (async () => { await fetchStudentBookings(guard); })();
     return () => { guard.v = true; };
   }, [sel, bFilt]);
 
@@ -1858,13 +1857,13 @@ function PayRemainingModal({ booking, t, onClose, onSuccess }) {
 
   useEffect(() => {
     let cancelled = false;
-    setDetailLoading(true);
-    bookingsService.getById(booking.id)
-      .then(res => {
+    (async () => {
+      try {
+        const res = await bookingsService.getById(booking.id);
         if (!cancelled) setDetail(res.data?.data ?? res.data);
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setDetailLoading(false); });
+      } catch { /* ignore */ }
+      finally { if (!cancelled) setDetailLoading(false); }
+    })();
     return () => { cancelled = true; };
   }, [booking.id]);
 
@@ -2960,9 +2959,6 @@ function SectionTransport({t}){
   );
 }
 
-const CERT_IMG_BASE=(import.meta.env.VITE_API_URL||"http://20.250.144.221:3000/api/v1").replace(/\/api\/v1\/?$/,"");
-const certImgSrc=(url)=>!url?null:(url.startsWith("http")?url:CERT_IMG_BASE+url);
-
 const CERT_STATUS_MAP = {
   WAITING_FOR_TRAINING_SCHEDULE: { label: "بانتظار التدريب",           tk: "pending" },
   IN_GOVERNMENT_TRAINING:        { label: "في التدريب",                 tk: "inprogress" },
@@ -2972,17 +2968,7 @@ const CERT_STATUS_MAP = {
   FAILED:                        { label: "راسب (استنفذ المحاولات)",    tk: "failed" },
   CANCELLED:                     { label: "ملغى",                       tk: "cancelled" },
 };
-const CERT_STEP_LABELS = ["بانتظار التدريب", "في التدريب", "بانتظار الامتحان", "مكتمل"];
-const CERT_STATUS_OPTS = [
-  { value: "", label: "الكل" },
-  { value: "WAITING_FOR_TRAINING_SCHEDULE", label: "بانتظار التدريب" },
-  { value: "IN_GOVERNMENT_TRAINING",        label: "في التدريب" },
-  { value: "WAITING_FOR_PRACTICAL_EXAM",    label: "بانتظار الامتحان العملي" },
-  { value: "WAITING_FOR_THEORETICAL_EXAM",  label: "بانتظار الامتحان النظري" },
-  { value: "COMPLETED",                     label: "مكتمل" },
-  { value: "FAILED",                        label: "راسب (استنفذ المحاولات)" },
-  { value: "CANCELLED",                     label: "ملغى" },
-];
+
 const EXAM_TYPE_LABEL  = { PRACTICAL: "عملي", THEORY: "نظري" };
 const EXAM_RESULT_LABEL = { PASS: "ناجح", FAIL: "راسب", ABSENT: "غائب" };
 
@@ -2992,901 +2978,888 @@ function CertBadge({s,t}){
   return <span style={{display:"inline-flex",alignItems:"center",gap:5,background:c.bg,color:c.text,padding:"2px 9px",borderRadius:20,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>{m.label}</span>;
 }
 
-function SectionCertificate({t}){
-  const [certs,setCerts]=useState([]);
+// ── Certificate helpers ───────────────────────────────────────────────
+const CERT_TRANS={MANUAL:"يدوي",AUTOMATIC:"أوتوماتيك"};
+const fmtCertDate=(v)=>v?new Date(v).toLocaleDateString("ar-SY"):"—";
+const fmtCertMoney=(v)=>v==null?"—":`${Number(v).toLocaleString("en")} ل.س`;
+const blobDownload=(blob,name)=>{const url=URL.createObjectURL(blob);Object.assign(document.createElement("a"),{href:url,download:name}).click();URL.revokeObjectURL(url);};
+const COURSE_STATUS={
+  SUBMITTED_TO_GOV:{label:"أُرسلت للحكومة", tk:"inprogress"},
+  EXAM_SCHEDULED:  {label:"مجدول الامتحان",  tk:"qualified" },
+  CLOSED:          {label:"مُغلقة",           tk:"completed" },
+};
+function CourseBadge({s,t}){
+  const m=COURSE_STATUS[s]||CERT_STATUS_MAP[s]||{label:s||"—",tk:"expired"};
+  const c=t[m.tk]||t.expired;
+  return <span style={{display:"inline-flex",alignItems:"center",gap:5,background:c.bg,color:c.text,padding:"2px 9px",borderRadius:20,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>{m.label}</span>;
+}
+function useCertToast(){
+  const [toast,setToast]=useState(null);
+  const show=(msg,type="ok")=>{setToast({msg,type});setTimeout(()=>setToast(null),3000);};
+  const el=toast?<div style={{marginBottom:12,padding:"8px 14px",borderRadius:9,background:toast.type==="err"?"#FEE2E2":toast.type==="warn"?"#FEF3C7":"#DCFCE7",color:toast.type==="err"?"#991B1B":toast.type==="warn"?"#92400E":"#166534",fontSize:12,fontWeight:600}}>{toast.msg}</div>:null;
+  return {show,el};
+}
+
+/* ── Tab 1: Pool ─────────────────────────────────────────────────────── */
+function CertPoolTab({t,onOpenCourse,onOpenCert}){
+  const [items,setItems]=useState([]);
   const [loading,setLoading]=useState(true);
-  const [search,setSearch]=useState("");
-  const [fStatus,setFStatus]=useState("");
-  const [sel,setSel]=useState(null);
+  const [error,setError]=useState(null);
+  const [sel,setSel]=useState([]);
+  const [allowSmallCourse,setAllowSmallCourse]=useState(false);
+  const [createModal,setCreateModal]=useState(false);
+  const [busy,setBusy]=useState(false);
+  const {show:toast,el:toastEl}=useCertToast();
 
-  const [cancelModal,setCancelModal]=useState(null);
-  const [cancelReason,setCancelReason]=useState("");
-  const [cancelBusy,setCancelBusy]=useState(false);
+  const load=async()=>{
+    setLoading(true);setError(null);
+    try{
+      const r=await certificatesService.getAll({unassigned:true,limit:50});
+      const raw=r.data?.data?.data;
+      const arr=Array.isArray(raw)?raw:[];
+      setItems(arr.filter(c=>c.courseNumber===null||c.status==="WAITING_FOR_TRAINING_SCHEDULE"));
+    }catch(e){
+      setError(e.response?.data?.message||"تعذّر تحميل الطلبات");
+      setItems([]);
+    }finally{setLoading(false);}
+  };
+  useEffect(()=>{(async()=>{await load();})();},[]);
 
-  const [courseModal,setCourseModal]=useState(null);
-  const [courseNum,setCourseNum]=useState("");
-  const [courseBusy,setCourseBusy]=useState(false);
+  const allChk=items.length>0&&items.every(c=>sel.includes(c.id));
+  const toggle=id=>setSel(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+  const toggleAll=()=>setSel(allChk?[]:items.map(c=>c.id));
 
-  const [sessionsModal,setSessionsModal]=useState(null);
-  const [sessionDates,setSessionDates]=useState(["","",""]);
+  const doExport=async(fmt)=>{
+    setBusy(true);
+    try{
+      const r=await certificatesService.exportPreview({certificateIds:sel.map(Number),format:fmt});
+      blobDownload(r.data,`export.${fmt}`);
+      toast("تم تحميل الملف");
+    }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
+    finally{setBusy(false);}
+  };
+
+  const doCreate=async()=>{
+    setBusy(true);
+    try{
+      const r=await certificatesService.createCourse({certificateIds:sel.map(Number),allowSmallCourse});
+      const newId=r.data?.data?.id??r.data?.id;
+      setCreateModal(false);setSel([]);
+      toast("تم إنشاء الدورة بنجاح");
+      if(newId&&onOpenCourse)onOpenCourse(newId);else load();
+    }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
+    finally{setBusy(false);}
+  };
+
+  const cols="40px 1fr 70px 150px 90px 90px 100px";
+  const btnBase={padding:"6px 14px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontFamily:"inherit",fontSize:12};
+
+  return(
+    <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:12}}>
+      {toastEl}
+
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{fontSize:14,fontWeight:700,color:t.text}}>الطلبات غير المسندة</div>
+        <button onClick={load} style={{...btnBase,cursor:"pointer"}}>↻ تحديث</button>
+      </div>
+
+      <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
+        {/* Table header */}
+        <div style={{display:"grid",gridTemplateColumns:cols,background:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"9px 0"}}>
+            <input type="checkbox" checked={allChk} onChange={toggleAll} disabled={!items.length} style={{cursor:"pointer"}}/>
+          </div>
+          {["اسم الطالب","الفئة","ناقل الحركة","نقل المدرسة","رقم الطلب","الإجراءات"].map(h=>(
+            <div key={h} style={{fontSize:11,fontWeight:700,color:t.textMuted,padding:"9px 10px"}}>{h}</div>
+          ))}
+        </div>
+        {/* Body */}
+        {loading?(
+          <div style={{textAlign:"center",padding:36,color:t.textMuted,fontSize:13}}>جاري التحميل...</div>
+        ):error?(
+          <div style={{textAlign:"center",padding:36,color:"#e53e3e",fontSize:13}}>{error}</div>
+        ):!items.length?(
+          <div style={{textAlign:"center",padding:36,color:t.textMuted,fontSize:13}}>لا توجد طلبات غير مسندة</div>
+        ):items.map((c,i)=>{
+          const checked=sel.includes(c.id);
+          return(
+            <div key={c.id} onClick={()=>toggle(c.id)} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:i<items.length-1?`1px solid ${t.border}`:"none",background:checked?t.accentLight:t.bgSurface,cursor:"pointer"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"10px 0"}}>
+                <input type="checkbox" checked={checked} onChange={()=>toggle(c.id)} onClick={e=>e.stopPropagation()} style={{cursor:"pointer"}}/>
+              </div>
+              <div style={{padding:"10px"}}>
+                <div style={{fontSize:13,fontWeight:600,color:t.text}}>{c.studentName||c.student?.name||"—"}</div>
+                {c.studentPhone&&<div style={{fontSize:11,color:t.textMuted,marginTop:1}}>{c.studentPhone}</div>}
+              </div>
+              <div style={{padding:"10px",fontSize:13,fontWeight:600,color:t.text}}>{c.category||"—"}</div>
+              <div style={{padding:"10px",fontSize:12,color:t.textSec}}>
+                {CERT_TRANS[c.transmissionType]||c.transmissionType||"—"}{c.category?` (${c.category})`:""}
+              </div>
+              <div style={{padding:"10px"}}>
+                {c.transportRequested
+                  ?<span style={{display:"inline-flex",alignItems:"center",gap:3,background:"#DCFCE7",color:"#166534",padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:600}}>● نعم</span>
+                  :<span style={{display:"inline-flex",alignItems:"center",gap:3,background:t.bgElevated,color:t.textMuted,padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:600}}>○ لا</span>
+                }
+              </div>
+              <div style={{padding:"10px",fontSize:12,color:t.textSec,fontFamily:"monospace"}}>#{c.id}</div>
+              <div style={{padding:"6px 10px"}} onClick={e=>e.stopPropagation()}>
+                <button onClick={()=>onOpenCert&&onOpenCert(c.id)} style={{padding:"4px 10px",borderRadius:7,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:"pointer",fontSize:11,fontFamily:"inherit",whiteSpace:"nowrap"}}>فتح الملف</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer controls */}
+      <div style={{display:"flex",flexDirection:"column",gap:10,padding:"12px 14px",borderRadius:10,border:`1px solid ${t.border}`,background:t.bgSurface}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+          <div style={{fontSize:13,fontWeight:600,color:t.text}}>
+            {sel.length===0?"لم تختر أحداً":`تم تحديد ${sel.length} طلبات`}
+          </div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <button onClick={()=>doExport("pdf")} disabled={!sel.length||busy} style={{...btnBase,cursor:!sel.length||busy?"not-allowed":"pointer",opacity:!sel.length||busy?0.45:1}}>كشف الحكومة PDF</button>
+            <button onClick={()=>doExport("xlsx")} disabled={!sel.length||busy} style={{...btnBase,cursor:!sel.length||busy?"not-allowed":"pointer",opacity:!sel.length||busy?0.45:1}}>XLSX</button>
+            <button
+              onClick={()=>sel.length?setCreateModal(true):toast("اختر طلبات أولاً","warn")}
+              disabled={busy}
+              style={{padding:"6px 14px",borderRadius:8,border:"none",background:t.accent,color:"#fff",cursor:busy?"not-allowed":"pointer",fontSize:12,fontFamily:"inherit",fontWeight:600,opacity:busy?0.5:1}}
+            >إنشاء دورة جديدة</button>
+          </div>
+        </div>
+        <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none",fontSize:12,color:t.textSec}}>
+          <input type="checkbox" checked={allowSmallCourse} onChange={e=>setAllowSmallCourse(e.target.checked)} style={{cursor:"pointer"}}/>
+          تجاوز تحذير «أقل من 20 طالباً»
+        </label>
+      </div>
+
+      {/* Warning box */}
+      <div style={{padding:"10px 14px",borderRadius:9,background:"#FFFBEB",border:"1px solid #FDE68A",color:"#92400E",fontSize:12,lineHeight:1.6}}>
+        ⚠ تنبيه: بعد إنشاء الدورة لن يمكن تعديل بيانات الطلاب المدرجين فيها. تأكد من اختيار الطلبات الصحيحة قبل المتابعة.
+      </div>
+
+      {/* Confirm modal */}
+      {createModal&&(
+        <Modal title="تأكيد إنشاء الدورة" onClose={()=>setCreateModal(false)} t={t} width={380}>
+          <div style={{fontSize:13,color:t.textSec,marginBottom:16}}>
+            سيتم إنشاء دورة جديدة تضم <strong style={{color:t.text}}>{sel.length}</strong> طالباً. سيتم تعيين رقم الدورة تلقائياً من قِبل النظام.
+          </div>
+          <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none",fontSize:12,color:t.textSec,marginBottom:16}}>
+            <input type="checkbox" checked={allowSmallCourse} onChange={e=>setAllowSmallCourse(e.target.checked)} style={{cursor:"pointer"}}/>
+            تجاوز تحذير «أقل من 20 طالباً»
+          </label>
+          <div style={{display:"flex",gap:8}}>
+            <Btn label={busy?"جاري الإنشاء...":"تأكيد الإنشاء"} onClick={doCreate} t={t} disabled={busy} style={{flex:1}}/>
+            <Btn label="إلغاء" onClick={()=>setCreateModal(false)} t={t} v="ghost"/>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ── Tab 2: Courses ──────────────────────────────────────────────────── */
+function CourseDetailView({t,course:payload,onBack,onToast,toastEl,onRefresh,onOpenCert}){
+  const c        = payload?.course   ?? payload   ?? {};
+  const initSess = Array.isArray(payload?.sessions) ? payload.sessions : [];
+  const students = Array.isArray(payload?.students) ? payload.students : [];
+
+  const mkSlot=(n)=>{
+    const f=initSess.find(s=>s.sessionNumber===n);
+    return {sessionNumber:n, date:f?.date?.slice(0,10)||"", time:f?.time?.slice(0,5)||""};
+  };
+  const [sessions,setSessions]=useState([mkSlot(1),mkSlot(2),mkSlot(3)]);
+  const [savedSessions,setSavedSessions]=useState(initSess);
+  const [notify,setNotify]=useState(false);
   const [sessionsBusy,setSessionsBusy]=useState(false);
-  const [notifySessions,setNotifySessions]=useState(true);
 
-  const [notifyBusy,setNotifyBusy]=useState(false);
+  const fmtSessionDisplay=(date,time)=>{
+    if(!date)return"—";
+    const d=new Date(date+"T00:00:00");
+    const weekday=d.toLocaleDateString("ar-SY",{weekday:"long"});
+    const[y,m,day]=date.split("-");
+    return `${weekday} ${day}-${m}-${y} الساعة ${time||"--:--"}`;
+  };
 
-  const [examModal,setExamModal]=useState(null);
-  const [examDate,setExamDate]=useState("");
+  const [examDate,setExamDate]=useState(c.examScheduledAt?c.examScheduledAt.slice(0,10):"");
+  const [examTime,setExamTime]=useState(c.examScheduledAt?c.examScheduledAt.slice(11,16):"");
+  const [examNotify,setExamNotify]=useState(false);
   const [examBusy,setExamBusy]=useState(false);
-
-  const [resultModal,setResultModal]=useState(null);
-  const [resultBusy,setResultBusy]=useState(false);
 
   const [exportBusy,setExportBusy]=useState(false);
 
-  const [detailModal,setDetailModal]=useState(false);
-  const [detailData,setDetailData]=useState(null);
-  const [detailLoading,setDetailLoading]=useState(false);
-  const [detailError,setDetailError]=useState(null);
+  const canEdit    = c.status==="SUBMITTED_TO_GOV";
+  const sessOk     = sessions.every(s=>s.date&&s.time);
+  const inp        = {width:"100%",padding:"8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
+  const btnPrimary = (dis)=>({width:"100%",padding:"9px",borderRadius:9,border:"none",background:dis?t.border:t.accent,color:"#fff",cursor:dis?"not-allowed":"pointer",fontSize:13,fontFamily:"inherit",fontWeight:600,opacity:dis?0.5:1});
+  const btnSec     = (dis)=>({padding:"6px 14px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:dis?"not-allowed":"pointer",fontSize:12,fontFamily:"inherit",opacity:dis?0.45:1});
 
-  const [editModal,setEditModal]=useState(null);
-  const [editForm,setEditForm]=useState({category:"B",transmissionType:"MANUAL",transportRequested:false});
-  const [editBusy,setEditBusy]=useState(false);
-
-  const [toast,setToast]=useState(null);
-  const showToast=(msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),3000);};
-
-  // ── View / grouping state (must be declared before derived viewCerts/courseGroups) ──
-  const [listView,setListView]=useState("all"); // "all" | "unassigned" | "by_course"
-  const [expandedCourses,setExpandedCourses]=useState({});
-  const [courseSessionsModal,setCourseSessionsModal]=useState(null);
-  const [courseSessionDates,setCourseSessionDates]=useState(["","",""]);
-  const [courseSessionsBusy,setCourseSessionsBusy]=useState(false);
-
-  // ── Selection + derived list values (depend on listView/certs) ──
-  const [selectedIds,setSelectedIds]=useState([]);
-  const toggleSelect=(id)=>setSelectedIds(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]);
-  const viewCerts=listView==="unassigned"?certs.filter(c=>!c.courseNumber):certs;
-  const allSelected=viewCerts.length>0&&viewCerts.every(c=>selectedIds.includes(c.id));
-  const toggleSelectAll=()=>setSelectedIds(allSelected?[]:viewCerts.map(c=>c.id));
-  const courseGroups=(()=>{const m={};certs.forEach(c=>{if(c.courseNumber){if(!m[c.courseNumber])m[c.courseNumber]=[];m[c.courseNumber].push(c);}});return Object.entries(m).sort(([a],[b])=>Number(a)-Number(b));})();
-  const toggleCourse=(num)=>setExpandedCourses(prev=>({...prev,[num]:!prev[num]}));
-
-  const [batchCourseModal,setBatchCourseModal]=useState(false);
-  const [batchCourseNum,setBatchCourseNum]=useState("");
-  const [batchCourseBusy,setBatchCourseBusy]=useState(false);
-
-  const [importModal,setImportModal]=useState(false);
-  const [importFile,setImportFile]=useState(null);
-  const [importPreviewRows,setImportPreviewRows]=useState(null);
-  const [importBusy,setImportBusy]=useState(false);
-  const [importDragOver,setImportDragOver]=useState(false);
-  const importInputRef=useRef(null);
-
-  const cName=(c)=>c?.student?.name||c?.studentName||"—";
-  const cPhone=(c)=>c?.studentPhone||c?.student?.phoneNumber||c?.student?.phone||"—";
-  const normalizeCerts=(arr)=>arr.map(c=>({...c,status:c.requestStatus??c.status}));
-
-  const loadCerts=async()=>{
-    try{
-      const params={};
-      if(fStatus)params.status=fStatus;
-      if(search.trim())params.search=search.trim();
-      const res=await certificatesService.getAll(params);
-      const body=res.data?.data??res.data;
-      const arr=normalizeCerts(Array.isArray(body)?body:(body?.data||body?.certificates||[]));
-      setCerts(arr);
-      setSel(prev=>prev?(arr.find(c=>c.id===prev.id)||null):(arr[0]||null));
-    }catch{setCerts([]);setSel(null);}
-  };
-
-  useEffect(()=>{
-    let cancelled=false;
-    (async()=>{
-      setLoading(true);
-      try{
-        const params={};
-        if(fStatus)params.status=fStatus;
-        if(search.trim())params.search=search.trim();
-        const res=await certificatesService.getAll(params);
-        const body=res.data?.data??res.data;
-        const arr=normalizeCerts(Array.isArray(body)?body:(body?.data||body?.certificates||[]));
-        if(!cancelled){setCerts(arr);setSel(prev=>prev?(arr.find(c=>c.id===prev.id)||null):(arr[0]||null));}
-      }catch{if(!cancelled){setCerts([]);setSel(null);}}
-      finally{if(!cancelled)setLoading(false);}
-    })();
-    return()=>{cancelled=true;};
-  },[search,fStatus]);
-
-  const certStepIdx=(c)=>{
-    if(!c)return -1;
-    if(c.status==="COMPLETED")return 3;
-    if(c.status==="WAITING_FOR_PRACTICAL_EXAM"||c.status==="WAITING_FOR_THEORETICAL_EXAM")return 2;
-    if(c.status==="IN_GOVERNMENT_TRAINING")return 1;
-    return 0;
-  };
-
-  const handleCancel=async()=>{
-    if(!cancelModal||!cancelReason.trim())return;
-    setCancelBusy(true);
-    try{
-      await certificatesService.cancel(cancelModal.id,{reason:cancelReason});
-      setCancelModal(null);setCancelReason("");
-      await loadCerts();
-    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
-    finally{setCancelBusy(false);}
-  };
-
-  const handleAssignCourse=async()=>{
-    if(!courseModal||!courseNum.trim())return;
-    setCourseBusy(true);
-    try{
-      await certificatesService.assignCourseNumber({certificateIds:[courseModal.id],courseNumber:courseNum.trim()});
-      setCourseModal(null);setCourseNum("");
-      await loadCerts();
-    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
-    finally{setCourseBusy(false);}
-  };
-
-  const handleAssignCourseBatch=async()=>{
-    if(!batchCourseNum.trim()||selectedIds.length===0)return;
-    setBatchCourseBusy(true);
-    try{
-      await certificatesService.assignCourseNumber({certificateIds:selectedIds,courseNumber:batchCourseNum.trim()});
-      setBatchCourseModal(false);setBatchCourseNum("");
-      setSelectedIds([]);
-      showToast("✓ تم تعيين رقم الدورة للطلاب المحددين بنجاح");
-      await loadCerts();
-    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
-    finally{setBatchCourseBusy(false);}
-  };
-
-  const handleScheduleSessions=async()=>{
-    if(!sessionsModal)return;
-    const sessions=sessionDates.map((d,i)=>({sessionNumber:i+1,scheduledAt:d?new Date(d).toISOString():null})).filter(s=>s.scheduledAt);
-    if(!sessions.length)return;
+  const saveSessions=async()=>{
+    const filled=sessions.filter(s=>s.date&&s.time);
+    if(filled.length<3){onToast("أدخل تاريخ ووقت الجلسات الثلاث","warn");return;}
     setSessionsBusy(true);
     try{
-      await certificatesService.setTrainingSessions(sessionsModal.id,{sessions,notify:notifySessions});
-      setSessionsModal(null);setSessionDates(["","",""]);
-      await loadCerts();
-    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
+      const payload={
+        sessions:filled.map(s=>({
+          sessionNumber:s.sessionNumber,
+          date:s.date,
+          time:s.time.slice(0,5),
+        })),
+        notify,
+      };
+      const r=await certificatesService.updateSessions(c.id,payload);
+      const d=r.data?.data;
+      const count=d?.count??filled.length;
+      const notified=d?.notified??0;
+      setSavedSessions([...filled]);
+      onToast(`حُفظت ${count} جلسات · أُشعر ${notified} طالباً`);
+      await onRefresh();
+    }catch(e){onToast(e.response?.data?.message||"حدث خطأ","err");}
     finally{setSessionsBusy(false);}
   };
 
-  const handleResendNotification=async()=>{
-    if(!sel)return;
-    setNotifyBusy(true);
-    try{
-      const payload=sel.courseNumber?{courseNumber:sel.courseNumber}:{certificateIds:[sel.id]};
-      await certificatesService.notifyTrainingSessions(payload);
-      showToast("✓ تم إعادة إرسال إشعار الجلسات بنجاح");
-    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
-    finally{setNotifyBusy(false);}
-  };
-
-  const handleScheduleExam=async()=>{
-    if(!examModal||!examDate)return;
+  const saveExam=async()=>{
     setExamBusy(true);
     try{
-      await certificatesService.setExamSchedule(examModal.id,{scheduledAt:new Date(examDate).toISOString()});
-      setExamModal(null);setExamDate("");
-      await loadCerts();
-    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
+      await certificatesService.updateExamSchedule(c.id,{date:examDate,time:examTime,notify:examNotify});
+      onToast("تم ضبط موعد الامتحان");
+      await onRefresh();
+    }catch(e){onToast(e.response?.data?.message||"حدث خطأ","err");}
     finally{setExamBusy(false);}
   };
 
-  const handleRecordResult=async(examType,result)=>{
-    if(!resultModal)return;
-    setResultBusy(true);
-    try{
-      await certificatesService.recordExamResult(resultModal.id,{examType,attemptNumber:1,result});
-      setResultModal(null);
-      await loadCerts();
-    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
-    finally{setResultBusy(false);}
-  };
-
-  const EXPORT_MIME={pdf:"application/pdf",xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"};
-  const EXPORT_EXT={pdf:"pdf",xlsx:"xlsx"};
-
-  const readBlobErrorMessage=async(blob)=>{
-    try{return JSON.parse(await blob.text())?.message||null;}catch{return null;}
-  };
-
-  const handleExport=async(format)=>{
-    if(selectedIds.length===0){showToast("الرجاء تحديد طالب واحد على الأقل","warning");return;}
+  const doExport=async(fmt)=>{
     setExportBusy(true);
     try{
-      const res=await certificatesService.exportFile({format,certificateIds:selectedIds.map(Number)});
-      const blob=new Blob([res.data],{type:EXPORT_MIME[format]});
-      const url=window.URL.createObjectURL(blob);
-      const link=document.createElement("a");
-      link.href=url;link.download=`certificates_export.${EXPORT_EXT[format]}`;link.click();
-      window.URL.revokeObjectURL(url);
-      setSelectedIds([]);
-    }catch(e){
-      const data=e.response?.data;
-      const msg=data instanceof Blob?await readBlobErrorMessage(data):data?.message;
-      alert(msg||"حدث خطأ في التصدير");
-    }
+      const r=await certificatesService.exportCourse(c.id,{format:fmt});
+      blobDownload(r.data,`course-${c.courseNumber??c.id}.${fmt}`);
+      onToast("تم تحميل الملف");
+    }catch(e){onToast(e.response?.data?.message||"حدث خطأ","err");}
     finally{setExportBusy(false);}
   };
 
-  const handleExportSingle=async(format)=>{
-    if(!sel)return;
-    setExportBusy(true);
-    try{
-      const res=await certificatesService.exportFile({format,certificateIds:[Number(sel.id)]});
-      const blob=new Blob([res.data],{type:EXPORT_MIME[format]});
-      const url=window.URL.createObjectURL(blob);
-      const link=document.createElement("a");
-      link.href=url;link.download=`certificate_${sel.id}.${EXPORT_EXT[format]}`;link.click();
-      window.URL.revokeObjectURL(url);
-    }catch(e){
-      const data=e.response?.data;
-      const msg=data instanceof Blob?await readBlobErrorMessage(data):data?.message;
-      alert(msg||"حدث خطأ في التصدير");
-    }
-    finally{setExportBusy(false);}
-  };
+  const statusPipeline=[
+    {label:"أُرسلت للحكومة",  sub:"مُنجزة",                               done:true},
+    {label:"الجلسات الثلاث",  sub:savedSessions.length>=3?"تمت الجدولة":"لم تُدخل", done:savedSessions.length>=3},
+    {label:"موعد الامتحان",   sub:c.examScheduledAt?"تم التحديد":"لم يُحدّد",   done:!!c.examScheduledAt},
+    {label:"إدخال النتائج",   sub:"بانتظار",                               done:false},
+    {label:"إغلاق الدورة",    sub:"مفتوحة",                                done:false},
+  ];
 
-  const handleUpdateCertificate=async()=>{
-    if(!editModal)return;
-    setEditBusy(true);
-    try{
-      await certificatesService.update(editModal.id,{
-        category:editForm.category,
-        transmissionType:editForm.transmissionType,
-        transportRequested:editForm.transportRequested,
-      });
-      setEditModal(null);
-      showToast("✓ تم تحديث بيانات الشهادة بنجاح");
-      await loadCerts();
-    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
-    finally{setEditBusy(false);}
-  };
-
-  const handleImportFile=async(file)=>{
-    if(!file)return;
-    setImportFile(file);
-    setImportPreviewRows(null);
-    setImportBusy(true);
-    try{
-      const fd=new FormData();
-      fd.append("file",file);
-      fd.append("kind","exam_schedule");
-      const res=await certificatesService.importPreview(fd);
-      const body=res.data?.data??res.data;
-      const arr=Array.isArray(body)?body:(body?.data||body?.rows||body?.items||[]);
-      setImportPreviewRows(arr);
-    }catch(e){
-      alert(e.response?.data?.message||"حدث خطأ في معالجة الملف");
-      setImportPreviewRows([]);
-    }
-    finally{setImportBusy(false);}
-  };
-
-  const resetImportModal=()=>{setImportModal(false);setImportFile(null);setImportPreviewRows(null);setImportDragOver(false);};
-
-  const handleOpenDetail=async(cert)=>{
-    const target=cert||sel;
-    if(!target)return;
-    const id=target.id;
-    if(id===undefined||id===null||id===""){
-      console.error("[handleOpenDetail] missing certificate id — object was:",target);
-      return;
-    }
-    if(cert&&cert.id!==sel?.id)setSel(cert);
-    setDetailModal(true);
-    setDetailData(null);
-    setDetailError(null);
-    setDetailLoading(true);
-    try{
-      console.log(`[handleOpenDetail] GET /reception/certificates/${id}`);
-      const res=await certificatesService.getById(id);
-      console.log("[handleOpenDetail] raw response:",res.data);
-      const body=res.data?.data??res.data;
-      if(!body){
-        console.error("[handleOpenDetail] response body is empty");
-        setDetailError("الاستجابة فارغة من الخادم");
-        return;
-      }
-      setDetailData(body);
-    }catch(err){
-      console.error("[handleOpenDetail] Failed to fetch certificate details:",err);
-      console.error("[handleOpenDetail] HTTP status:",err.response?.status);
-      console.error("[handleOpenDetail] Server message:",err.response?.data);
-      const status=err.response?.status;
-      const msg=err.response?.data?.message||err.message||"خطأ غير معروف";
-      setDetailError(`${status?`(${status}) `:""}${msg}`);
-    }finally{
-      setDetailLoading(false);
-    }
-  };
-
-  const handleExportCourse=async(ids)=>{
-    if(!ids.length)return;
-    setExportBusy(true);
-    try{
-      const res=await certificatesService.exportFile({format:"pdf",certificateIds:ids.map(Number)});
-      const blob=new Blob([res.data],{type:EXPORT_MIME.pdf});
-      const url=window.URL.createObjectURL(blob);
-      const link=document.createElement("a");
-      link.href=url;link.download=`course_export.pdf`;link.click();
-      window.URL.revokeObjectURL(url);
-    }catch(e){
-      const data=e.response?.data;
-      const msg=data instanceof Blob?await readBlobErrorMessage(data):data?.message;
-      alert(msg||"حدث خطأ في التصدير");
-    }
-    finally{setExportBusy(false);}
-  };
-
-  const handleCourseScheduleSessions=async()=>{
-    if(!courseSessionsModal)return;
-    const sessions=courseSessionDates.map((d,i)=>({sessionNumber:i+1,scheduledAt:d?new Date(d).toISOString():null})).filter(s=>s.scheduledAt);
-    if(!sessions.length)return;
-    setCourseSessionsBusy(true);
-    try{
-      await certificatesService.setTrainingSessionsBatch({certificateIds:courseSessionsModal.ids,sessions});
-      setCourseSessionsModal(null);setCourseSessionDates(["","",""]);
-      showToast(`تم جدولة جلسات التدريب للدورة ${courseSessionsModal.courseNumber} بنجاح`);
-      await loadCerts();
-    }catch(e){alert(e.response?.data?.message||"حدث خطأ");}
-    finally{setCourseSessionsBusy(false);}
-  };
-
-  const canCancel=(c)=>c&&!["COMPLETED","CANCELLED"].includes(c.status);
-  const si=certStepIdx(sel);
+  const StudentsColsTemplate="1fr 120px 60px 1fr 130px 80px";
 
   return(
-    <div style={{display:"flex",height:"100%"}}>
-      {/* List panel */}
-      <div style={{width:300,flexShrink:0,display:"flex",flexDirection:"column",borderLeft:`1px solid ${t.border}`}}>
-        {/* Search + view tabs + status pills */}
-        <div style={{padding:"10px 10px 7px",borderBottom:`1px solid ${t.border}`,display:"flex",flexDirection:"column",gap:7}}>
-          <SearchBar placeholder="بحث باسم الطالب..." t={t} value={search} onChange={setSearch}/>
-          {/* View toggle */}
-          <div style={{display:"flex",borderRadius:8,background:t.bgElevated,padding:2,gap:1}}>
-            {[{v:"all",l:"الكل"},{v:"unassigned",l:"بدون دورة"},{v:"by_course",l:"حسب الدورة"}].map(tab=>(
-              <button key={tab.v} onClick={()=>setListView(tab.v)} style={{flex:1,padding:"4px 4px",borderRadius:6,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:10,fontWeight:listView===tab.v?700:400,background:listView===tab.v?t.bgSurface:"transparent",color:listView===tab.v?t.text:t.textMuted,boxShadow:listView===tab.v?`0 1px 3px ${t.border}`:"none",transition:"background 0.12s"}}>{tab.l}</button>
-            ))}
-          </div>
-          {/* Status pills — hidden in by_course */}
-          {listView!=="by_course"&&(
-            <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
-              {CERT_STATUS_OPTS.map(opt=>(
-                <button key={opt.value} onClick={()=>setFStatus(opt.value)} style={{padding:"3px 8px",borderRadius:20,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:10,fontWeight:fStatus===opt.value?700:400,background:fStatus===opt.value?t.accent:"transparent",color:fStatus===opt.value?"#fff":t.textMuted}}>{opt.label}</button>
-              ))}
-            </div>
-          )}
+    <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:16}}>
+      {toastEl}
+
+      {/* ── Top bar ── */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <button onClick={onBack} style={btnSec(false)}>← كل الدورات</button>
+          <span style={{fontSize:16,fontWeight:800,color:t.text}}>الدورة {c.courseNumber??c.id}</span>
+          <CourseBadge s={c.status} t={t}/>
         </div>
-        {/* Select-all bar — flat views only */}
-        {listView!=="by_course"&&viewCerts.length>0&&(
-          <div style={{padding:"7px 12px",borderBottom:`1px solid ${t.border}`,display:"flex",alignItems:"center",gap:7}}>
-            <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} style={{cursor:"pointer"}}/>
-            <span style={{fontSize:11,color:t.textMuted,fontWeight:600}}>تحديد الكل ({selectedIds.length}/{viewCerts.length})</span>
-          </div>
-        )}
-        {/* Batch action bar */}
-        {selectedIds.length>0&&listView!=="by_course"&&(
-          <div style={{padding:"7px 12px",borderBottom:`1px solid ${t.border}`,background:t.accentLight}}>
-            <Btn label={`تعيين رقم الدورة للدفعة (${selectedIds.length})`} onClick={()=>{setBatchCourseNum("");setBatchCourseModal(true);}} t={t} sz="sm" style={{width:"100%"}}/>
-          </div>
-        )}
-        {/* List body */}
-        <div style={{flex:1,overflowY:"auto"}}>
-          {loading?(
-            <div style={{padding:24,textAlign:"center",color:t.textMuted,fontSize:13}}>جاري التحميل...</div>
-          ):listView==="by_course"?(
-            courseGroups.length===0?(
-              <div style={{padding:24,textAlign:"center",color:t.textMuted,fontSize:13}}>لا توجد دورات مُعيَّنة بعد</div>
-            ):courseGroups.map(([num,gCerts])=>{
-              const isExp=!!expandedCourses[num];
-              const gIds=gCerts.map(c=>c.id);
-              const iconBtn={background:"none",border:`1px solid ${t.border}`,borderRadius:6,padding:"4px 7px",cursor:"pointer",color:t.textSec,display:"flex",alignItems:"center",lineHeight:1};
-              return(
-                <div key={num} style={{borderBottom:`1px solid ${t.border}`}}>
-                  <div onClick={()=>toggleCourse(num)} style={{padding:"9px 12px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",background:t.bgElevated,userSelect:"none"}}>
-                    <div>
-                      <div style={{fontSize:13,fontWeight:700,color:t.text}}>دورة {num}</div>
-                      <div style={{fontSize:10,color:t.textMuted,marginTop:1}}>{gCerts.length} طالب</div>
-                    </div>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <button onClick={e=>{e.stopPropagation();handleExportCourse(gIds);}} title="تصدير ملف الدورة" style={iconBtn}><FiDownload size={12}/></button>
-                      <button onClick={e=>{e.stopPropagation();setCourseSessionsModal({courseNumber:num,ids:gIds});setCourseSessionDates(["","",""]);}} title="جدولة تدريب للدورة" style={iconBtn}><FiCalendar size={12}/></button>
-                      {isExp?<FiChevronUp size={14} color={t.textMuted}/>:<FiChevronDown size={14} color={t.textMuted}/>}
-                    </div>
-                  </div>
-                  {isExp&&gCerts.map(c=>(
-                    <div key={c.id} onClick={()=>setSel(c)} style={{padding:"8px 12px 8px 18px",cursor:"pointer",borderTop:`1px solid ${t.border}`,background:sel?.id===c.id?t.accentLight:t.bgSurface,borderRight:sel?.id===c.id?`3px solid ${t.accent}`:"3px solid transparent"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
-                        <span style={{fontSize:12,fontWeight:600,color:t.text}}>{cName(c)}</span>
-                        <CertBadge s={c.status} t={t}/>
-                      </div>
-                      <div style={{fontSize:10,color:t.textMuted}}>{c.category||"—"} {c.transmissionType==="AUTOMATIC"?"أوتوماتيك":c.transmissionType==="MANUAL"?"يدوي":""}</div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })
-          ):viewCerts.length===0?(
-            <div style={{padding:24,textAlign:"center",color:t.textMuted,fontSize:13}}>{listView==="unassigned"?"لا يوجد طلاب بدون دورة":"لا توجد شهادات"}</div>
-          ):viewCerts.map(c=>(
-            <div key={c.id} onClick={()=>setSel(c)} style={{padding:"11px 12px",cursor:"pointer",borderBottom:`1px solid ${t.border}`,background:sel?.id===c.id?t.accentLight:t.bgSurface,borderRight:sel?.id===c.id?`3px solid ${t.accent}`:"3px solid transparent",display:"flex",alignItems:"flex-start",gap:8}}>
-              <input type="checkbox" checked={selectedIds.includes(c.id)} onClick={e=>e.stopPropagation()} onChange={()=>toggleSelect(c.id)} style={{marginTop:3,cursor:"pointer",flexShrink:0}}/>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                  <span style={{fontSize:13,fontWeight:600,color:t.text}}>{cName(c)}</span>
-                  <CertBadge s={c.status} t={t}/>
-                </div>
-                <div style={{fontSize:11,color:t.textMuted}}>
-                  {c.courseNumber?`دورة: ${c.courseNumber}`:"بدون رقم دورة"} • {c.category||"—"} {c.transmissionType==="AUTOMATIC"?"أوتوماتيك":c.transmissionType==="MANUAL"?"يدوي":""}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        {/* Footer */}
-        <div style={{padding:"10px 10px 0",borderTop:`1px solid ${t.border}`}}>
-          <Btn label="رفع ملف الوزارة" onClick={()=>setImportModal(true)} t={t} sz="sm" v="secondary" style={{width:"100%"}}/>
-        </div>
-        <div style={{padding:"10px",display:"flex",gap:6}}>
-          <Btn label={exportBusy?"...":"PDF"} onClick={()=>handleExport("pdf")} t={t} sz="sm" v="secondary" disabled={exportBusy} style={{flex:1}}/>
-          <Btn label={exportBusy?"...":"Excel"} onClick={()=>handleExport("xlsx")} t={t} sz="sm" v="ghost" disabled={exportBusy} style={{flex:1}}/>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>doExport("pdf")} disabled={exportBusy} style={btnSec(exportBusy)}>كشف الحكومة PDF</button>
+          <button onClick={()=>doExport("xlsx")} disabled={exportBusy} style={btnSec(exportBusy)}>XLSX</button>
         </div>
       </div>
 
-      {/* Detail panel */}
-      {sel?(
-        <div style={{flex:1,overflowY:"auto",padding:"20px 22px"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
-            <div>
-              <div style={{fontSize:17,fontWeight:700,color:t.text}}>{cName(sel)}</div>
-              <div style={{marginTop:5}}><CertBadge s={sel.status} t={t}/></div>
+      {/* ── Status pipeline ── */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+        {statusPipeline.map((s,i)=>(
+          <div key={i} style={{padding:"10px 12px",borderRadius:10,border:`1px solid ${s.done?t.accent:t.border}`,background:s.done?t.accentLight:t.bgSurface}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+              <span style={{width:18,height:18,borderRadius:"50%",background:s.done?t.accent:t.border,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",fontWeight:700,flexShrink:0}}>{s.done?"✓":i+1}</span>
+              <span style={{fontSize:11,fontWeight:700,color:s.done?t.accentText:t.textSec,lineHeight:1.3}}>{s.label}</span>
             </div>
-            <div style={{display:"flex",gap:7}}>
-              <Btn label="تفاصيل الشهادة" onClick={handleOpenDetail} t={t} sz="sm" v="secondary"/>
-              {canCancel(sel)&&<Btn label="إلغاء الشهادة" onClick={()=>setCancelModal(sel)} t={t} sz="sm" v="danger"/>}
+            <div style={{fontSize:10,color:s.done?t.accentText:t.textMuted,paddingRight:24}}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Two-column cards ── */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,alignItems:"start"}}>
+
+        {/* Card ① Sessions */}
+        <Card t={t}>
+          {/* Header */}
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+            <span style={{width:22,height:22,borderRadius:"50%",background:t.accent,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:700,flexShrink:0}}>①</span>
+            <span style={{fontSize:13,fontWeight:700,color:t.text}}>الجلسات الحكومية الثلاث</span>
+            {savedSessions.length>=3
+              ?<span style={{display:"inline-flex",background:"#DCFCE7",color:"#166534",borderRadius:20,padding:"1px 10px",fontSize:10,fontWeight:700,marginRight:"auto"}}>✓ محدّدة</span>
+              :<span style={{display:"inline-flex",background:"#FFFBEB",color:"#92400E",border:"1px solid #FDE68A",borderRadius:20,padding:"1px 10px",fontSize:10,fontWeight:700,marginRight:"auto"}}>مطلوبة</span>
+            }
+          </div>
+          <div style={{fontSize:11,color:t.textMuted,marginBottom:12,lineHeight:1.5}}>موعد واحد يشترك فيه كل طلاب الدورة، وكل جلسة في يوم مختلف.</div>
+
+          {/* Read-only summary */}
+          {savedSessions.length>0&&(
+            <div style={{marginBottom:14,padding:"10px 12px",borderRadius:9,background:t.bgElevated,border:`1px solid ${t.border}`}}>
+              {savedSessions.map((s,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0",borderBottom:i<savedSessions.length-1?`1px solid ${t.border}`:"none"}}>
+                  <span style={{fontSize:10,fontWeight:700,color:t.textMuted,minWidth:48}}>الجلسة {s.sessionNumber??i+1}</span>
+                  <span style={{fontSize:12,color:t.text,direction:"ltr"}}>{fmtSessionDisplay(s.date?.slice(0,10),s.time?.slice(0,5))}</span>
+                </div>
+              ))}
             </div>
+          )}
+
+          {/* Form */}
+          {!canEdit&&(
+            <div style={{padding:"7px 10px",borderRadius:8,background:t.accentLight,color:t.accentText,fontSize:11,marginBottom:10}}>القراءة فقط — الدورة في مرحلة متقدمة</div>
+          )}
+          {savedSessions.length>0&&canEdit&&(
+            <div style={{fontSize:11,fontWeight:700,color:t.textSec,marginBottom:8}}>تعديل المواعيد</div>
+          )}
+
+          {sessions.map((s,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+              <span style={{fontSize:11,fontWeight:700,color:t.textSec,minWidth:52,textAlign:"right",flexShrink:0}}>الجلسة {i+1}</span>
+              <input type="date" value={s.date} disabled={!canEdit}
+                onChange={e=>{const n=[...sessions];n[i]={...n[i],date:e.target.value};setSessions(n);}}
+                style={{...inp,flex:1,padding:"6px 8px",fontSize:12,opacity:canEdit?1:0.5}}/>
+              <input type="time" value={s.time} disabled={!canEdit}
+                onChange={e=>{const n=[...sessions];n[i]={...n[i],time:e.target.value};setSessions(n);}}
+                style={{...inp,flex:"0 0 110px",padding:"6px 8px",fontSize:12,opacity:canEdit?1:0.5}}/>
+            </div>
+          ))}
+
+          {/* Bottom row */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:10,gap:8}}>
+            <button onClick={saveSessions} disabled={!canEdit||sessionsBusy}
+              style={{padding:"8px 20px",borderRadius:9,border:"none",background:!canEdit||sessionsBusy?t.border:t.accent,color:"#fff",cursor:!canEdit||sessionsBusy?"not-allowed":"pointer",fontSize:12,fontFamily:"inherit",fontWeight:600,opacity:!canEdit||sessionsBusy?0.5:1}}>
+              {sessionsBusy?"جاري الحفظ...":"حفظ الجلسات"}
+            </button>
+            {canEdit&&(
+              <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none",fontSize:12,color:t.textSec}}>
+                <input type="checkbox" checked={notify} onChange={e=>setNotify(e.target.checked)} style={{cursor:"pointer"}}/>
+                إشعار الطلاب
+              </label>
+            )}
+          </div>
+        </Card>
+
+        {/* Card ② Exam schedule */}
+        <Card t={t}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+            <span style={{width:22,height:22,borderRadius:"50%",background:t.accent,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:700,flexShrink:0}}>②</span>
+            <span style={{fontSize:13,fontWeight:700,color:t.text}}>موعد الامتحان</span>
+            <span style={{display:"inline-flex",background:"#FFFBEB",color:"#92400E",border:"1px solid #FDE68A",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:600,marginRight:"auto"}}>بعد الجلسات</span>
           </div>
 
-          {toast&&(()=>{const tc=toast.type==="warning"?t.pending:t.completed;return(
-            <div style={{margin:"16px 0",padding:"9px 18px",borderRadius:9,textAlign:"center",fontSize:12,fontWeight:600,background:tc.bg,color:tc.text,border:`1px solid ${tc.dot}40`}}>{toast.msg}</div>
-          );})()}
-
-          <Card t={t} p={18} mb={14}>
-            <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:14}}>مسار الشهادة</div>
-            <div style={{display:"flex",alignItems:"center"}}>
-              {CERT_STEP_LABELS.map((step,i)=>{
-                const done=i<=si;
-                return(
-                  <div key={step} style={{flex:1,display:"flex",alignItems:"center"}}>
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",flex:"0 0 auto",minWidth:70}}>
-                      <div style={{width:26,height:26,borderRadius:"50%",background:done?t.grad:t.border,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700,boxShadow:i===si?`0 0 0 3px ${t.accent}40`:"none"}}>{done?"✓":i+1}</div>
-                      <div style={{fontSize:9,color:done?t.accentText:t.textMuted,marginTop:4,textAlign:"center",lineHeight:1.3}}>{step}</div>
-                    </div>
-                    {i<CERT_STEP_LABELS.length-1&&<div style={{flex:1,height:2,background:i<si?t.accent:t.border,margin:"0 3px",marginBottom:18}}/>}
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <Card t={t} p={14}>
-              <div style={{marginBottom:8,fontSize:13,fontWeight:700,color:t.text}}>تفاصيل الشهادة</div>
-              <InfoRow k="اسم الطالب" v={cName(sel)} t={t}/>
-              <InfoRow k="هاتف" v={cPhone(sel)} t={t}/>
-              <InfoRow k="الفئة" v={sel.category||"—"} t={t}/>
-              <InfoRow k="ناقل الحركة" v={sel.transmissionType==="AUTOMATIC"?"أوتوماتيك":sel.transmissionType==="MANUAL"?"يدوي":"—"} t={t}/>
-              <InfoRow k="رقم الدورة" v={sel.courseNumber||"غير مُعيَّن"} t={t}/>
-              <InfoRow k="خدمة النقل" v={sel.transportRequested?"مطلوبة":"غير مطلوبة"} t={t}/>
-              {sel.trainingSessions?.length>0&&(
-                <div style={{marginTop:8}}>
-                  <div style={{fontSize:11,color:t.textMuted,fontWeight:600,marginBottom:4}}>جلسات التدريب الحكومي:</div>
-                  {sel.trainingSessions.map((s,i)=>(
-                    <div key={i} style={{fontSize:11,color:t.text,padding:"2px 0"}}>جلسة {s.sessionNumber}: {s.scheduledAt?new Date(s.scheduledAt).toLocaleDateString("ar-SY"):"—"}</div>
-                  ))}
-                </div>
-              )}
-              {sel.examSchedule&&(
-                <InfoRow k="موعد الامتحان" v={new Date(sel.examSchedule.scheduledAt).toLocaleDateString("ar-SY")} t={t}/>
-              )}
-            </Card>
-            <Card t={t} p={14}>
-              <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:8}}>الإجراءات المتاحة</div>
-              <div style={{display:"flex",flexDirection:"column",gap:7}}>
-                {sel.status==="WAITING_FOR_TRAINING_SCHEDULE"&&(<>
-                  <Btn label="✎ تعديل البيانات الأساسية" onClick={()=>{setEditForm({category:sel.category||"B",transmissionType:sel.transmissionType||"MANUAL",transportRequested:!!sel.transportRequested});setEditModal(sel);}} t={t} sz="sm" style={{width:"100%"}}/>
-                  <Btn label="تعيين رقم الدورة" onClick={()=>{setCourseModal(sel);setCourseNum(sel.courseNumber||"");}} t={t} sz="sm" v="secondary" style={{width:"100%"}}/>
-                  <Btn label="جدولة جلسات التدريب" onClick={()=>{setSessionsModal(sel);setSessionDates(["","",""]);setNotifySessions(true);}} t={t} sz="sm" v="secondary" style={{width:"100%"}}/>
-                  <Btn label="إلغاء الطلب" onClick={()=>setCancelModal(sel)} t={t} sz="sm" v="danger" style={{width:"100%"}}/>
-                  <Btn label={exportBusy?"...":"↑ تصدير للحكومة"} onClick={()=>handleExportSingle("pdf")} t={t} sz="sm" v="ghost" disabled={exportBusy} style={{width:"100%"}}/>
-                </>)}
-                {sel.status==="IN_GOVERNMENT_TRAINING"&&(<>
-                  <Btn label="جدولة موعد الامتحان" onClick={()=>{setExamModal(sel);setExamDate("");}} t={t} sz="sm" style={{width:"100%"}}/>
-                  <Btn label={notifyBusy?"...":"🔔 إعادة إرسال إشعار الجلسات"} onClick={handleResendNotification} t={t} sz="sm" v="ghost" disabled={notifyBusy} style={{width:"100%"}}/>
-                </>)}
-                {sel.status==="WAITING_FOR_PRACTICAL_EXAM"&&(
-                  <Btn label="تسجيل نتيجة الامتحان العملي" onClick={()=>setResultModal(sel)} t={t} sz="sm" style={{width:"100%"}}/>
-                )}
-                {sel.status==="WAITING_FOR_THEORETICAL_EXAM"&&(
-                  <Btn label="تسجيل نتيجة الامتحان النظري" onClick={()=>setResultModal(sel)} t={t} sz="sm" style={{width:"100%"}}/>
-                )}
-                {sel.status==="COMPLETED"&&<div style={{padding:"9px 12px",borderRadius:8,background:t.completed.bg,fontSize:12,color:t.completed.text,fontWeight:600}}>🎉 اكتملت الشهادة — يمكن للطالب استلامها</div>}
-                {sel.status==="FAILED"&&<div style={{padding:"9px 12px",borderRadius:8,background:t.failed.bg,fontSize:12,color:t.failed.text,fontWeight:600}}>✗ راسب (استنفذ المحاولات)</div>}
-                {sel.status==="CANCELLED"&&<div style={{padding:"9px 12px",borderRadius:8,background:t.cancelled.bg,fontSize:12,color:t.cancelled.text,fontWeight:600}}>ملغى — لا يمكن إجراء أي تعديل</div>}
-              </div>
-              {sel.examResults?.length>0&&(
-                <div style={{marginTop:12}}>
-                  <div style={{fontSize:11,color:t.textMuted,fontWeight:600,marginBottom:4}}>نتائج الامتحانات:</div>
-                  {sel.examResults.map((r,i)=>(
-                    <div key={i} style={{fontSize:11,color:t.text,padding:"2px 0",display:"flex",justifyContent:"space-between"}}>
-                      <span>{EXAM_TYPE_LABEL[r.examType]||r.examType||"—"} — محاولة {r.attemptNumber}</span>
-                      <span style={{fontWeight:600,color:r.result==="PASS"?t.completed.text:r.result==="FAIL"?t.failed.text:t.pending.text}}>{EXAM_RESULT_LABEL[r.result]||r.result||"—"}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
+          <div style={{marginBottom:12,marginTop:10}}>
+            <div style={{fontSize:11,fontWeight:600,color:t.textSec,marginBottom:4}}>تاريخ الامتحان</div>
+            <input type="date" value={examDate} onChange={e=>setExamDate(e.target.value)} style={inp}/>
           </div>
-        </div>
-      ):(
-        <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:t.textMuted,fontSize:14}}>
-          {loading?"جاري التحميل...":"اختر شهادة من القائمة"}
-        </div>
-      )}
-
-      {/* Cancel Modal */}
-      {cancelModal&&<Modal title="إلغاء الشهادة" onClose={()=>setCancelModal(null)} t={t} width={420}>
-        <InfoRow k="الطالب" v={cName(cancelModal)} t={t}/>
-        <div style={{marginBottom:14,marginTop:10}}>
-          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>سبب الإلغاء</label>
-          <textarea value={cancelReason} onChange={e=>setCancelReason(e.target.value)} rows={3} placeholder="أدخل سبب الإلغاء..." style={{width:"100%",padding:"9px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",resize:"none",boxSizing:"border-box"}}/>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn label={cancelBusy?"جاري الإلغاء...":"✓ تأكيد الإلغاء"} onClick={handleCancel} t={t} v="danger" disabled={cancelBusy||!cancelReason.trim()} style={{flex:1}}/>
-          <Btn label="إلغاء" onClick={()=>setCancelModal(null)} t={t} v="ghost"/>
-        </div>
-      </Modal>}
-
-      {/* Certificate Detail Modal — 6 sections */}
-      {detailModal&&<Modal title="تفاصيل الشهادة" onClose={()=>{setDetailModal(false);setDetailData(null);setDetailError(null);}} t={t} width={600}>
-        {detailLoading?(
-          <div style={{textAlign:"center",padding:"40px 0",color:t.textMuted,fontSize:13}}>جاري تحميل البيانات...</div>
-        ):detailError?(
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,padding:"32px 16px"}}>
-            <div style={{fontSize:13,fontWeight:600,color:t.failed.text,textAlign:"center"}}>تعذّر تحميل بيانات الشهادة</div>
-            <div style={{fontSize:11,color:t.textMuted,textAlign:"center",fontFamily:"monospace",background:t.bgElevated,padding:"8px 12px",borderRadius:7,border:`1px solid ${t.border}`,maxWidth:"100%",wordBreak:"break-all"}}>{detailError}</div>
-            <div style={{fontSize:11,color:t.textMuted,textAlign:"center"}}>افتح أدوات المطور (F12) وراجع تبويب Console لمزيد من التفاصيل</div>
-            <Btn label="إعادة المحاولة" onClick={()=>handleOpenDetail(sel)} t={t} sz="sm"/>
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:600,color:t.textSec,marginBottom:4}}>وقت الامتحان</div>
+            <input type="time" value={examTime} onChange={e=>setExamTime(e.target.value)} style={inp}/>
           </div>
-        ):!detailData?(
-          <div style={{textAlign:"center",padding:"40px 0",color:t.textMuted,fontSize:13}}>لا توجد بيانات</div>
-        ):(()=>{
-          const cert=detailData.certificate||{};
-          const stu=detailData.student||{};
-          const docs=detailData.documents||{};
-          const sessions=detailData.sessions||[];
-          const exams=detailData.exams||[];
-          const charges=detailData.charges||[];
-          const rawStatus=cert.requestStatus||cert.status||"";
-          const statusInfo=CERT_STATUS_MAP[rawStatus]||{label:rawStatus||"—",tk:"expired"};
-          const fmtDate=(v)=>v?new Date(v).toLocaleDateString("ar-SY",{year:"numeric",month:"long",day:"numeric"}):"—";
-          const CHARGE_REASON_MAP={CERTIFICATE_FEE:"رسوم الشهادة",EXAM_FEE:"رسوم الامتحان",TRAINING_FEE:"رسوم التدريب"};
-          const CHARGE_STATUS_MAP={PAID:"مدفوعة",PENDING:"معلّقة",CANCELLED:"ملغاة"};
-          const sectionHd=(label)=><div style={{fontSize:12,fontWeight:700,color:t.textMuted,marginBottom:8,paddingBottom:4,borderBottom:`1px solid ${t.border}`}}>{label}</div>;
-          return(
-            <div style={{display:"flex",flexDirection:"column",gap:14}}>
 
-              {/* 1. بيانات الشهادة */}
-              <div style={{padding:"12px 14px",borderRadius:10,background:t.bgElevated,border:`1px solid ${t.border}`}}>
-                {sectionHd("١. بيانات الشهادة")}
-                <InfoRow k="رقم الشهادة" v={String(cert.id||"—")} t={t}/>
-                <InfoRow k="الحالة" v={statusInfo.label} t={t}/>
-                <InfoRow k="الفئة" v={cert.category||"—"} t={t}/>
-                <InfoRow k="ناقل الحركة" v={cert.transmissionType==="AUTOMATIC"?"أوتوماتيك":cert.transmissionType==="MANUAL"?"يدوي":"—"} t={t}/>
-                <InfoRow k="رقم الدورة" v={cert.courseNumber||"غير مُعيَّن"} t={t}/>
-                {cert.governmentStudentNumber&&<InfoRow k="الرقم الحكومي" v={cert.governmentStudentNumber} t={t}/>}
-                <InfoRow k="خدمة النقل" v={cert.transportRequested?"مطلوبة":"غير مطلوبة"} t={t}/>
-                {cert.requestedAt&&<InfoRow k="تاريخ الطلب" v={fmtDate(cert.requestedAt)} t={t}/>}
-                {cert.submittedToGovAt&&<InfoRow k="تاريخ التقديم للحكومة" v={fmtDate(cert.submittedToGovAt)} t={t}/>}
-                {cert.cancellationReason&&(
-                  <div style={{marginTop:8,padding:"7px 10px",borderRadius:7,background:t.failed.bg,color:t.failed.text,fontSize:11}}>سبب الإلغاء: {cert.cancellationReason}</div>
-                )}
-              </div>
+          <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none",fontSize:12,color:t.textSec,marginBottom:14}}>
+            <input type="checkbox" checked={examNotify} onChange={e=>setExamNotify(e.target.checked)} style={{cursor:"pointer"}}/>
+            إرسال الإشعارات
+          </label>
 
-              {/* 2. بيانات الطالب */}
-              <div style={{padding:"12px 14px",borderRadius:10,background:t.bgElevated,border:`1px solid ${t.border}`}}>
-                {sectionHd("٢. بيانات الطالب")}
-                <InfoRow k="الاسم" v={cert.studentName||stu.name||"—"} t={t}/>
-                <InfoRow k="الهاتف" v={cert.studentPhone||stu.phone||"—"} t={t}/>
-                {stu.studentStatus&&<InfoRow k="حالة الطالب" v={CERT_STATUS_MAP[stu.studentStatus]?.label||stu.studentStatus} t={t}/>}
-              </div>
-
-              {/* 3. الصور والوثائق */}
-              {(docs.personalPhotoUrl||docs.idFrontUrl||docs.idBackUrl)&&(
-                <div style={{padding:"12px 14px",borderRadius:10,background:t.bgElevated,border:`1px solid ${t.border}`}}>
-                  {sectionHd("٣. الصور والوثائق")}
-                  <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                    {[{url:docs.personalPhotoUrl,label:"الصورة الشخصية"},{url:docs.idFrontUrl,label:"الهوية (وجه)"},{url:docs.idBackUrl,label:"الهوية (ظهر)"}].map(({url,label})=>{
-                      const src=certImgSrc(url);
-                      return src?(
-                        <div key={label} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
-                          <img src={src} alt={label} style={{width:90,height:90,objectFit:"cover",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgApp}} onError={e=>{e.target.style.display="none";}}/>
-                          <span style={{fontSize:10,color:t.textMuted}}>{label}</span>
-                        </div>
-                      ):null;
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* 4. جلسات التدريب */}
-              <div style={{padding:"12px 14px",borderRadius:10,background:t.bgElevated,border:`1px solid ${t.border}`}}>
-                {sectionHd("٤. جلسات التدريب الحكومي")}
-                {sessions.length===0?(
-                  <div style={{fontSize:12,color:t.textMuted,textAlign:"center",padding:"8px 0"}}>لا توجد جلسات مجدولة</div>
-                ):sessions.map((s,i)=>(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:i<sessions.length-1?`1px solid ${t.border}`:"none"}}>
-                    <span style={{fontSize:12,color:t.textSec}}>جلسة {s.sessionNumber}</span>
-                    <span style={{fontSize:12,color:t.text,fontWeight:600}}>{fmtDate(s.scheduledAt)}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* 5. الامتحانات والمحاولات */}
-              <div style={{padding:"12px 14px",borderRadius:10,background:t.bgElevated,border:`1px solid ${t.border}`}}>
-                {sectionHd("٥. الامتحانات والمحاولات")}
-                {exams.length===0?(
-                  <div style={{fontSize:12,color:t.textMuted,textAlign:"center",padding:"8px 0"}}>لا توجد محاولات مسجّلة</div>
-                ):exams.map((r,i)=>{
-                  const examType=r.examType||r.type||"";
-                  const resultColor=r.result==="PASS"?t.completed.text:r.result==="FAIL"?t.failed.text:t.pending.text;
-                  return(
-                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:i<exams.length-1?`1px solid ${t.border}`:"none"}}>
-                      <div>
-                        <span style={{fontSize:12,color:t.text,fontWeight:600}}>{EXAM_TYPE_LABEL[examType]||examType||"—"}</span>
-                        {r.attemptNumber&&<span style={{fontSize:11,color:t.textMuted}}> — محاولة {r.attemptNumber}</span>}
-                        {(r.scheduledAt||r.date)&&<div style={{fontSize:10,color:t.textMuted,marginTop:1}}>{fmtDate(r.scheduledAt||r.date)}</div>}
-                      </div>
-                      <span style={{fontSize:12,fontWeight:700,color:resultColor}}>{EXAM_RESULT_LABEL[r.result]||r.result||"—"}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* 6. الفواتير والمدفوعات */}
-              <div style={{padding:"12px 14px",borderRadius:10,background:t.bgElevated,border:`1px solid ${t.border}`}}>
-                {sectionHd("٦. الفواتير والمدفوعات")}
-                {charges.length===0?(
-                  <div style={{fontSize:12,color:t.textMuted,textAlign:"center",padding:"8px 0"}}>لا توجد فواتير</div>
-                ):charges.map((ch,i)=>{
-                  const paid=ch.payments?.reduce((s,p)=>s+parseFloat(p.amount||0),0)||0;
-                  const due=parseFloat(ch.amountDue||0);
-                  const remaining=Math.max(0,due-paid);
-                  const cs=CHARGE_STATUS_MAP[ch.chargeStatus]||ch.chargeStatus||"—";
-                  const csColor=ch.chargeStatus==="PAID"?t.completed.text:ch.chargeStatus==="PENDING"?t.pending.text:t.failed.text;
-                  return(
-                    <div key={i} style={{padding:"8px 0",borderBottom:i<charges.length-1?`1px solid ${t.border}`:"none"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                        <span style={{fontSize:12,color:t.text,fontWeight:600}}>{CHARGE_REASON_MAP[ch.chargeReason]||ch.chargeReason}</span>
-                        <span style={{fontSize:12,fontWeight:700,color:csColor}}>{cs}</span>
-                      </div>
-                      <div style={{display:"flex",gap:16}}>
-                        <span style={{fontSize:11,color:t.textMuted}}>المستحق: <strong style={{color:t.text}}>{due.toLocaleString("en")} ل.س</strong></span>
-                        {paid>0&&<span style={{fontSize:11,color:t.textMuted}}>المدفوع: <strong style={{color:t.completed.text}}>{paid.toLocaleString("en")} ل.س</strong></span>}
-                        {remaining>0&&<span style={{fontSize:11,color:t.textMuted}}>المتبقي: <strong style={{color:t.failed.text}}>{remaining.toLocaleString("en")} ل.س</strong></span>}
-                      </div>
-                      {ch.payments?.length>0&&(
-                        <div style={{marginTop:5,paddingRight:8,borderRight:`2px solid ${t.border}`}}>
-                          {ch.payments.map((p,j)=>(
-                            <div key={j} style={{display:"flex",justifyContent:"space-between",fontSize:11,color:t.textSec,padding:"2px 0"}}>
-                              <span>{fmtDate(p.paidAt||p.createdAt)}</span>
-                              <span style={{fontWeight:600}}>{parseFloat(p.amount||0).toLocaleString("en")} ل.س</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <Btn label="إغلاق" onClick={()=>{setDetailModal(false);setDetailData(null);setDetailError(null);}} t={t} v="ghost" style={{width:"100%"}}/>
+          {!sessOk&&(
+            <div style={{fontSize:11,color:t.textMuted,marginBottom:10,padding:"7px 10px",borderRadius:8,background:t.bgElevated}}>
+              أدخل الجلسات الثلاث أولاً
             </div>
-          );
-        })()}
-      </Modal>}
+          )}
 
-      {/* Assign Course Number Modal */}
-      {courseModal&&<Modal title="تعيين رقم الدورة" onClose={()=>setCourseModal(null)} t={t} width={380}>
-        <InfoRow k="الطالب" v={cName(courseModal)} t={t}/>
-        <div style={{margin:"12px 0"}}>
-          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>رقم الدورة</label>
-          <input value={courseNum} onChange={e=>setCourseNum(e.target.value)} placeholder="مثال: 181" style={{width:"100%",padding:"9px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn label={courseBusy?"جاري الحفظ...":"✓ حفظ"} onClick={handleAssignCourse} t={t} disabled={courseBusy||!courseNum.trim()} style={{flex:1}}/>
-          <Btn label="إلغاء" onClick={()=>setCourseModal(null)} t={t} v="ghost"/>
-        </div>
-      </Modal>}
+          <button onClick={saveExam} disabled={!sessOk||examBusy||!examDate} style={btnPrimary(!sessOk||examBusy||!examDate)}>
+            {examBusy?"جاري الحفظ...":"ضبط الموعد"}
+          </button>
+        </Card>
+      </div>
 
-      {/* Batch Course Assignment Modal */}
-      {batchCourseModal&&<Modal title="تعيين رقم الدورة للدفعة" onClose={()=>setBatchCourseModal(false)} t={t} width={380}>
-        <div style={{fontSize:12,color:t.textSec,marginBottom:12}}>سيتم تعيين رقم الدورة لعدد {selectedIds.length} طالب محدد</div>
-        <div style={{margin:"12px 0"}}>
-          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>رقم الدورة</label>
-          <input value={batchCourseNum} onChange={e=>setBatchCourseNum(e.target.value)} placeholder="مثال: 181" style={{width:"100%",padding:"9px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+      {/* ── Students table ── */}
+      <Card t={t}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+          <span style={{fontSize:13,fontWeight:700,color:t.text}}>طلاب الدورة</span>
+          <span style={{display:"inline-flex",background:t.accentLight,color:t.accentText,borderRadius:20,padding:"1px 9px",fontSize:11,fontWeight:700}}>{students.length}</span>
         </div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn label={batchCourseBusy?"جاري الحفظ...":"✓ حفظ"} onClick={handleAssignCourseBatch} t={t} disabled={batchCourseBusy||!batchCourseNum.trim()} style={{flex:1}}/>
-          <Btn label="إلغاء" onClick={()=>setBatchCourseModal(false)} t={t} v="ghost"/>
-        </div>
-      </Modal>}
-
-      {/* Training Sessions Modal */}
-      {sessionsModal&&<Modal title="جدولة جلسات التدريب الحكومي" onClose={()=>setSessionsModal(null)} t={t} width={440}>
-        <InfoRow k="الطالب" v={cName(sessionsModal)} t={t}/>
-        <div style={{marginTop:12}}>
-          {["الجلسة الأولى","الجلسة الثانية","الجلسة الثالثة"].map((label,i)=>(
-            <div key={i} style={{marginBottom:10}}>
-              <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>{label}</label>
-              <input type="datetime-local" value={sessionDates[i]} onChange={e=>{const d=[...sessionDates];d[i]=e.target.value;setSessionDates(d);}} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+        <div style={{border:`1px solid ${t.border}`,borderRadius:9,overflow:"hidden"}}>
+          <div style={{display:"grid",gridTemplateColumns:StudentsColsTemplate,background:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
+            {["الطلب","الهاتف","الفئة","حالة الطلب","الرقم الحكومي","الإجراءات"].map(h=>(
+              <div key={h} style={{fontSize:11,fontWeight:700,color:t.textMuted,padding:"8px 10px"}}>{h}</div>
+            ))}
+          </div>
+          {!students.length?(
+            <div style={{textAlign:"center",padding:28,color:t.textMuted,fontSize:13}}>لا يوجد طلاب</div>
+          ):students.map((s,i)=>(
+            <div key={i} style={{display:"grid",gridTemplateColumns:StudentsColsTemplate,alignItems:"center",borderBottom:i<students.length-1?`1px solid ${t.border}`:"none",background:t.bgSurface}}>
+              <div style={{padding:"10px"}}>
+                <div style={{fontSize:13,fontWeight:600,color:t.text}}>{s.studentName||"—"}</div>
+              </div>
+              <div style={{padding:"10px",fontSize:12,color:t.textSec}}>{s.studentPhone||"—"}</div>
+              <div style={{padding:"10px",fontSize:13,fontWeight:600,color:t.text}}>{s.category||"—"}</div>
+              <div style={{padding:"10px"}}><CertBadge s={s.requestStatus} t={t}/></div>
+              <div style={{padding:"10px",fontSize:12,color:t.textSec,fontFamily:"monospace"}}>{s.governmentStudentNumber||"—"}</div>
+              <div style={{padding:"6px 10px"}}>
+                <button onClick={()=>onOpenCert&&onOpenCert(s.certificateId??s.id)} style={{padding:"4px 10px",borderRadius:7,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:"pointer",fontSize:11,fontFamily:"inherit"}}>ملفه</button>
+              </div>
             </div>
           ))}
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:7,margin:"6px 0 14px"}}>
-          <input type="checkbox" checked={notifySessions} onChange={e=>setNotifySessions(e.target.checked)} style={{cursor:"pointer"}}/>
-          <span style={{fontSize:12,color:t.textSec}}>إرسال إشعار للطالب بمواعيد الجلسات</span>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn label={sessionsBusy?"جاري الحفظ...":"✓ حفظ الجلسات"} onClick={handleScheduleSessions} t={t} disabled={sessionsBusy} style={{flex:1}}/>
-          <Btn label="إلغاء" onClick={()=>setSessionsModal(null)} t={t} v="ghost"/>
-        </div>
-      </Modal>}
+      </Card>
+    </div>
+  );
+}
 
-      {/* Course Batch Training Sessions Modal */}
-      {courseSessionsModal&&<Modal title={`جدولة تدريب — دورة ${courseSessionsModal.courseNumber}`} onClose={()=>{setCourseSessionsModal(null);setCourseSessionDates(["","",""]);}} t={t} width={440}>
-        <div style={{fontSize:12,color:t.textSec,marginBottom:12}}>سيُطبَّق الموعد على <strong>{courseSessionsModal.ids.length}</strong> طالب في الدورة <strong>{courseSessionsModal.courseNumber}</strong></div>
-        {["الجلسة الأولى","الجلسة الثانية","الجلسة الثالثة"].map((label,i)=>(
-          <div key={i} style={{marginBottom:10}}>
-            <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>{label}</label>
-            <input type="datetime-local" value={courseSessionDates[i]} onChange={e=>{const d=[...courseSessionDates];d[i]=e.target.value;setCourseSessionDates(d);}} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+function CertCoursesTab({t,pendingCourseId,onPendingConsumed,onOpenCert}){
+  const [courses,setCourses]=useState([]);
+  const [meta,setMeta]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState(null);
+  const [selCourse,setSelCourse]=useState(null);
+  const {show:toast,el:toastEl}=useCertToast();
+
+  const loadCourses=async()=>{
+    setLoading(true);setError(null);
+    try{
+      const r=await certificatesService.getCourses({limit:50});
+      const payload=r.data?.data;
+      const arr=Array.isArray(payload?.data)?payload.data:Array.isArray(payload)?payload:[];
+      setCourses(arr);
+      setMeta(payload?.meta??null);
+    }catch(e){
+      setError(e.response?.data?.message||"تعذّر تحميل الدورات");
+      setCourses([]);
+    }finally{setLoading(false);}
+  };
+  useEffect(()=>{(async()=>{await loadCourses();})();},[]);
+
+  const openCourse=async(id)=>{
+    try{
+      const r=await certificatesService.getCourseById(id);
+      setSelCourse(r.data?.data??r.data);
+    }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(pendingCourseId){openCourse(pendingCourseId);onPendingConsumed&&onPendingConsumed();}},[]);
+
+  const refreshCourse=async()=>{
+    if(!selCourse)return;
+    const id=(selCourse.course??selCourse).id;
+    if(!id)return;
+    const r=await certificatesService.getCourseById(id);
+    setSelCourse(r.data?.data??r.data);
+  };
+
+  if(selCourse){
+    return(
+      <CourseDetailView
+        t={t}
+        course={selCourse}
+        onBack={()=>{setSelCourse(null);loadCourses();}}
+        onToast={toast}
+        toastEl={toastEl}
+        onRefresh={refreshCourse}
+        onOpenCert={onOpenCert}
+      />
+    );
+  }
+
+  const total=meta?.total??courses.length;
+  const cols="100px 160px 80px 160px 110px 120px";
+
+  return(
+    <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:12}}>
+      {toastEl}
+
+      {/* Header */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:14,fontWeight:700,color:t.text}}>الدورات</span>
+            <span style={{display:"inline-flex",alignItems:"center",background:t.accentLight,color:t.accentText,borderRadius:20,padding:"1px 10px",fontSize:12,fontWeight:700}}>
+              {loading?"...":total}
+            </span>
+          </div>
+          <div style={{fontSize:11,color:t.textMuted,marginTop:3}}>كل دورة دفعة طلاب أُرسلت للحكومة معاً وتمتحن معاً.</div>
+        </div>
+        <button onClick={loadCourses} style={{padding:"5px 12px",borderRadius:7,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.textSec,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>↻ تحديث</button>
+      </div>
+
+      {/* Table */}
+      <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
+        {/* Header row */}
+        <div style={{display:"grid",gridTemplateColumns:cols,background:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
+          {["الدورة","المرحلة","الطلاب","موعد الامتحان","تسجيل الإعادة",""].map((h,i)=>(
+            <div key={i} style={{fontSize:11,fontWeight:700,color:t.textMuted,padding:"9px 12px"}}>{h}</div>
+          ))}
+        </div>
+        {/* Body */}
+        {loading?(
+          <div style={{textAlign:"center",padding:36,color:t.textMuted,fontSize:13}}>جاري التحميل...</div>
+        ):error?(
+          <div style={{textAlign:"center",padding:36,color:"#e53e3e",fontSize:13}}>{error}</div>
+        ):!courses.length?(
+          <div style={{textAlign:"center",padding:36,color:t.textMuted,fontSize:13}}>لا توجد دورات</div>
+        ):courses.map((c,i)=>(
+          <div key={c.id} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:i<courses.length-1?`1px solid ${t.border}`:"none",background:t.bgSurface}}>
+            <div style={{padding:"11px 12px",fontSize:14,fontWeight:700,color:t.text,fontFamily:"monospace"}}>
+              {c.courseNumber??`#${c.id}`}
+            </div>
+            <div style={{padding:"11px 12px"}}>
+              <CourseBadge s={c.status} t={t}/>
+            </div>
+            <div style={{padding:"11px 12px",fontSize:13,color:t.text}}>
+              {c.studentsCount??0}
+            </div>
+            <div style={{padding:"11px 12px",fontSize:12,color:t.textSec}}>
+              {c.examScheduledLabel||"—"}
+            </div>
+            <div style={{padding:"11px 12px"}}>
+              {c.reexamRegistrationOpen
+                ?<span style={{display:"inline-flex",alignItems:"center",gap:3,background:"#DCFCE7",color:"#166534",padding:"2px 9px",borderRadius:20,fontSize:11,fontWeight:600}}>● مفتوح</span>
+                :<span style={{display:"inline-flex",alignItems:"center",gap:3,background:t.bgElevated,color:t.textMuted,padding:"2px 9px",borderRadius:20,fontSize:11,fontWeight:600}}>○ مغلق</span>
+              }
+            </div>
+            <div style={{padding:"6px 12px"}}>
+              <button onClick={()=>openCourse(c.id)} style={{padding:"5px 12px",borderRadius:7,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:"pointer",fontSize:11,fontFamily:"inherit",whiteSpace:"nowrap"}}>إدارة الدورة</button>
+            </div>
           </div>
         ))}
-        <div style={{display:"flex",gap:8,marginTop:4}}>
-          <Btn label={courseSessionsBusy?"جاري الحفظ...":"حفظ الجلسات"} onClick={handleCourseScheduleSessions} t={t} disabled={courseSessionsBusy||courseSessionDates.every(d=>!d)} style={{flex:1}}/>
-          <Btn label="إلغاء" onClick={()=>{setCourseSessionsModal(null);setCourseSessionDates(["","",""]);}} t={t} v="ghost"/>
-        </div>
-      </Modal>}
+      </div>
+    </div>
+  );
+}
 
-      {/* Exam Schedule Modal */}
-      {examModal&&<Modal title="جدولة موعد الامتحان" onClose={()=>{setExamModal(null);setExamDate("");}} t={t} width={400}>
-        <InfoRow k="الطالب" v={cName(examModal)} t={t}/>
-        <div style={{margin:"12px 0 8px"}}>
-          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>تاريخ ووقت الامتحان</label>
-          <input type="datetime-local" value={examDate} onChange={e=>setExamDate(e.target.value)} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
-        </div>
-        <div style={{padding:"9px 12px",borderRadius:9,background:t.accentLight,fontSize:11,color:t.accentText,marginBottom:14,lineHeight:1.6}}>
-          💡 سيتم إنشاء محاولتين تلقائياً (عملي ونظري) بنفس الموعد، وتحديث حالة الشهادة إلى <strong>بانتظار الامتحان العملي</strong>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn label={examBusy?"جاري الحفظ...":"✓ حفظ الموعد"} onClick={handleScheduleExam} t={t} disabled={examBusy||!examDate} style={{flex:1}}/>
-          <Btn label="إلغاء" onClick={()=>{setExamModal(null);setExamDate("");}} t={t} v="ghost"/>
-        </div>
-      </Modal>}
+/* ── Tab 3: Search ───────────────────────────────────────────────────── */
+function CertSearchTab({t,pendingCertId,onPendingConsumed}){
+  const [q,setQ]=useState("");
+  const [results,setResults]=useState([]);
+  const [searched,setSearched]=useState(false);
+  const [searchLoading,setSearchLoading]=useState(false);
+  const [profile,setProfile]=useState(null);
+  const [profileLoading,setProfileLoading]=useState(false);
+  const [editModal,setEditModal]=useState(false);
+  const [editForm,setEditForm]=useState({category:"B",transmissionType:"MANUAL"});
+  const [docsModal,setDocsModal]=useState(false);
+  const [resultModal,setResultModal]=useState(false);
+  const [resultForm,setResultForm]=useState({result:"PASS",notes:""});
+  const [busy,setBusy]=useState(false);
+  const docIdRef=useRef(null);
+  const docPortraitRef=useRef(null);
+  const {show:toast,el:toastEl}=useCertToast();
 
-      {/* Exam Result Modal */}
-      {resultModal&&(()=>{
-        const isPractical=resultModal.status==="WAITING_FOR_PRACTICAL_EXAM";
-        const examType=isPractical?"PRACTICAL":"THEORY";
-        const examLabel=isPractical?EXAM_TYPE_LABEL.PRACTICAL:EXAM_TYPE_LABEL.THEORY;
-        return(
-          <Modal title={`تسجيل نتيجة الامتحان ${examLabel}`} onClose={()=>setResultModal(null)} t={t} width={420}>
-            <InfoRow k="الطالب" v={cName(resultModal)} t={t}/>
-            <InfoRow k="نوع الامتحان" v={examLabel} t={t}/>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:9,margin:"14px 0"}}>
-              {[
-                {label:"✓ ناجح",  res:"PASS",  style:{border:`2px solid ${t.completed.dot}`,background:t.completed.bg,color:t.completed.text}},
-                {label:"✗ راسب",  res:"FAIL",  style:{border:`2px solid ${t.failed.dot}`,  background:t.failed.bg,  color:t.failed.text}},
-                {label:"غائب",    res:"ABSENT",style:{border:`2px solid ${t.pending.dot}`,  background:t.pending.bg, color:t.pending.text}},
-              ].map(btn=>(
-                <button key={btn.res} onClick={()=>handleRecordResult(examType,btn.res)} disabled={resultBusy} style={{padding:"16px",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",opacity:resultBusy?0.5:1,...btn.style}}>{btn.label}</button>
+  const doSearch=async()=>{
+    if(!q.trim())return;
+    setSearchLoading(true);setSearched(true);setProfile(null);
+    try{
+      const r=await certificatesService.getAll({search:q.trim()});
+      const arr=r.data?.data;
+      setResults(Array.isArray(arr)?arr:[]);
+    }catch{setResults([]);}
+    finally{setSearchLoading(false);}
+  };
+
+  const openProfile=async(id)=>{
+    setProfileLoading(true);
+    try{
+      const r=await certificatesService.getById(id);
+      setProfile(r.data?.data??r.data);
+    }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
+    finally{setProfileLoading(false);}
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(pendingCertId){openProfile(pendingCertId);onPendingConsumed&&onPendingConsumed();}},[]);
+
+  const refreshProfile=async()=>{
+    const id=cert?.id;
+    if(id)await openProfile(id);
+  };
+
+  const cert=profile?.certificate||profile||{};
+  const inp={width:"100%",padding:"8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
+
+  const saveEdit=async()=>{
+    setBusy(true);
+    try{
+      await certificatesService.update(cert.id,{category:editForm.category,transmissionType:editForm.transmissionType});
+      toast("تم تحديث البيانات");setEditModal(false);
+      await refreshProfile();
+    }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
+    finally{setBusy(false);}
+  };
+
+  const uploadDocs=async()=>{
+    const idFile=docIdRef.current?.files?.[0];
+    const portrait=docPortraitRef.current?.files?.[0];
+    if(!idFile&&!portrait){toast("اختر ملفاً على الأقل","warn");return;}
+    const fd=new FormData();
+    if(idFile)fd.append("idPhoto",idFile);
+    if(portrait)fd.append("portrait",portrait);
+    setBusy(true);
+    try{
+      await certificatesService.uploadDocuments(cert.id,fd);
+      toast("تم رفع الوثائق");setDocsModal(false);
+      await refreshProfile();
+    }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
+    finally{setBusy(false);}
+  };
+
+  const requestReexam=async()=>{
+    setBusy(true);
+    try{
+      await certificatesService.requestReexam(cert.id);
+      toast("تم تقديم طلب إعادة الامتحان");
+      await refreshProfile();
+    }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
+    finally{setBusy(false);}
+  };
+
+  const saveResult=async()=>{
+    setBusy(true);
+    try{
+      await certificatesService.recordExamResult(cert.id,resultForm);
+      toast("تم حفظ النتيجة");setResultModal(false);
+      await refreshProfile();
+    }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
+    finally{setBusy(false);}
+  };
+
+  return(
+    <div style={{padding:"16px 20px"}}>
+      {toastEl}
+      <div style={{display:"flex",gap:8,marginBottom:16}}>
+        <div style={{flex:1}}><SearchBar placeholder="اسم الطالب أو رقم الهوية..." t={t} value={q} onChange={setQ}/></div>
+        <Btn label="بحث" onClick={doSearch} t={t}/>
+      </div>
+
+      {profileLoading?(
+        <div style={{textAlign:"center",padding:40,color:t.textMuted,fontSize:13}}>جاري التحميل...</div>
+      ):profile?(
+        <div>
+          <Btn label="← العودة للنتائج" onClick={()=>setProfile(null)} t={t} v="ghost" sz="sm" style={{marginBottom:14}}/>
+          <Card t={t} mb={12}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+              <div>
+                <div style={{fontSize:16,fontWeight:700,color:t.text}}>{cert.studentName||profile?.student?.name||"—"}</div>
+                <div style={{fontSize:12,color:t.textMuted,marginTop:3}}>{cert.studentPhone||profile?.student?.phone||"—"}</div>
+              </div>
+              <CertBadge s={cert.requestStatus||cert.status} t={t}/>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+              <InfoRow k="الفئة" v={cert.category||"—"} t={t}/>
+              <InfoRow k="ناقل الحركة" v={CERT_TRANS[cert.transmissionType]||"—"} t={t}/>
+              <InfoRow k="رقم الدورة" v={cert.courseId?`#${cert.courseId}`:"غير مُعيَّن"} t={t}/>
+              <InfoRow k="تاريخ الطلب" v={fmtCertDate(cert.createdAt)} t={t}/>
+            </div>
+          </Card>
+
+          {profile?.exams?.length>0&&(
+            <Card t={t} mb={12}>
+              <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:10}}>نتائج الامتحانات</div>
+              {profile.exams.map((r,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:i<profile.exams.length-1?`1px solid ${t.border}`:"none",fontSize:13}}>
+                  <span style={{color:t.textSec}}>{EXAM_TYPE_LABEL[r.examType||r.type]||r.examType||"—"} — محاولة {r.attemptNumber}</span>
+                  <span style={{fontWeight:700,color:r.result==="PASS"?t.completed.text:t.failed.text}}>{EXAM_RESULT_LABEL[r.result]||r.result||"—"}</span>
+                </div>
               ))}
-            </div>
-            <div style={{padding:"9px 12px",borderRadius:9,background:t.accentLight,fontSize:11,color:t.accentText,lineHeight:1.6}}>
-              💡 {isPractical
-                ?"بعد تسجيل نتيجة العملي، يمكن الانتقال لتسجيل نتيجة النظري"
-                :"تسجيل نتيجة النظري هو آخر خطوة — ستُحدَّث حالة الشهادة تلقائياً"}
-            </div>
-          </Modal>
-        );
-      })()}
+            </Card>
+          )}
 
-      {/* Edit Certificate Modal */}
-      {editModal&&<Modal title="تعديل الشهادة" onClose={()=>setEditModal(null)} t={t} width={420}>
-        <InfoRow k="الطالب" v={cName(editModal)} t={t}/>
-        <div style={{margin:"12px 0"}}>
-          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>فئة الرخصة</label>
-          <select value={editForm.category} onChange={e=>setEditForm({...editForm,category:e.target.value})} style={{width:"100%",padding:"9px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}>
-            {["B","B1","C","D"].map(c=><option key={c} value={c}>{c}</option>)}
-          </select>
+          <Card t={t}>
+            <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:10}}>الإجراءات</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              <Btn label="تعديل البيانات" onClick={()=>{setEditForm({category:cert.category||"B",transmissionType:cert.transmissionType||"MANUAL"});setEditModal(true);}} t={t} v="secondary" sz="sm"/>
+              <Btn label="رفع وثائق" onClick={()=>setDocsModal(true)} t={t} v="secondary" sz="sm"/>
+              <Btn label="إدخال نتيجة" onClick={()=>{setResultForm({result:"PASS",notes:""});setResultModal(true);}} t={t} v="secondary" sz="sm"/>
+              {cert.actions?.reexam?.eligible&&(
+                <Btn label={busy?"...":"طلب إعادة امتحان"} onClick={requestReexam} t={t} v="danger" sz="sm" disabled={busy}/>
+              )}
+            </div>
+          </Card>
         </div>
-        <div style={{marginBottom:12}}>
-          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>ناقل الحركة</label>
-          <select value={editForm.transmissionType} onChange={e=>setEditForm({...editForm,transmissionType:e.target.value})} style={{width:"100%",padding:"9px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}>
-            <option value="MANUAL">يدوي</option>
-            <option value="AUTOMATIC">أوتوماتيك</option>
-          </select>
+      ):searchLoading?(
+        <div style={{textAlign:"center",padding:40,color:t.textMuted,fontSize:13}}>جاري البحث...</div>
+      ):searched&&!results.length?(
+        <div style={{textAlign:"center",padding:40,color:t.textMuted,fontSize:13}}>لا توجد نتائج</div>
+      ):results.length>0?(
+        <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
+          {results.map((c,i)=>(
+            <div key={c.id} onClick={()=>openProfile(c.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderBottom:i<results.length-1?`1px solid ${t.border}`:"none",background:t.bgSurface,cursor:"pointer"}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,color:t.text}}>{c.studentName||c.student?.name||"—"}</div>
+                <div style={{fontSize:11,color:t.textMuted,marginTop:2}}>{c.category||"—"} • {CERT_TRANS[c.transmissionType]||"—"} • {fmtCertDate(c.createdAt)}</div>
+              </div>
+              <CertBadge s={c.requestStatus||c.status} t={t}/>
+            </div>
+          ))}
         </div>
-        <div style={{marginBottom:14}}>
-          <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:5}}>خدمة النقل</label>
+      ):null}
+
+      {editModal&&(
+        <Modal title="تعديل بيانات الشهادة" onClose={()=>setEditModal(false)} t={t} width={400}>
+          <div style={{marginBottom:12}}>
+            <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>الفئة</label>
+            <select value={editForm.category} onChange={e=>setEditForm({...editForm,category:e.target.value})} style={inp}>
+              {["A","B","C","D"].map(v=><option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div style={{marginBottom:16}}>
+            <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>ناقل الحركة</label>
+            <select value={editForm.transmissionType} onChange={e=>setEditForm({...editForm,transmissionType:e.target.value})} style={inp}>
+              <option value="MANUAL">يدوي</option>
+              <option value="AUTOMATIC">أوتوماتيك</option>
+            </select>
+          </div>
           <div style={{display:"flex",gap:8}}>
-            {[{v:true,label:"مطلوبة"},{v:false,label:"غير مطلوبة"}].map(opt=>(
-              <button key={String(opt.v)} onClick={()=>setEditForm({...editForm,transportRequested:opt.v})} style={{flex:1,padding:"9px 10px",borderRadius:9,cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:600,border:editForm.transportRequested===opt.v?`2px solid ${t.accent}`:`1px solid ${t.border}`,background:editForm.transportRequested===opt.v?t.accentLight:t.bgElevated,color:editForm.transportRequested===opt.v?t.accentText:t.textSec}}>{opt.label}</button>
+            <Btn label={busy?"جاري الحفظ...":"حفظ"} onClick={saveEdit} t={t} disabled={busy} style={{flex:1}}/>
+            <Btn label="إلغاء" onClick={()=>setEditModal(false)} t={t} v="ghost"/>
+          </div>
+        </Modal>
+      )}
+
+      {docsModal&&(
+        <Modal title="رفع وثائق" onClose={()=>setDocsModal(false)} t={t} width={400}>
+          <div style={{marginBottom:12}}>
+            <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>صورة الهوية</label>
+            <input ref={docIdRef} type="file" accept="image/*" style={{...inp,padding:"6px 10px"}}/>
+          </div>
+          <div style={{marginBottom:16}}>
+            <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>صورة شخصية</label>
+            <input ref={docPortraitRef} type="file" accept="image/*" style={{...inp,padding:"6px 10px"}}/>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <Btn label={busy?"جاري الرفع...":"رفع"} onClick={uploadDocs} t={t} disabled={busy} style={{flex:1}}/>
+            <Btn label="إلغاء" onClick={()=>setDocsModal(false)} t={t} v="ghost"/>
+          </div>
+        </Modal>
+      )}
+
+      {resultModal&&(
+        <Modal title="إدخال نتيجة الامتحان" onClose={()=>setResultModal(false)} t={t} width={400}>
+          <div style={{marginBottom:12}}>
+            <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>النتيجة</label>
+            <select value={resultForm.result} onChange={e=>setResultForm({...resultForm,result:e.target.value})} style={inp}>
+              <option value="PASS">ناجح</option>
+              <option value="FAIL">راسب</option>
+            </select>
+          </div>
+          <div style={{marginBottom:16}}>
+            <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>ملاحظات</label>
+            <textarea value={resultForm.notes} onChange={e=>setResultForm({...resultForm,notes:e.target.value})} rows={3} style={{...inp,resize:"none"}}/>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <Btn label={busy?"جاري الحفظ...":"حفظ النتيجة"} onClick={saveResult} t={t} disabled={busy} style={{flex:1}}/>
+            <Btn label="إلغاء" onClick={()=>setResultModal(false)} t={t} v="ghost"/>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ── Shared KPI card (defined at module level to satisfy React Refresh) ── */
+function CertKPI({label,value,t}){
+  return(
+    <div style={{background:t.bgSurface,borderRadius:12,border:`1px solid ${t.borderCard}`,padding:16,boxShadow:t.shadow}}>
+      <div style={{fontSize:11,color:t.textMuted,fontWeight:600,marginBottom:6}}>{label}</div>
+      <div style={{fontSize:20,fontWeight:800,color:t.text}}>{value}</div>
+    </div>
+  );
+}
+
+/* ── Tab 4: Revenue ──────────────────────────────────────────────────── */
+function CertRevenueTab({t}){
+  const [summary,setSummary]=useState(null);
+  const [daily,setDaily]=useState([]);
+  const [days,setDays]=useState(7);
+  const [loading,setLoading]=useState(true);
+  const [dailyLoading,setDailyLoading]=useState(false);
+
+  useEffect(()=>{
+    (async()=>{
+      setLoading(true);
+      try{
+        const r=await certificatesService.getRevenueSummary();
+        setSummary(r.data?.data??r.data);
+      }catch{setSummary(null);}
+      finally{setLoading(false);}
+    })();
+  },[]);
+
+  useEffect(()=>{
+    (async()=>{
+      setDailyLoading(true);
+      try{
+        const r=await certificatesService.getRevenueDaily(days);
+        const arr=r.data?.data;
+        setDaily(Array.isArray(arr)?arr:[]);
+      }catch{setDaily([]);}
+      finally{setDailyLoading(false);}
+    })();
+  },[days]);
+
+  return(
+    <div style={{padding:"16px 20px"}}>
+      {loading?(
+        <div style={{textAlign:"center",padding:40,color:t.textMuted,fontSize:13}}>جاري التحميل...</div>
+      ):summary&&(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+          <CertKPI label="إجمالي الإيرادات" value={fmtCertMoney(summary.totalRevenue)} t={t}/>
+          <CertKPI label="عدد الشهادات" value={Number(summary.totalCertificates??0).toLocaleString("en")} t={t}/>
+          <CertKPI label="ناجحون" value={Number(summary.passed??0).toLocaleString("en")} t={t}/>
+          <CertKPI label="راسبون" value={Number(summary.failed??0).toLocaleString("en")} t={t}/>
+        </div>
+      )}
+      <Card t={t}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{fontSize:13,fontWeight:700,color:t.text}}>الإيرادات اليومية</div>
+          <div style={{display:"flex",borderRadius:8,background:t.bgElevated,padding:2,gap:1}}>
+            {[7,30,90].map(d=>(
+              <button key={d} onClick={()=>setDays(d)} style={{padding:"4px 12px",borderRadius:6,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:days===d?700:400,background:days===d?t.bgSurface:"transparent",color:days===d?t.text:t.textMuted,boxShadow:days===d?`0 1px 3px ${t.border}`:"none"}}>{d} يوم</button>
             ))}
           </div>
         </div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn label={editBusy?"جاري الحفظ...":"✓ حفظ التعديلات"} onClick={handleUpdateCertificate} t={t} disabled={editBusy} style={{flex:1}}/>
-          <Btn label="إلغاء" onClick={()=>setEditModal(null)} t={t} v="ghost"/>
-        </div>
-      </Modal>}
+        {dailyLoading?(
+          <div style={{textAlign:"center",padding:24,color:t.textMuted,fontSize:13}}>جاري التحميل...</div>
+        ):!daily.length?(
+          <div style={{textAlign:"center",padding:24,color:t.textMuted,fontSize:13}}>لا توجد بيانات</div>
+        ):daily.map((row,i)=>(
+          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<daily.length-1?`1px solid ${t.border}`:"none",fontSize:13}}>
+            <span style={{color:t.textSec}}>{fmtCertDate(row.date)}</span>
+            <span style={{fontWeight:700,color:t.text}}>{fmtCertMoney(row.revenue)}</span>
+          </div>
+        ))}
+      </Card>
+    </div>
+  );
+}
 
-      {/* Import Ministry File Modal */}
-      {importModal&&<Modal title="رفع ملف الوزارة — Excel" onClose={resetImportModal} t={t} width={620}>
-        <div style={{fontSize:12,color:t.textSec,marginBottom:14}}>ارفع الملف القادم من الوزارة لمطابقة الطلاب ومواعيد امتحاناتهم تلقائياً</div>
-        <div
-          onDragOver={e=>{e.preventDefault();setImportDragOver(true);}}
-          onDragLeave={()=>setImportDragOver(false)}
-          onDrop={e=>{e.preventDefault();setImportDragOver(false);const f=e.dataTransfer.files?.[0];if(f)handleImportFile(f);}}
-          style={{border:`2px dashed ${importDragOver?t.accent:t.border}`,borderRadius:10,padding:"30px 20px",textAlign:"center",background:importDragOver?t.accentLight:t.bgElevated,transition:"background 0.15s,border-color 0.15s"}}
-        >
-          <div style={{fontSize:32,marginBottom:8}}>📂</div>
-          <div style={{fontSize:13,color:t.textSec,marginBottom:12}}>{importFile?importFile.name:"اسحب ملف Excel هنا أو اضغط للاختيار"}</div>
-          <input ref={importInputRef} type="file" accept=".xlsx,.xls" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)handleImportFile(f);e.target.value="";}}/>
-          <Btn label={importBusy?"جاري التحليل...":"اختيار ملف"} onClick={()=>importInputRef.current?.click()} t={t} sz="sm" disabled={importBusy}/>
-        </div>
-        <div style={{marginTop:10,fontSize:11,color:t.textMuted}}>بعد الرفع: يطابق النظام برقم الهوية أولاً، ثم يعرض قائمة "تحتاج مراجعة يدوية" للأسماء المتشابهة.</div>
-
-        {importBusy&&<div style={{marginTop:16,textAlign:"center",color:t.textMuted,fontSize:12}}>جاري تحليل الملف...</div>}
-
-        {!importBusy&&importPreviewRows&&(
-          importPreviewRows.length===0?(
-            <div style={{marginTop:16,padding:14,borderRadius:9,background:t.bgElevated,color:t.textMuted,fontSize:12,textAlign:"center"}}>لا توجد بيانات في الملف أو تعذّرت معالجته</div>
-          ):(
-            <div style={{marginTop:16}}>
-              <div style={{fontSize:12,fontWeight:700,color:t.text,marginBottom:8}}>معاينة البيانات ({importPreviewRows.length})</div>
-              <div style={{maxHeight:280,overflow:"auto",border:`1px solid ${t.border}`,borderRadius:9}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                  <thead>
-                    <tr style={{background:t.bgElevated,position:"sticky",top:0}}>
-                      {Object.keys(importPreviewRows[0]).map(k=>(
-                        <th key={k} style={{padding:"7px 9px",textAlign:"right",color:t.textSec,fontWeight:700,borderBottom:`1px solid ${t.border}`,whiteSpace:"nowrap"}}>{k}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {importPreviewRows.map((row,i)=>(
-                      <tr key={i} style={{borderBottom:`1px solid ${t.border}`}}>
-                        {Object.keys(importPreviewRows[0]).map(k=>(
-                          <td key={k} style={{padding:"7px 9px",color:t.text,whiteSpace:"nowrap"}}>{typeof row[k]==="object"&&row[k]!==null?JSON.stringify(row[k]):String(row[k]??"—")}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )
-        )}
-
-        <div style={{display:"flex",gap:8,marginTop:16}}>
-          <Btn label="إغلاق" onClick={resetImportModal} t={t} v="ghost" style={{flex:1}}/>
-        </div>
-      </Modal>}
+/* ── SectionCertificate (parent) ─────────────────────────────────────── */
+function SectionCertificate({t}){
+  const [tab,setTab]=useState("pool");
+  const [pendingCourseId,setPendingCourseId]=useState(null);
+  const [pendingCertId,setPendingCertId]=useState(null);
+  const TABS=[
+    {id:"pool",    label:"طلبات المجموعات"},
+    {id:"courses", label:"إدارة الدورات"  },
+    {id:"search",  label:"بحث عن طالب"   },
+    {id:"revenue", label:"لوحة الإيرادات" },
+  ];
+  const goToCourse=id=>{setPendingCourseId(id);setTab("courses");};
+  const goToCert=id=>{setPendingCertId(id);setTab("search");};
+  return(
+    <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div style={{display:"flex",borderBottom:`2px solid ${t.border}`,background:t.bgSurface,flexShrink:0,overflowX:"auto"}}>
+        {TABS.map(tb=>(
+          <button key={tb.id} onClick={()=>setTab(tb.id)} style={{padding:"11px 18px",border:"none",borderBottom:tab===tb.id?`2px solid ${t.accent}`:"2px solid transparent",marginBottom:-2,cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:tab===tb.id?700:400,color:tab===tb.id?t.accentText:t.textMuted,background:"transparent",whiteSpace:"nowrap"}}>{tb.label}</button>
+        ))}
+      </div>
+      <div style={{flex:1,overflowY:"auto"}}>
+        {tab==="pool"    &&<CertPoolTab    t={t} onOpenCourse={goToCourse} onOpenCert={goToCert}/>}
+        {tab==="courses" &&<CertCoursesTab t={t} pendingCourseId={pendingCourseId} onPendingConsumed={()=>setPendingCourseId(null)} onOpenCert={goToCert}/>}
+        {tab==="search"  &&<CertSearchTab  t={t} pendingCertId={pendingCertId}  onPendingConsumed={()=>setPendingCertId(null)}/>}
+        {tab==="revenue" &&<CertRevenueTab t={t}/>}
+      </div>
     </div>
   );
 }

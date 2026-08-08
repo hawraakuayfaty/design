@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>محاكاة الشهادات الحكومية</title>
+<link rel="stylesheet" href="./app.css" />
+<style>
+  .hero {
+    text-align: center;
+    padding: 4rem 1rem 2rem;
+  }
+  .hero h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: .5rem; }
+  .hero p  { color: var(--text-lt); margin-bottom: 2.5rem; }
+  .cards-row {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding-bottom: 3rem;
+  }
+  .nav-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem 2.5rem;
+    text-align: center;
+    text-decoration: none;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    transition: box-shadow .15s, transform .15s;
+    min-width: 200px;
+  }
+  .nav-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+  .nav-card .icon { font-size: 2.5rem; margin-bottom: .75rem; }
+  .nav-card .label { font-size: 1.05rem; font-weight: 600; }
+  .nav-card .sub   { font-size: .85rem; color: var(--text-lt); margin-top: .25rem; }
+  .run-cmd {
+    background: #1f2937;
+    color: #d1fae5;
+    font-family: monospace;
+    font-size: .9rem;
+    padding: .75rem 1.25rem;
+    border-radius: 8px;
+    display: inline-block;
+    margin-top: 1rem;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hero">
+    <div style="font-size:3rem;margin-bottom:.5rem;">🏛️</div>
+    <h1>محاكاة الشهادات الحكومية</h1>
+    <p>واجهة تجريبية لاختبار تكامل API قبل الربط بالنظام الحقيقي</p>
+    <div class="run-cmd">npx --yes serve . -l 5500</div>
+  </div>
+  <div class="cards-row">
+    <a class="nav-card" href="./staff.html">
+      <div class="icon">👨‍💼</div>
+      <div class="label">موظف الاستقبال</div>
+      <div class="sub">إدارة الطلبات والدورات والنتائج</div>
+    </a>
+  </div>
+</div>
+</body>
+</html>
