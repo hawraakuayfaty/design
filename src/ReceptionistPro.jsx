@@ -128,7 +128,7 @@ function Btn({label,onClick,v="primary",sz="md",t,style={},disabled=false}){
 }
 
 function InfoRow({k,v,t}){return <div style={{display:"flex",alignItems:"center",gap:6,padding:"7px 0",borderBottom:`1px solid ${t.border}`,fontSize:13}}><span style={{color:t.textMuted,whiteSpace:"nowrap"}}>{k}</span><span style={{color:t.textMuted}}>:</span><span style={{fontWeight:600,color:t.text}}>{SL.includes(v)?<Badge s={v} t={t}/>:v}</span></div>;}
-function SearchBar({placeholder,t,value,onChange}){return <div style={{position:"relative",flex:1}}><span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:14,color:t.textMuted}}>🔍</span><input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{width:"100%",padding:"8px 32px 8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/></div>;}
+function SearchBar({placeholder,t,value,onChange,onKeyDown}){return <div style={{position:"relative",flex:1}}><span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:14,color:t.textMuted}}>🔍</span><input value={value} onChange={e=>onChange(e.target.value)} onKeyDown={onKeyDown} placeholder={placeholder} style={{width:"100%",padding:"8px 32px 8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/></div>;}
 // `Sel` component removed — it was defined but never used.
 
 function InvoiceModal({booking,t,onClose}){
@@ -2960,12 +2960,14 @@ function SectionTransport({t}){
 }
 
 const CERT_STATUS_MAP = {
-  WAITING_FOR_TRAINING_SCHEDULE: { label: "بانتظار التدريب",           tk: "pending" },
-  IN_GOVERNMENT_TRAINING:        { label: "في التدريب",                 tk: "inprogress" },
+  WAITING_FOR_TRAINING_SCHEDULE: { label: "بانتظار جدولة التدريب",     tk: "pending" },
+  IN_GOVERNMENT_TRAINING:        { label: "في التدريب الحكومي",         tk: "inprogress" },
   WAITING_FOR_PRACTICAL_EXAM:    { label: "بانتظار الامتحان العملي",   tk: "qualified" },
   WAITING_FOR_THEORETICAL_EXAM:  { label: "بانتظار الامتحان النظري",   tk: "confirmed" },
-  COMPLETED:                     { label: "مكتمل",                      tk: "completed" },
-  FAILED:                        { label: "راسب (استنفذ المحاولات)",    tk: "failed" },
+  SUBMITTED_TO_GOV:              { label: "أُرسلت للحكومة",             tk: "inprogress" },
+  EXAM_SCHEDULED:                { label: "مجدول الامتحان",             tk: "qualified" },
+  COMPLETED:                     { label: "حصل على الرخصة",            tk: "completed" },
+  FAILED:                        { label: "راسب نهائياً",              tk: "failed" },
   CANCELLED:                     { label: "ملغى",                       tk: "cancelled" },
 };
 
@@ -3529,30 +3531,82 @@ function CertCoursesTab({t,pendingCourseId,onPendingConsumed,onOpenCert}){
   );
 }
 
+/* ── Doc image preview box (module-level to avoid "component during render") */
+function CertDocBox({url,label,t}){
+  return(
+    <div style={{flex:"1 1 120px",minWidth:80}}>
+      <div style={{fontSize:11,fontWeight:600,color:t.textSec,marginBottom:4,textAlign:"center"}}>{label}</div>
+      {url?(
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          <img src={url} alt={label} style={{width:"100%",height:90,objectFit:"cover",borderRadius:8,border:`1px solid ${t.border}`,display:"block"}}/>
+        </a>
+      ):(
+        <div style={{width:"100%",height:90,borderRadius:8,border:`1px dashed ${t.border}`,background:t.bgSurface,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:t.textMuted}}>لا توجد</div>
+      )}
+    </div>
+  );
+}
+
+const CHARGE_LABEL={CERTIFICATE_FEE:"رسم الشهادة",REEXAM_FEE:"رسم إعادة الامتحان",TRANSPORT_FEE:"رسم النقل"};
+const CHARGE_STATUS_MAP={PAID:{bg:"#dcfce7",color:"#166534",label:"مدفوع"},UNPAID:{bg:"#fef2f2",color:"#b91c1c",label:"غير مدفوع"},WAIVED:{bg:"#f3f4f6",color:"#6b7280",label:"مُعفى"}};
+const _API_ORIGIN=(import.meta.env.VITE_API_URL||"http://20.250.144.221:3000/api/v1").replace(/\/api\/v1\/?$/,"");
+const resolveDocUrl=(p)=>p?(p.startsWith("http")?p:`${_API_ORIGIN}${p}`):null;
+function CertSection({title,t,children}){
+  return(
+    <div>
+      <div style={{fontSize:11,fontWeight:700,color:t.textMuted,marginBottom:8,letterSpacing:"0.4px"}}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
 /* ── Tab 3: Search ───────────────────────────────────────────────────── */
 function CertSearchTab({t,pendingCertId,onPendingConsumed}){
   const [q,setQ]=useState("");
+  const [statusFilter,setStatusFilter]=useState("");
   const [results,setResults]=useState([]);
   const [searched,setSearched]=useState(false);
   const [searchLoading,setSearchLoading]=useState(false);
   const [profile,setProfile]=useState(null);
   const [profileLoading,setProfileLoading]=useState(false);
-  const [editModal,setEditModal]=useState(false);
-  const [editForm,setEditForm]=useState({category:"B",transmissionType:"MANUAL"});
-  const [docsModal,setDocsModal]=useState(false);
-  const [resultModal,setResultModal]=useState(false);
-  const [resultForm,setResultForm]=useState({result:"PASS",notes:""});
-  const [busy,setBusy]=useState(false);
-  const docIdRef=useRef(null);
-  const docPortraitRef=useRef(null);
+  const [editForm,setEditForm]=useState({category:"B",transmissionType:"MANUAL",transportRequested:false});
+  const [resultForm,setResultForm]=useState({examType:"",attemptNumber:null,result:"PASS"});
+  const [editBusy,setEditBusy]=useState(false);
+  const [docsBusy,setDocsBusy]=useState(false);
+  const [resultBusy,setResultBusy]=useState(false);
+  const [reexamBusy,setReexamBusy]=useState(false);
+  const docPersonalRef=useRef(null);
+  const docIdFrontRef=useRef(null);
+  const docIdBackRef=useRef(null);
+  const detailRef=useRef(null);
   const {show:toast,el:toastEl}=useCertToast();
 
+  const cert=profile?.certificate||profile||{};
+  const docs=profile?.documents||{};
+  const charges=Array.isArray(profile?.charges)?profile.charges:[];
+  const exams=Array.isArray(profile?.exams)?profile.exams:[];
+  const certStatus=cert.requestStatus||cert.status||"";
+  const isLocked=!!cert.submittedToGovAt;
+  const reexamEligible=profile?.actions?.reexam?.eligible;
+  const reexamMsg=profile?.actions?.reexam?.message||profile?.actions?.reexam?.reason||"";
+  const pendingExams=exams.filter(e=>e.examResult===null);
+  const EXAM_TYPE_ORDER={THEORY:0,PRACTICAL:1};
+  const sortedExams=[...exams].sort((a,b)=>{
+    const to=(EXAM_TYPE_ORDER[a.examType||a.type]??2)-(EXAM_TYPE_ORDER[b.examType||b.type]??2);
+    return to!==0?to:(a.attemptNumber||0)-(b.attemptNumber||0);
+  });
+  const activeId=cert?.id;
+
+  const inp={width:"100%",padding:"8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
+
   const doSearch=async()=>{
-    if(!q.trim())return;
     setSearchLoading(true);setSearched(true);setProfile(null);
     try{
-      const r=await certificatesService.getAll({search:q.trim()});
-      const arr=r.data?.data;
+      const params={limit:50};
+      if(q.trim())params.search=q.trim();
+      if(statusFilter)params.status=statusFilter;
+      const r=await certificatesService.getAll(params);
+      const arr=r.data?.data?.data;
       setResults(Array.isArray(arr)?arr:[]);
     }catch{setResults([]);}
     finally{setSearchLoading(false);}
@@ -3562,7 +3616,14 @@ function CertSearchTab({t,pendingCertId,onPendingConsumed}){
     setProfileLoading(true);
     try{
       const r=await certificatesService.getById(id);
-      setProfile(r.data?.data??r.data);
+      const p=r.data?.data??r.data;
+      const c=p?.certificate||p||{};
+      const pending=(Array.isArray(p?.exams)?p.exams:[]).filter(e=>e.examResult===null);
+      const first=pending[0];
+      setProfile(p);
+      setEditForm({category:c.category||"B",transmissionType:c.transmissionType||"MANUAL",transportRequested:c.transportRequested||false});
+      setResultForm(first?{examType:first.examType,attemptNumber:first.attemptNumber,result:"PASS"}:{examType:"",attemptNumber:null,result:"PASS"});
+      setTimeout(()=>detailRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),120);
     }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
     finally{setProfileLoading(false);}
   };
@@ -3570,188 +3631,352 @@ function CertSearchTab({t,pendingCertId,onPendingConsumed}){
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(()=>{if(pendingCertId){openProfile(pendingCertId);onPendingConsumed&&onPendingConsumed();}},[]);
 
-  const refreshProfile=async()=>{
-    const id=cert?.id;
-    if(id)await openProfile(id);
-  };
-
-  const cert=profile?.certificate||profile||{};
-  const inp={width:"100%",padding:"8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
+  const refreshProfile=async()=>{const id=cert?.id;if(id)await openProfile(id);};
 
   const saveEdit=async()=>{
-    setBusy(true);
+    setEditBusy(true);
     try{
-      await certificatesService.update(cert.id,{category:editForm.category,transmissionType:editForm.transmissionType});
-      toast("تم تحديث البيانات");setEditModal(false);
+      await certificatesService.update(cert.id,{category:editForm.category,transmissionType:editForm.transmissionType,transportRequested:editForm.transportRequested});
+      toast("تم تحديث البيانات");
       await refreshProfile();
-    }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
-    finally{setBusy(false);}
+    }catch(e){
+      const st=e.response?.status;
+      const msg=e.response?.data?.message||"حدث خطأ";
+      toast(st===409?"هذا الطالب يمتلك هذه الفئة بالفعل — "+msg:msg,"err");
+    }
+    finally{setEditBusy(false);}
   };
 
   const uploadDocs=async()=>{
-    const idFile=docIdRef.current?.files?.[0];
-    const portrait=docPortraitRef.current?.files?.[0];
-    if(!idFile&&!portrait){toast("اختر ملفاً على الأقل","warn");return;}
+    const personal=docPersonalRef.current?.files?.[0];
+    const idFront=docIdFrontRef.current?.files?.[0];
+    const idBack=docIdBackRef.current?.files?.[0];
+    if(!personal&&!idFront&&!idBack){toast("اختر ملفاً على الأقل","warn");return;}
     const fd=new FormData();
-    if(idFile)fd.append("idPhoto",idFile);
-    if(portrait)fd.append("portrait",portrait);
-    setBusy(true);
+    if(personal)fd.append("personalPhoto",personal);
+    if(idFront)fd.append("idFront",idFront);
+    if(idBack)fd.append("idBack",idBack);
+    setDocsBusy(true);
     try{
       await certificatesService.uploadDocuments(cert.id,fd);
-      toast("تم رفع الوثائق");setDocsModal(false);
+      toast("تم استبدال الوثائق");
       await refreshProfile();
     }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
-    finally{setBusy(false);}
+    finally{setDocsBusy(false);}
   };
 
   const requestReexam=async()=>{
-    setBusy(true);
+    setReexamBusy(true);
     try{
-      await certificatesService.requestReexam(cert.id);
-      toast("تم تقديم طلب إعادة الامتحان");
+      const r=await certificatesService.requestReexam(cert.id);
+      const collected=r.data?.data?.collectedAmount;
+      toast(collected!=null
+        ?`تم التسجيل · المبلغ المحصّل: ${Number(collected).toLocaleString("ar-SY")} ل.س`
+        :"تم تسجيل طلب الإعادة النقدية"
+      );
       await refreshProfile();
     }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
-    finally{setBusy(false);}
+    finally{setReexamBusy(false);}
   };
 
   const saveResult=async()=>{
-    setBusy(true);
+    if(!resultForm.examType||resultForm.attemptNumber==null){toast("اختر الامتحان أولاً","warn");return;}
+    setResultBusy(true);
     try{
-      await certificatesService.recordExamResult(cert.id,resultForm);
-      toast("تم حفظ النتيجة");setResultModal(false);
+      await certificatesService.recordExamResult(cert.id,{
+        examType:resultForm.examType,
+        attemptNumber:resultForm.attemptNumber,
+        result:resultForm.result,
+      });
+      toast("تم حفظ النتيجة");
       await refreshProfile();
-    }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
-    finally{setBusy(false);}
+    }catch(e){
+      const st=e.response?.status;
+      const msg=e.response?.data?.message||"حدث خطأ";
+      toast(st===400?"لا يمكن التسجيل الآن — "+msg:msg,"err");
+    }
+    finally{setResultBusy(false);}
+  };
+
+  const chargeBadge=(status)=>{
+    const s=CHARGE_STATUS_MAP[status]||{bg:t.bgSurface,color:t.textMuted,label:status||"—"};
+    return <span style={{fontSize:11,fontWeight:700,padding:"2px 9px",borderRadius:20,background:s.bg,color:s.color,whiteSpace:"nowrap"}}>{s.label}</span>;
   };
 
   return(
-    <div style={{padding:"16px 20px"}}>
+    <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:12}}>
       {toastEl}
-      <div style={{display:"flex",gap:8,marginBottom:16}}>
-        <div style={{flex:1}}><SearchBar placeholder="اسم الطالب أو رقم الهوية..." t={t} value={q} onChange={setQ}/></div>
+
+      {/* Filter bar */}
+      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+        <div style={{flex:1}}>
+          <SearchBar
+            placeholder="اسم الطالب أو رقم هاتفه"
+            t={t} value={q} onChange={setQ}
+            onKeyDown={e=>e.key==="Enter"&&doSearch()}
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={e=>setStatusFilter(e.target.value)}
+          style={{padding:"8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",cursor:"pointer",minWidth:170}}
+        >
+          <option value="">كل الحالات</option>
+          <option value="WAITING_FOR_TRAINING_SCHEDULE">بانتظار جدولة التدريب</option>
+          <option value="IN_GOVERNMENT_TRAINING">في التدريب الحكومي</option>
+          <option value="WAITING_FOR_PRACTICAL_EXAM">بانتظار الامتحان العملي</option>
+          <option value="WAITING_FOR_THEORETICAL_EXAM">بانتظار الامتحان النظري</option>
+          <option value="SUBMITTED_TO_GOV">أُرسلت للحكومة</option>
+          <option value="EXAM_SCHEDULED">مجدول الامتحان</option>
+          <option value="COMPLETED">حصل على الرخصة</option>
+          <option value="FAILED">راسب نهائياً</option>
+          <option value="CANCELLED">ملغى</option>
+        </select>
         <Btn label="بحث" onClick={doSearch} t={t}/>
       </div>
 
-      {profileLoading?(
-        <div style={{textAlign:"center",padding:40,color:t.textMuted,fontSize:13}}>جاري التحميل...</div>
-      ):profile?(
-        <div>
-          <Btn label="← العودة للنتائج" onClick={()=>setProfile(null)} t={t} v="ghost" sz="sm" style={{marginBottom:14}}/>
-          <Card t={t} mb={12}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-              <div>
-                <div style={{fontSize:16,fontWeight:700,color:t.text}}>{cert.studentName||profile?.student?.name||"—"}</div>
-                <div style={{fontSize:12,color:t.textMuted,marginTop:3}}>{cert.studentPhone||profile?.student?.phone||"—"}</div>
-              </div>
-              <CertBadge s={cert.requestStatus||cert.status} t={t}/>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-              <InfoRow k="الفئة" v={cert.category||"—"} t={t}/>
-              <InfoRow k="ناقل الحركة" v={CERT_TRANS[cert.transmissionType]||"—"} t={t}/>
-              <InfoRow k="رقم الدورة" v={cert.courseId?`#${cert.courseId}`:"غير مُعيَّن"} t={t}/>
-              <InfoRow k="تاريخ الطلب" v={fmtCertDate(cert.createdAt)} t={t}/>
-            </div>
-          </Card>
-
-          {profile?.exams?.length>0&&(
-            <Card t={t} mb={12}>
-              <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:10}}>نتائج الامتحانات</div>
-              {profile.exams.map((r,i)=>(
-                <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:i<profile.exams.length-1?`1px solid ${t.border}`:"none",fontSize:13}}>
-                  <span style={{color:t.textSec}}>{EXAM_TYPE_LABEL[r.examType||r.type]||r.examType||"—"} — محاولة {r.attemptNumber}</span>
-                  <span style={{fontWeight:700,color:r.result==="PASS"?t.completed.text:t.failed.text}}>{EXAM_RESULT_LABEL[r.result]||r.result||"—"}</span>
-                </div>
-              ))}
-            </Card>
-          )}
-
-          <Card t={t}>
-            <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:10}}>الإجراءات</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-              <Btn label="تعديل البيانات" onClick={()=>{setEditForm({category:cert.category||"B",transmissionType:cert.transmissionType||"MANUAL"});setEditModal(true);}} t={t} v="secondary" sz="sm"/>
-              <Btn label="رفع وثائق" onClick={()=>setDocsModal(true)} t={t} v="secondary" sz="sm"/>
-              <Btn label="إدخال نتيجة" onClick={()=>{setResultForm({result:"PASS",notes:""});setResultModal(true);}} t={t} v="secondary" sz="sm"/>
-              {cert.actions?.reexam?.eligible&&(
-                <Btn label={busy?"...":"طلب إعادة امتحان"} onClick={requestReexam} t={t} v="danger" sz="sm" disabled={busy}/>
-              )}
-            </div>
-          </Card>
-        </div>
-      ):searchLoading?(
-        <div style={{textAlign:"center",padding:40,color:t.textMuted,fontSize:13}}>جاري البحث...</div>
+      {/* Results table */}
+      {searchLoading?(
+        <div style={{textAlign:"center",padding:32,color:t.textMuted,fontSize:13}}>جاري البحث...</div>
       ):searched&&!results.length?(
-        <div style={{textAlign:"center",padding:40,color:t.textMuted,fontSize:13}}>لا توجد نتائج</div>
-      ):results.length>0?(
+        <div style={{textAlign:"center",padding:32,color:t.textMuted,fontSize:13}}>لا توجد نتائج</div>
+      ):results.length>0&&(
         <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
+          {/* Table header — RTL: الطالب | الفئة | الحالة | الدورة | رقم الطلب | الإجراءات */}
+          <div style={{display:"grid",gridTemplateColumns:"2fr 0.8fr 2fr 1fr 1fr 1.3fr",background:t.bgSurface,padding:"8px 14px",gap:8,fontSize:11,fontWeight:700,color:t.textMuted,borderBottom:`1px solid ${t.border}`}}>
+            <span>الطالب</span>
+            <span style={{textAlign:"center"}}>الفئة</span>
+            <span>الحالة</span>
+            <span style={{textAlign:"center"}}>الدورة</span>
+            <span style={{textAlign:"center"}}>رقم الطلب</span>
+            <span/>
+          </div>
           {results.map((c,i)=>(
-            <div key={c.id} onClick={()=>openProfile(c.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderBottom:i<results.length-1?`1px solid ${t.border}`:"none",background:t.bgSurface,cursor:"pointer"}}>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:13,fontWeight:600,color:t.text}}>{c.studentName||c.student?.name||"—"}</div>
-                <div style={{fontSize:11,color:t.textMuted,marginTop:2}}>{c.category||"—"} • {CERT_TRANS[c.transmissionType]||"—"} • {fmtCertDate(c.createdAt)}</div>
+            <div key={c.id} style={{display:"grid",gridTemplateColumns:"2fr 0.8fr 2fr 1fr 1fr 1.3fr",alignItems:"center",gap:8,padding:"10px 14px",borderBottom:i<results.length-1?`1px solid ${t.border}`:"none",background:activeId===c.id?t.bgElevated:t.bg}}>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,color:t.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.studentName||"—"}</div>
               </div>
-              <CertBadge s={c.requestStatus||c.status} t={t}/>
+              <span style={{fontSize:12,color:t.textSec,fontWeight:600,textAlign:"center"}}>{c.category||"—"}</span>
+              <div><CertBadge s={c.requestStatus||c.status} t={t}/></div>
+              <span style={{fontSize:12,color:t.textSec,textAlign:"center"}}>{c.courseNumber??"—"}</span>
+              <span style={{fontSize:12,color:t.textMuted,fontFamily:"monospace",textAlign:"center"}}>{c.id}</span>
+              <div style={{display:"flex",justifyContent:"flex-end"}}><Btn label="فتح الملف" onClick={()=>openProfile(c.id)} t={t} v="secondary" sz="sm"/></div>
             </div>
           ))}
         </div>
-      ):null}
-
-      {editModal&&(
-        <Modal title="تعديل بيانات الشهادة" onClose={()=>setEditModal(false)} t={t} width={400}>
-          <div style={{marginBottom:12}}>
-            <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>الفئة</label>
-            <select value={editForm.category} onChange={e=>setEditForm({...editForm,category:e.target.value})} style={inp}>
-              {["A","B","C","D"].map(v=><option key={v} value={v}>{v}</option>)}
-            </select>
-          </div>
-          <div style={{marginBottom:16}}>
-            <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>ناقل الحركة</label>
-            <select value={editForm.transmissionType} onChange={e=>setEditForm({...editForm,transmissionType:e.target.value})} style={inp}>
-              <option value="MANUAL">يدوي</option>
-              <option value="AUTOMATIC">أوتوماتيك</option>
-            </select>
-          </div>
-          <div style={{display:"flex",gap:8}}>
-            <Btn label={busy?"جاري الحفظ...":"حفظ"} onClick={saveEdit} t={t} disabled={busy} style={{flex:1}}/>
-            <Btn label="إلغاء" onClick={()=>setEditModal(false)} t={t} v="ghost"/>
-          </div>
-        </Modal>
       )}
 
-      {docsModal&&(
-        <Modal title="رفع وثائق" onClose={()=>setDocsModal(false)} t={t} width={400}>
-          <div style={{marginBottom:12}}>
-            <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>صورة الهوية</label>
-            <input ref={docIdRef} type="file" accept="image/*" style={{...inp,padding:"6px 10px"}}/>
-          </div>
-          <div style={{marginBottom:16}}>
-            <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>صورة شخصية</label>
-            <input ref={docPortraitRef} type="file" accept="image/*" style={{...inp,padding:"6px 10px"}}/>
-          </div>
-          <div style={{display:"flex",gap:8}}>
-            <Btn label={busy?"جاري الرفع...":"رفع"} onClick={uploadDocs} t={t} disabled={busy} style={{flex:1}}/>
-            <Btn label="إلغاء" onClick={()=>setDocsModal(false)} t={t} v="ghost"/>
-          </div>
-        </Modal>
+      {profileLoading&&(
+        <div style={{textAlign:"center",padding:32,color:t.textMuted,fontSize:13}}>جاري تحميل الملف...</div>
       )}
 
-      {resultModal&&(
-        <Modal title="إدخال نتيجة الامتحان" onClose={()=>setResultModal(false)} t={t} width={400}>
-          <div style={{marginBottom:12}}>
-            <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>النتيجة</label>
-            <select value={resultForm.result} onChange={e=>setResultForm({...resultForm,result:e.target.value})} style={inp}>
-              <option value="PASS">ناجح</option>
-              <option value="FAIL">راسب</option>
-            </select>
+      {/* ── Student detail card ─────────────────────────────────────────── */}
+      {!profileLoading&&profile&&(
+        <div ref={detailRef} style={{border:`2px solid ${t.borderCard||t.border}`,borderRadius:14,overflow:"hidden",background:t.bg}}>
+
+          {/* Header — student info right (RTL start), إغلاق left (RTL end) */}
+          <div style={{background:t.bgSurface,borderBottom:`1px solid ${t.border}`,padding:"14px 18px",display:"flex",flexDirection:"row",justifyContent:"space-between",alignItems:"flex-start",gap:12,direction:"rtl"}}>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:5}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                <div style={{fontSize:16,fontWeight:800,color:t.text}}>{cert.studentName||profile?.student?.name||"—"}</div>
+                <CertBadge s={certStatus} t={t}/>
+                <span style={{fontSize:11,background:t.bgElevated,border:`1px solid ${t.border}`,color:t.textSec,padding:"2px 10px",borderRadius:20,fontWeight:600}}>طلب رقم {cert.id||"—"}</span>
+                {cert.transportRequested&&(
+                  <span style={{fontSize:11,background:"#e0f2fe",color:"#0369a1",padding:"2px 9px",borderRadius:20,fontWeight:600}}>نقل مدرسي: يريد النقل</span>
+                )}
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",fontSize:12,color:t.textMuted}}>
+                <span>فئة {cert.category||"—"} — {CERT_TRANS[cert.transmissionType]||"—"}</span>
+                {cert.courseId&&<span style={{color:t.textSec}}>• دورة #{cert.courseId}</span>}
+              </div>
+            </div>
+            <button onClick={()=>setProfile(null)} style={{background:"none",border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:600,color:t.textSec,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,marginTop:2}}>إغلاق ✕</button>
           </div>
-          <div style={{marginBottom:16}}>
-            <label style={{fontSize:12,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>ملاحظات</label>
-            <textarea value={resultForm.notes} onChange={e=>setResultForm({...resultForm,notes:e.target.value})} rows={3} style={{...inp,resize:"none"}}/>
+
+          {/* 2-column body (RTL: col-1 → right, col-2 → left) */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",alignItems:"start"}}>
+
+            {/* ── Right column ─────────────────────────────────────────── */}
+            <div style={{padding:16,borderLeft:`1px solid ${t.border}`,display:"flex",flexDirection:"column",gap:18}}>
+
+              {/* 1 — Documents preview */}
+              <CertSection title="وثائق الطالب المرفوعة" t={t}>
+                <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                  <CertDocBox url={resolveDocUrl(docs.personalPhotoUrl)} label="الصورة الشخصية" t={t}/>
+                  <CertDocBox url={resolveDocUrl(docs.idFrontUrl)} label="وجه الهوية الأمامي" t={t}/>
+                  <CertDocBox url={resolveDocUrl(docs.idBackUrl)} label="وجه الهوية الخلفي" t={t}/>
+                </div>
+              </CertSection>
+
+              {/* 2 — Request data correction (locked once submittedToGovAt is set) */}
+              <CertSection title="تصحيح بيانات الطلب" t={t}>
+                {isLocked?(
+                  <div style={{display:"flex",alignItems:"center",gap:8,background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:9,padding:"10px 12px",fontSize:12,color:"#92400e",fontWeight:600}}>
+                    <span>🔒</span><span>مقفل — أُرسل الطلب للحكومة.</span>
+                  </div>
+                ):(
+                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                      <div>
+                        <label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>الفئة</label>
+                        <select value={editForm.category} onChange={e=>setEditForm({...editForm,category:e.target.value})} style={inp}>
+                          {["A","A1","B","B1","C","D"].map(v=><option key={v} value={v}>{v}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>ناقل الحركة</label>
+                        <select value={editForm.transmissionType} onChange={e=>setEditForm({...editForm,transmissionType:e.target.value})} style={inp}>
+                          <option value="MANUAL">يدوي</option>
+                          <option value="AUTOMATIC">أوتوماتيك</option>
+                        </select>
+                      </div>
+                    </div>
+                    <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,cursor:"pointer",color:t.text}}>
+                      <input type="checkbox" checked={!!editForm.transportRequested} onChange={e=>setEditForm({...editForm,transportRequested:e.target.checked})} style={{accentColor:"#778a3b",width:15,height:15}}/>
+                      النقل المدرسي مطلوب
+                    </label>
+                    <Btn label={editBusy?"جاري الحفظ...":"حفظ التعديل"} onClick={saveEdit} t={t} disabled={editBusy}/>
+                  </div>
+                )}
+              </CertSection>
+
+              {/* 3 — Replace documents (same lock rule) */}
+              <CertSection title="استبدال وثائق الطالب" t={t}>
+                {isLocked?(
+                  <div style={{display:"flex",alignItems:"center",gap:8,background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:9,padding:"10px 12px",fontSize:12,color:"#92400e",fontWeight:600}}>
+                    <span>🔒</span><span>مقفل — أُرسل الطلب للحكومة.</span>
+                  </div>
+                ):(
+                  <div style={{display:"flex",flexDirection:"column",gap:9}}>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:3}}>الصورة الشخصية</label>
+                      <input ref={docPersonalRef} type="file" accept="image/*" style={{...inp,padding:"5px 8px",cursor:"pointer"}}/>
+                    </div>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:3}}>وجه الهوية الأمامي</label>
+                      <input ref={docIdFrontRef} type="file" accept="image/*" style={{...inp,padding:"5px 8px",cursor:"pointer"}}/>
+                    </div>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:3}}>وجه الهوية الخلفي</label>
+                      <input ref={docIdBackRef} type="file" accept="image/*" style={{...inp,padding:"5px 8px",cursor:"pointer"}}/>
+                    </div>
+                    <Btn label={docsBusy?"جاري الرفع...":"استبدال الصور المختارة"} onClick={uploadDocs} t={t} disabled={docsBusy}/>
+                  </div>
+                )}
+              </CertSection>
+
+              {/* 4 — Cash re-exam — strictly gated on actions.reexam.eligible */}
+              <CertSection title="تسجيل إعادة نقدية عند الشباك" t={t}>
+                <div style={{fontSize:12,color:t.textMuted,marginBottom:10,lineHeight:1.65}}>
+                  إذا دفع الطالب رسوم إعادة الامتحان نقداً عند الشباك، استخدم هذا الزر لتسجيل الطلب وتحديث السجلات.
+                </div>
+                {!reexamEligible&&reexamMsg&&(
+                  <div style={{fontSize:12,color:"#b91c1c",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"8px 10px",marginBottom:8}}>
+                    {reexamMsg}
+                  </div>
+                )}
+                <Btn
+                  label={reexamBusy?"جاري التسجيل...":"تسجيل إعادة نقدية"}
+                  onClick={requestReexam}
+                  t={t}
+                  disabled={reexamBusy||reexamEligible===false}
+                  v="secondary"
+                />
+              </CertSection>
+
+            </div>
+
+            {/* ── Left column ──────────────────────────────────────────── */}
+            <div style={{padding:16,display:"flex",flexDirection:"column",gap:18}}>
+
+              {/* 5 — Individual result registration — only shown when pending exams exist */}
+              {pendingExams.length>0&&(
+                <CertSection title="تسجيل نتيجة فردية" t={t}>
+                  <div style={{display:"flex",flexDirection:"column",gap:9}}>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>الامتحان</label>
+                      <select
+                        value={`${resultForm.examType}::${resultForm.attemptNumber}`}
+                        onChange={e=>{
+                          const [et,an]=e.target.value.split("::");
+                          setResultForm(f=>({...f,examType:et,attemptNumber:Number(an)}));
+                        }}
+                        style={inp}
+                      >
+                        {pendingExams.map((ex,i)=>(
+                          <option key={i} value={`${ex.examType}::${ex.attemptNumber}`}>
+                            {EXAM_TYPE_LABEL[ex.examType]||ex.examType} — محاولة {ex.attemptNumber}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>النتيجة</label>
+                      <select value={resultForm.result} onChange={e=>setResultForm(f=>({...f,result:e.target.value}))} style={inp}>
+                        <option value="PASS">ناجح ✓</option>
+                        <option value="FAIL">راسب ✗</option>
+                      </select>
+                    </div>
+                    <Btn label={resultBusy?"جاري الحفظ...":"حفظ النتيجة"} onClick={saveResult} t={t} disabled={resultBusy}/>
+                  </div>
+                </CertSection>
+              )}
+
+              {/* 6 — Attempts history — sorted THEORY→PRACTICAL then by attemptNumber */}
+              <CertSection title="سجّل المحاولات" t={t}>
+                {sortedExams.length===0?(
+                  <div style={{border:`1px dashed ${t.border}`,borderRadius:9,padding:"18px 12px",textAlign:"center",fontSize:12,color:t.textMuted}}>لا محاولات مسجّلة</div>
+                ):(
+                  <div style={{border:`1px solid ${t.border}`,borderRadius:9,overflow:"hidden"}}>
+                    {sortedExams.map((ex,i)=>{
+                      const pending=ex.examResult===null;
+                      return(
+                        <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",borderBottom:i<sortedExams.length-1?`1px solid ${t.border}`:"none",fontSize:12}}>
+                          <span style={{color:t.textSec}}>{EXAM_TYPE_LABEL[ex.examType||ex.type]||"—"} — محاولة {ex.attemptNumber}</span>
+                          <span style={{fontWeight:700,color:pending?t.textMuted:ex.examResult==="PASS"||ex.result==="PASS"?t.completed?.text||"#166534":t.failed?.text||"#b91c1c"}}>
+                            {pending?"بانتظار النتيجة":EXAM_RESULT_LABEL[ex.examResult||ex.result]||"—"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CertSection>
+
+              {/* 7 — Dues & charges — shows amountDue + nested payments[] */}
+              <CertSection title="المستحقات المالية" t={t}>
+                {charges.length===0?(
+                  <div style={{fontSize:12,color:t.textMuted,padding:"8px 0"}}>لا مستحقات مسجّلة</div>
+                ):(
+                  <div style={{border:`1px solid ${t.border}`,borderRadius:9,overflow:"hidden"}}>
+                    {charges.map((ch,ci)=>{
+                      const pmts=Array.isArray(ch.payments)?ch.payments:[];
+                      return(
+                        <div key={ci} style={{borderBottom:ci<charges.length-1?`1px solid ${t.border}`:"none"}}>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr auto auto",alignItems:"center",gap:10,padding:"9px 12px",background:t.bgSurface}}>
+                            <span style={{fontSize:13,fontWeight:600,color:t.text}}>{CHARGE_LABEL[ch.chargeType]||ch.chargeType||"—"}</span>
+                            <span style={{fontSize:12,color:t.textSec,fontWeight:600,whiteSpace:"nowrap"}}>{ch.amountDue!=null?Number(ch.amountDue).toLocaleString("ar-SY")+" ل.س":"—"}</span>
+                            {chargeBadge(ch.chargeStatus)}
+                          </div>
+                          {pmts.map((pm,pi)=>(
+                            <div key={pi} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 12px 6px 20px",fontSize:11,color:t.textMuted,borderTop:`1px dashed ${t.border}`}}>
+                              <span>دفعة {pi+1}</span>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <span style={{fontWeight:600,color:t.textSec}}>{pm.amountPaid!=null?Number(pm.amountPaid).toLocaleString("ar-SY")+" ل.س":"—"}</span>
+                                {chargeBadge(pm.status||pm.paymentStatus)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CertSection>
+
+            </div>
           </div>
-          <div style={{display:"flex",gap:8}}>
-            <Btn label={busy?"جاري الحفظ...":"حفظ النتيجة"} onClick={saveResult} t={t} disabled={busy} style={{flex:1}}/>
-            <Btn label="إلغاء" onClick={()=>setResultModal(false)} t={t} v="ghost"/>
-          </div>
-        </Modal>
+        </div>
       )}
     </div>
   );

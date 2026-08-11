@@ -7,7 +7,7 @@ import ReceptionistPro from "./ReceptionistPro";
 import VehicleReportDashboard from "./VehicleReportDashboard";
 import InstructorReportDashboard from "./InstructorReportDashboard";
 import BookingRevenueReportDashboard from "./BookingRevenueReportDashboard";
-import { studentsService, instructorsService, vehiclesService, dashboardService, accountingService } from "./api";
+import { studentsService, instructorsService, vehiclesService, dashboardService, accountingService, settingsService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
 import { CiSettings } from "react-icons/ci";
@@ -3811,50 +3811,219 @@ function PageUsers({ t }) {
 }
 
 // ═══════════════════════════════════════════════
+// PAGE: SETTINGS — helpers (module-level)
+// ═══════════════════════════════════════════════
+
+// API returns arrays; find by key string
+function sysVal(arr, key) {
+  return arr?.find(i => i.key === key)?.value ?? null;
+}
+
+function fmtSettingVal(key, raw) {
+  if (raw == null || raw === "") return "—";
+  const n = Number(raw);
+  const isNum = !isNaN(n) && String(raw).trim() !== "";
+  if (/_fee$|_share$/.test(key) || /^(lesson_price|instructor_price)/.test(key))
+    return isNum ? n.toLocaleString("en-US") + " ل.س" : raw;
+  if (/_percentage$/.test(key))      return isNum ? n + "%" : raw;
+  if (/_minutes$/.test(key))         return isNum ? n + " دقيقة" : raw;
+  if (/_hours$/.test(key))           return isNum ? n + " ساعة" : raw;
+  if (/_days$/.test(key))            return isNum ? n + " يوم" : raw;
+  if (/_sessions_count$/.test(key))  return isNum ? n + " جلسة" : raw;
+  if (/_course_window$/.test(key))   return isNum ? n + " دورة" : raw;
+  return isNum ? n.toLocaleString("en-US") : raw;
+}
+
+const DEPOSIT_KEYS = [
+  { key: "deposit_percentage",               label: "نسبة العربون" },
+  { key: "booking_hold_minutes",             label: "مدة الحجز المعلق" },
+  { key: "booking_completion_grace_minutes", label: "مهلة إتمام الدرس" },
+  { key: "booking_window_days",              label: "نافذة الحجز" },
+];
+const SCHEDULING_KEYS = [
+  { key: "lesson_duration_minutes", label: "مدة الحصة" },
+  { key: "shamcash_receiver_name",  label: "اسم مستلم شام كاش" },
+];
+const CERT_FEE_KEYS = [
+  { key: "certificate_service_fee",             label: "رسوم خدمة الشهادة" },
+  { key: "certificate_reexam_fee",              label: "رسوم إعادة الفحص" },
+  { key: "certificate_service_school_share",    label: "حصة المدرسة من رسم الشهادة" },
+  { key: "certificate_reexam_school_share",     label: "حصة المدرسة من رسم الإعادة" },
+  { key: "certificate_training_sessions_count", label: "عدد جلسات التدريب" },
+  { key: "certificate_reexam_course_window",    label: "دورات لقبول الإعادة" },
+  { key: "certificate_reexam_cutoff_hours",     label: "إغلاق التسجيل للإعادة" },
+  { key: "certificate_course_min_size",         label: "الحد الأدنى لطلاب الدفعة" },
+  { key: "certificate_course_start_number",     label: "رقم أول دورة" },
+];
+
+function splitValUnit(formatted) {
+  if (!formatted || formatted === "—") return { num: formatted || "—", unit: "" };
+  if (formatted.endsWith("%")) return { num: formatted.slice(0, -1), unit: "%" };
+  const idx = formatted.indexOf(" ");
+  if (idx === -1) return { num: formatted, unit: "" };
+  return { num: formatted.slice(0, idx), unit: formatted.slice(idx + 1) };
+}
+
+function MiniSettingCard({ label, value, t }) {
+  const { num, unit } = splitValUnit(value);
+  // Only apply large-bold + small-unit treatment when num is actually numeric (or the dash placeholder)
+  const isNumeric = num === "—" || !isNaN(Number(num.replace(/,/g, "")));
+  return (
+    <div style={{
+      background: t.bgSurface,
+      borderRadius: 12,
+      border: `1px solid ${t.borderCard}`,
+      padding: "14px 16px",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between",
+      gap: 12,
+      minHeight: 86,
+      boxSizing: "border-box",
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: t.textSec, lineHeight: 1.5 }}>
+        {label}
+      </div>
+      {isNumeric ? (
+        <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+          <span style={{ fontSize: 20, fontWeight: 800, color: t.text, lineHeight: 1 }}>{num}</span>
+          {unit && (
+            <span style={{ fontSize: 11, fontWeight: 600, color: t.textMuted }}>{unit}</span>
+          )}
+        </div>
+      ) : (
+        <div style={{ fontSize: 14, fontWeight: 500, color: t.text, lineHeight: 1.4 }}>{value}</div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
 // PAGE: SETTINGS
 // ═══════════════════════════════════════════════
 function PageSettings({ t }) {
+  const [raw, setRaw]         = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    settingsService.getAll()
+      .then(r => {
+        if (!alive) return;
+        // API: { statusCode, data: { system: [...], lessonPrices: [...], instructorWages: [...] } }
+        setRaw(r.data?.data ?? r.data ?? {});
+      })
+      .catch(() => { if (alive) setError("تعذّر تحميل الإعدادات — تحقق من الاتصال بالخادم"); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ padding: 80, textAlign: "center", color: t.textMuted }}>
+        <div style={{ fontSize: 36, marginBottom: 14, opacity: 0.4 }}>⚙️</div>
+        <div style={{ fontSize: 14 }}>جاري تحميل الإعدادات...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: 60, textAlign: "center" }}>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "#dc2626" }}>{error}</div>
+      </div>
+    );
+  }
+
+  // All three sections are arrays in the API response
+  const sysArr   = Array.isArray(raw?.system)        ? raw.system        : [];
+  const priceArr = Array.isArray(raw?.lessonPrices)  ? raw.lessonPrices  : [];
+  const wageArr  = Array.isArray(raw?.instructorWages) ? raw.instructorWages : [];
+
+  const section = {
+    marginBottom: 22,
+  };
+  const sectionTitle = {
+    fontSize: 13, fontWeight: 700, color: t.textSec,
+    marginBottom: 10, paddingBottom: 8,
+    borderBottom: `1px solid ${t.border}`,
+    letterSpacing: "0.02em",
+  };
+  // auto-fill: gives 4 cols on wide screens, fewer on narrow; min 180px per card
+  const miniGrid = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+    gap: 12,
+  };
+
   return (
-    <div>
-      <SectionHeader title="إعدادات النظام" subtitle="للمدير فقط — التعديلات تطبق على العمليات الجديدة فقط" t={t} />
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {[
-          { title: "أسعار الدروس", fields: [
-            { label: "سعر درس السيارة العادية", value: "٣٠٠٠ ل.س" },
-            { label: "سعر درس السيارة الأوتوماتيك", value: "٣٥٠٠ ل.س" },
-            { label: "سعر درس سيارة الطالب الخاصة", value: "٢٥٠٠ ل.س" },
-          ]},
-          { title: "العربون والحجز", fields: [
-            { label: "نسبة العربون من سعر الدرس", value: "٥٠٪" },
-            { label: "مدة الحجز المؤقت (دقيقة)", value: "١٥ دقيقة" },
-            { label: "الحد الأدنى للحجز قبل الدرس", value: "ساعتان" },
-          ]},
-          { title: "الجدولة", fields: [
-            { label: "مدة الدرس", value: "٩٠ دقيقة" },
-            { label: "نافذة عرض الأوقات المتاحة", value: "اليوم + ٤ أيام" },
-            { label: "وقت إرسال جدول الغد للمدربين", value: "٩:٠٠ مساءً" },
-          ]},
-          { title: "رسوم الشهادة الحكومية", fields: [
-            { label: "رسوم خدمة الشهادة الحكومية", value: "٥٠٠٠ ل.س" },
-            { label: "رسوم النقل للمحاضرات ٣ أيام", value: "٢٠٠٠ ل.س" },
-            { label: "رسوم النقل ليوم الامتحان", value: "٨٠٠ ل.س" },
-            { label: "رسوم إعادة الفحص النظري", value: "١٥٠٠ ل.س" },
-            { label: "رسوم إعادة الفحص العملي", value: "٢٠٠٠ ل.س" },
-          ]},
-        ].map(group => (
-          <div key={group.title} style={{ background: t.bgSurface, borderRadius: 12, border: `0.5px solid ${t.borderCard}`, padding: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 12 }}>{group.title}</div>
-            {group.fields.map(field => (
-              <div key={field.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `0.5px solid ${t.border}` }}>
-                <div style={{ fontSize: 12, color: t.textSec }}>{field.label}</div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{field.value}</span>
-                  <button style={{ padding: "3px 10px", borderRadius: 6, background: t.accentLight, color: t.accentText, border: "none", fontSize: 11, cursor: "pointer" }}>تعديل</button>
-                </div>
-              </div>
-            ))}
+    <div style={{ paddingBottom: 40 }}>
+      <SectionHeader title="إعدادات النظام" t={t} />
+
+      {/* العربون والحجز */}
+      <div style={section}>
+        <div style={sectionTitle}>العربون والحجز</div>
+        <div style={miniGrid}>
+          {DEPOSIT_KEYS.map(({ key, label }) => (
+            <MiniSettingCard key={key} label={label} value={fmtSettingVal(key, sysVal(sysArr, key))} t={t} />
+          ))}
+        </div>
+      </div>
+
+      {/* الجدولة والنظام */}
+      <div style={section}>
+        <div style={sectionTitle}>الجدولة والنظام</div>
+        <div style={miniGrid}>
+          {SCHEDULING_KEYS.map(({ key, label }) => (
+            <MiniSettingCard key={key} label={label} value={fmtSettingVal(key, sysVal(sysArr, key))} t={t} />
+          ))}
+        </div>
+      </div>
+
+      {/* رسوم الشهادة الحكومية */}
+      <div style={section}>
+        <div style={sectionTitle}>رسوم الشهادة الحكومية</div>
+        <div style={miniGrid}>
+          {CERT_FEE_KEYS.map(({ key, label }) => (
+            <MiniSettingCard key={key} label={label} value={fmtSettingVal(key, sysVal(sysArr, key))} t={t} />
+          ))}
+        </div>
+      </div>
+
+      {/* أسعار الدروس — dynamic from lessonPrices array */}
+      {priceArr.length > 0 && (
+        <div style={section}>
+          <div style={sectionTitle}>أسعار الدروس (ل.س)</div>
+          <div style={miniGrid}>
+            {priceArr.map(item => {
+              const v = item.value != null && item.value !== ""
+                ? Number(item.value).toLocaleString("en-US") + " ل.س" : "—";
+              return (
+                <MiniSettingCard key={item.key} label={item.description || item.key} value={v} t={t} />
+              );
+            })}
           </div>
-        ))}
+        </div>
+      )}
+
+      {/* أجور المدربين */}
+      <div style={section}>
+        <div style={sectionTitle}>أجور المدربين (ل.س)</div>
+        <div style={miniGrid}>
+          {wageArr.length > 0
+            ? wageArr.map(item => (
+                <MiniSettingCard
+                  key={item.key}
+                  label={item.description || item.key}
+                  value={fmtSettingVal(item.key, item.value)}
+                  t={t}
+                />
+              ))
+            : <div style={{ fontSize: 12, color: t.textMuted }}>لا توجد بيانات</div>
+          }
+        </div>
       </div>
     </div>
   );
@@ -3882,7 +4051,6 @@ export default function App({
   activePage: externalPage,
   onPageChange,
   adminSubPage: externalAdminSub,
-  accountantSubPage: externalAccountantSub,
   receptionistSubPage: externalReceptionistSub,
   darkMode: externalDarkMode,
 }) {
@@ -3892,14 +4060,12 @@ export default function App({
   const [internalPage, setInternalPage] = useState("Dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [internalAdminSub, setInternalAdminSub] = useState("dash");
-  const [internalAccountantSub, setInternalAccountantSub] = useState("dash");
-  const [internalReceptionistSub, setInternalReceptionistSub] = useState("students");
+const [internalReceptionistSub, setInternalReceptionistSub] = useState("students");
 
   const activePage = embeddedMode ? externalPage : internalPage;
   const setActivePage = embeddedMode ? onPageChange : setInternalPage;
   const adminSubPage = embeddedMode ? (externalAdminSub || "dash") : internalAdminSub;
-  const accountantSubPage = embeddedMode ? (externalAccountantSub || "dash") : internalAccountantSub;
-  const receptionistSubPage = embeddedMode ? (externalReceptionistSub || "students") : internalReceptionistSub;
+const receptionistSubPage = embeddedMode ? (externalReceptionistSub || "students") : internalReceptionistSub;
 
   const t = tokens[darkMode ? "dark" : "light"];
   const sidebarWidth = sidebarCollapsed ? 84 : 324;
@@ -3918,7 +4084,7 @@ export default function App({
     Users: <PageUsers t={t} />,
     Settings: <PageSettings t={t} />,
     AdminProPage: <AdminPro embedded={true} page={adminSubPage} darkMode={darkMode} />,
-    AccountantProPage: <AccountantPro embedded={true} page={accountantSubPage} darkMode={darkMode} />,
+    AccountantProPage: <AccountantPro embedded={true} darkMode={darkMode} />,
     ReceptionistPage: <ReceptionistPro embedded={true} page={receptionistSubPage} darkMode={darkMode} />,
   };
 
@@ -4127,36 +4293,6 @@ export default function App({
                   <button
                     key={a.id}
                     onClick={() => setInternalAdminSub(a.id)}
-                    style={{
-                      padding: "6px 12px",
-                      borderRadius: 8,
-                      border: "none",
-                      cursor: "pointer",
-                      background: isActive ? t.bgSidebarActive : "transparent",
-                      color: isActive ? t.textSidebarActive : t.textMuted,
-                      fontWeight: isActive ? 700 : 600,
-                    }}
-                  >
-                    {a.label}
-                  </button>
-                );
-              })}
-            </div>
-          ) : activePage === "AccountantProPage" ? (
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {[
-                { id: "dash", label: "لوحة الحسابات" },
-                { id: "payments", label: "الدفعات" },
-                { id: "invoices", label: "الفواتير" },
-                { id: "payroll", label: "الرواتب" },
-                { id: "revenues", label: "الإيرادات" },
-                { id: "pricing", label: "الأسعار" },
-              ].map((a) => {
-                const isActive = accountantSubPage === a.id;
-                return (
-                  <button
-                    key={a.id}
-                    onClick={() => setInternalAccountantSub(a.id)}
                     style={{
                       padding: "6px 12px",
                       borderRadius: 8,
