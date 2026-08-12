@@ -7,7 +7,25 @@
  * والشرح يُقيد مرونة الفريق في كل مرة بعدها.
  * ========================================================================== */
 
-const API_BASE = localStorage.getItem('sim.apiBase') || 'http://20.250.144.221:3000/api/v1';
+/** خادم Azure — الوجهة الافتراضية. للتجربة المحلي: `http://localhost:3000/api/v1`. */
+const DEFAULT_API_BASE = 'http://20.250.144.221:3000/api/v1';
+
+/**
+ * ترتيب الأولوية: `?api=` في الرابط — ما حفظته الجلسة — الافتراضي.
+ *
+ * معامل الرابط أولاً لأنه الطريقة الوحيدة لتبديل الوجهة **بلا** المرور على
+ * الصفحة الرئيسية — يمكن فتح `staff.html?api=http://localhost:3000/api/v1`.
+ * وبعد تثبيته في التخزين يتتبّع بقية الصفحات في الجلسة نفسها.
+ */
+const API_BASE = (() => {
+  const fromUrl = new URLSearchParams(location.search).get('api');
+  if (fromUrl) {
+    const clean = fromUrl.trim().replace(/\/$/, '');
+    localStorage.setItem('sim.apiBase', clean);
+    return clean;
+  }
+  return localStorage.getItem('sim.apiBase') || DEFAULT_API_BASE;
+})();
 const SIM_CLOCK_OFFSET_KEY = 'sim.clock.offsetMs';
 const EXPLAIN_KEY = 'sim.explain';
 

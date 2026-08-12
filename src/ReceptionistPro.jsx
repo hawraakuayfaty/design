@@ -28,20 +28,20 @@ const T = {
     textSidebarActive: "#FFFFFF",
 
     border: "#d9ddd0",
-    borderCard: "rgba(113,83,23,0.2)",
+    borderCard: "rgba(86,107,45,0.2)",
 
-    accent: "#715317",
-    accentLight: "#e9e3d6",
-    accentText: "#715317",
-    grad: "linear-gradient(135deg, #796c2c 0%, #715317 100%)",
+    accent: "#566b2d",
+    accentLight: "#eaf0d8",
+    accentText: "#3d4e1f",
+    grad: "linear-gradient(135deg, #6a8238 0%, #566b2d 100%)",
 
     // الحالات التشغيلية المحدثة
-    confirmed: { bg: "rgba(113,83,23,0.1)", text: "#715317", dot: "#715317" },
+    confirmed: { bg: "rgba(86,107,45,0.1)", text: "#3d4e1f", dot: "#566b2d" },
     pending: { bg: "rgba(201,124,40,0.14)", text: "#c98a28", dot: "#c98a28" },
     cancelled: { bg: "rgba(199,72,72,0.12)", text: "#c74848", dot: "#c74848" },
     completed: { bg: "rgba(80,90,50,0.14)", text: "#505a32", dot: "#505a32" },
     noshow: { bg: "rgba(199,72,72,0.12)", text: "#c74848", dot: "#c74848" },
-    inprogress: { bg: "rgba(113,83,23,0.12)", text: "#715317", dot: "#715317" },
+    inprogress: { bg: "rgba(86,107,45,0.12)", text: "#3d4e1f", dot: "#566b2d" },
     expired: { bg: "rgba(160,165,155,0.16)", text: "#747a70", dot: "#747a70" },
 
     // حالات الاستقبال الخاصة
@@ -2982,8 +2982,6 @@ function CertBadge({s,t}){
 
 // ── Certificate helpers ───────────────────────────────────────────────
 const CERT_TRANS={MANUAL:"يدوي",AUTOMATIC:"أوتوماتيك"};
-const fmtCertDate=(v)=>v?new Date(v).toLocaleDateString("ar-SY"):"—";
-const fmtCertMoney=(v)=>v==null?"—":`${Number(v).toLocaleString("en")} ل.س`;
 const blobDownload=(blob,name)=>{const url=URL.createObjectURL(blob);Object.assign(document.createElement("a"),{href:url,download:name}).click();URL.revokeObjectURL(url);};
 const COURSE_STATUS={
   SUBMITTED_TO_GOV:{label:"أُرسلت للحكومة", tk:"inprogress"},
@@ -3004,57 +3002,73 @@ function useCertToast(){
 
 /* ── Tab 1: Pool ─────────────────────────────────────────────────────── */
 function CertPoolTab({t,onOpenCourse,onOpenCert}){
-  const [items,setItems]=useState([]);
-  const [loading,setLoading]=useState(true);
-  const [error,setError]=useState(null);
-  const [sel,setSel]=useState([]);
-  const [allowSmallCourse,setAllowSmallCourse]=useState(false);
-  const [createModal,setCreateModal]=useState(false);
-  const [busy,setBusy]=useState(false);
-  const {show:toast,el:toastEl}=useCertToast();
+  const [items,setItems]                  =useState([]);
+  const [loading,setLoading]              =useState(true);
+  const [error,setError]                  =useState(null);
+  const [sel,setSel]                      =useState([]);   // string IDs (from GET response)
+  const [allowSmallCourse,setAllowSmall]  =useState(false);
+  const [createBusy,setCreateBusy]        =useState(false);
+  const [exportBusy,setExportBusy]        =useState(false);
+  const {show:toast,el:toastEl}           =useCertToast();
 
+  /* ── fetch ── */
   const load=async()=>{
     setLoading(true);setError(null);
     try{
       const r=await certificatesService.getAll({unassigned:true,limit:50});
-      const raw=r.data?.data?.data;
-      const arr=Array.isArray(raw)?raw:[];
-      setItems(arr.filter(c=>c.courseNumber===null||c.status==="WAITING_FOR_TRAINING_SCHEDULE"));
+      // server wraps: r.data = { data: { data:[...], meta } } or { data:[...], meta }
+      const payload=r.data?.data;
+      const arr=Array.isArray(payload?.data)?payload.data:Array.isArray(payload)?payload:[];
+      setItems(arr);
     }catch(e){
       setError(e.response?.data?.message||"تعذّر تحميل الطلبات");
       setItems([]);
     }finally{setLoading(false);}
   };
-  useEffect(()=>{(async()=>{await load();})();},[]);
+  useEffect(()=>{load();},[]);  // eslint-disable-line
 
-  const allChk=items.length>0&&items.every(c=>sel.includes(c.id));
-  const toggle=id=>setSel(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+  /* ── selection ── */
+  const allChk =items.length>0&&items.every(c=>sel.includes(c.id));
+  const toggle =id=>setSel(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
   const toggleAll=()=>setSel(allChk?[]:items.map(c=>c.id));
+  const noneSelected=sel.length===0;
 
+  /* ── export (no DB write — safe to repeat) ── */
   const doExport=async(fmt)=>{
-    setBusy(true);
+    if(exportBusy||noneSelected)return;
+    setExportBusy(true);
     try{
       const r=await certificatesService.exportPreview({certificateIds:sel.map(Number),format:fmt});
       blobDownload(r.data,`export.${fmt}`);
       toast("تم تحميل الملف");
     }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
-    finally{setBusy(false);}
+    finally{setExportBusy(false);}
   };
 
+  /* ── create course — certificateIds MUST be Numbers per spec ── */
   const doCreate=async()=>{
-    setBusy(true);
+    if(createBusy||noneSelected)return;
+    setCreateBusy(true);
     try{
-      const r=await certificatesService.createCourse({certificateIds:sel.map(Number),allowSmallCourse});
-      const newId=r.data?.data?.id??r.data?.id;
-      setCreateModal(false);setSel([]);
-      toast("تم إنشاء الدورة بنجاح");
-      if(newId&&onOpenCourse)onOpenCourse(newId);else load();
+      const r=await certificatesService.createCourse({
+        certificateIds:sel.map(Number),   // string → number
+        allowSmallCourse,
+      });
+      // Response: { courseId:12, courseNumber:183, count:3, message:"..." }
+      // courseId is always a Number (course IDs exception to string-ID rule)
+      const body=r.data?.data??r.data;
+      const newCourseId=body?.courseId;   // Number
+      setSel([]);
+      toast(`تم إنشاء الدورة ${body?.courseNumber??""} بنجاح`);
+      if(newCourseId!=null&&onOpenCourse)onOpenCourse(newCourseId);
+      else load();
     }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
-    finally{setBusy(false);}
+    finally{setCreateBusy(false);}
   };
 
-  const cols="40px 1fr 70px 150px 90px 90px 100px";
-  const btnBase={padding:"6px 14px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontFamily:"inherit",fontSize:12};
+  const cols ="40px 1fr 70px 160px 90px 100px";
+  const btnBase={padding:"6px 14px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontFamily:"inherit",fontSize:12,cursor:"pointer"};
+  const disabledStyle=(dis)=>dis?{opacity:0.45,cursor:"not-allowed"}:{};
 
   return(
     <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:12}}>
@@ -3062,20 +3076,20 @@ function CertPoolTab({t,onOpenCourse,onOpenCert}){
 
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:14,fontWeight:700,color:t.text}}>الطلبات غير المسندة</div>
-        <button onClick={load} style={{...btnBase,cursor:"pointer"}}>↻ تحديث</button>
+        <button onClick={load} style={{...btnBase}}>↻ تحديث</button>
       </div>
 
+      {/* ── Table ── */}
       <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
-        {/* Table header */}
         <div style={{display:"grid",gridTemplateColumns:cols,background:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"9px 0"}}>
             <input type="checkbox" checked={allChk} onChange={toggleAll} disabled={!items.length} style={{cursor:"pointer"}}/>
           </div>
-          {["اسم الطالب","الفئة","ناقل الحركة","نقل المدرسة","رقم الطلب","الإجراءات"].map(h=>(
+          {["اسم الطالب","الفئة","ناقل الحركة","نقل المدرسة","الإجراءات"].map(h=>(
             <div key={h} style={{fontSize:11,fontWeight:700,color:t.textMuted,padding:"9px 10px"}}>{h}</div>
           ))}
         </div>
-        {/* Body */}
+
         {loading?(
           <div style={{textAlign:"center",padding:36,color:t.textMuted,fontSize:13}}>جاري التحميل...</div>
         ):error?(
@@ -3085,76 +3099,349 @@ function CertPoolTab({t,onOpenCourse,onOpenCert}){
         ):items.map((c,i)=>{
           const checked=sel.includes(c.id);
           return(
-            <div key={c.id} onClick={()=>toggle(c.id)} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:i<items.length-1?`1px solid ${t.border}`:"none",background:checked?t.accentLight:t.bgSurface,cursor:"pointer"}}>
+            <div key={c.id} onClick={()=>toggle(c.id)}
+              style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:i<items.length-1?`1px solid ${t.border}`:"none",background:checked?t.accentLight:t.bgSurface,cursor:"pointer"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"10px 0"}}>
                 <input type="checkbox" checked={checked} onChange={()=>toggle(c.id)} onClick={e=>e.stopPropagation()} style={{cursor:"pointer"}}/>
               </div>
               <div style={{padding:"10px"}}>
-                <div style={{fontSize:13,fontWeight:600,color:t.text}}>{c.studentName||c.student?.name||"—"}</div>
-                {c.studentPhone&&<div style={{fontSize:11,color:t.textMuted,marginTop:1}}>{c.studentPhone}</div>}
+                <div style={{fontSize:13,fontWeight:600,color:t.text}}>{c.studentName||"—"}</div>
               </div>
               <div style={{padding:"10px",fontSize:13,fontWeight:600,color:t.text}}>{c.category||"—"}</div>
               <div style={{padding:"10px",fontSize:12,color:t.textSec}}>
-                {CERT_TRANS[c.transmissionType]||c.transmissionType||"—"}{c.category?` (${c.category})`:""}
+                {CERT_TRANS[c.transmissionType]||c.transmissionType||"—"}
               </div>
               <div style={{padding:"10px"}}>
                 {c.transportRequested
-                  ?<span style={{display:"inline-flex",alignItems:"center",gap:3,background:"#DCFCE7",color:"#166534",padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:600}}>● نعم</span>
-                  :<span style={{display:"inline-flex",alignItems:"center",gap:3,background:t.bgElevated,color:t.textMuted,padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:600}}>○ لا</span>
+                  ?<span style={{display:"inline-flex",gap:3,background:"#DCFCE7",color:"#166534",padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:600}}>● نعم</span>
+                  :<span style={{display:"inline-flex",gap:3,background:t.bgElevated,color:t.textMuted,padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:600}}>○ لا</span>
                 }
               </div>
-              <div style={{padding:"10px",fontSize:12,color:t.textSec,fontFamily:"monospace"}}>#{c.id}</div>
               <div style={{padding:"6px 10px"}} onClick={e=>e.stopPropagation()}>
-                <button onClick={()=>onOpenCert&&onOpenCert(c.id)} style={{padding:"4px 10px",borderRadius:7,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:"pointer",fontSize:11,fontFamily:"inherit",whiteSpace:"nowrap"}}>فتح الملف</button>
+                {/* Open cert file — allowed before course creation, locks after */}
+                <button onClick={()=>onOpenCert&&onOpenCert(c.id)}
+                  style={{padding:"4px 10px",borderRadius:7,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:"pointer",fontSize:11,fontFamily:"inherit",whiteSpace:"nowrap"}}>
+                  فتح الملف
+                </button>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Footer controls */}
+      {/* ── Footer: actions ── */}
       <div style={{display:"flex",flexDirection:"column",gap:10,padding:"12px 14px",borderRadius:10,border:`1px solid ${t.border}`,background:t.bgSurface}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
           <div style={{fontSize:13,fontWeight:600,color:t.text}}>
-            {sel.length===0?"لم تختر أحداً":`تم تحديد ${sel.length} طلبات`}
+            {noneSelected?`${items.length} طلب — لم تختر أحداً`:`تم تحديد ${sel.length} طلبات`}
           </div>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            <button onClick={()=>doExport("pdf")} disabled={!sel.length||busy} style={{...btnBase,cursor:!sel.length||busy?"not-allowed":"pointer",opacity:!sel.length||busy?0.45:1}}>كشف الحكومة PDF</button>
-            <button onClick={()=>doExport("xlsx")} disabled={!sel.length||busy} style={{...btnBase,cursor:!sel.length||busy?"not-allowed":"pointer",opacity:!sel.length||busy?0.45:1}}>XLSX</button>
-            <button
-              onClick={()=>sel.length?setCreateModal(true):toast("اختر طلبات أولاً","warn")}
-              disabled={busy}
-              style={{padding:"6px 14px",borderRadius:8,border:"none",background:t.accent,color:"#fff",cursor:busy?"not-allowed":"pointer",fontSize:12,fontFamily:"inherit",fontWeight:600,opacity:busy?0.5:1}}
-            >إنشاء دورة جديدة</button>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+            {/* Export buttons — same API route as course export, no DB write */}
+            <button onClick={()=>doExport("pdf")} disabled={noneSelected||exportBusy}
+              style={{...btnBase,...disabledStyle(noneSelected||exportBusy)}}>
+              {exportBusy?"...":"كشف الحكومة PDF"}
+            </button>
+            <button onClick={()=>doExport("xlsx")} disabled={noneSelected||exportBusy}
+              style={{...btnBase,...disabledStyle(noneSelected||exportBusy)}}>
+              XLSX
+            </button>
+            {/* Create course — disabled until at least one selected */}
+            <button onClick={doCreate} disabled={noneSelected||createBusy}
+              style={{padding:"6px 16px",borderRadius:8,border:"none",background:noneSelected||createBusy?t.border:t.accent,color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,...disabledStyle(noneSelected||createBusy)}}>
+              {createBusy?"جاري الإنشاء...":"إنشاء دورة جديدة"}
+            </button>
           </div>
         </div>
+        {/* allowSmallCourse — permanent inline checkbox, no confirm dialog */}
         <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none",fontSize:12,color:t.textSec}}>
-          <input type="checkbox" checked={allowSmallCourse} onChange={e=>setAllowSmallCourse(e.target.checked)} style={{cursor:"pointer"}}/>
+          <input type="checkbox" checked={allowSmallCourse} onChange={e=>setAllowSmall(e.target.checked)} style={{cursor:"pointer"}}/>
           تجاوز تحذير «أقل من 20 طالباً»
         </label>
       </div>
 
-      {/* Warning box */}
+      {/* ── Warning — data locks after creation ── */}
       <div style={{padding:"10px 14px",borderRadius:9,background:"#FFFBEB",border:"1px solid #FDE68A",color:"#92400E",fontSize:12,lineHeight:1.6}}>
-        ⚠ تنبيه: بعد إنشاء الدورة لن يمكن تعديل بيانات الطلاب المدرجين فيها. تأكد من اختيار الطلبات الصحيحة قبل المتابعة.
+        ⚠ تنبيه. بعد إنشاء الدورة لن يمكن تعديل بيانات الطلاب المدرجين فيها. تأكد من اختيار الطلبات الصحيحة قبل المتابعة.
+      </div>
+    </div>
+  );
+}
+
+/* ── Exam Results View ───────────────────────────────────────────────── */
+function ExamResultsView({t, courseId, courseNumber, onBack, onToast, onRefresh, onPracticalPhase}){
+  const [registered, setRegistered] = useState([]);
+  const [invitedNot, setInvitedNot] = useState([]);
+  const [summary,    setSummary]    = useState(null);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState(null);
+  // local: { [certId]: { theory?: val, practical?: val } }
+  const [local,      setLocal]      = useState({});
+  const [saving,     setSaving]     = useState(false);
+
+  /* ─ helpers ─ */
+  const certIdStr    = s  => String(s.certificateId);
+  const theorySection= s  => s.sections?.find(x => x.examType === "THEORY");
+  const practSection = s  => s.sections?.find(x => x.examType === "PRACTICAL");
+  // effective result = local override first, then saved from server
+  const effTheory    = s  => local[certIdStr(s)]?.theory    ?? theorySection(s)?.examResult  ?? null;
+  const effPract     = s  => local[certIdStr(s)]?.practical ?? practSection(s)?.examResult   ?? null;
+
+  /* ─ load ─ */
+  const loadRoster = async () => {
+    setLoading(true); setError(null);
+    try {
+      const r    = await certificatesService.getCourseRoster(courseId);
+      const body = r.data?.data ?? r.data;
+      const reg  = Array.isArray(body?.registered) ? body.registered : [];
+      setRegistered(reg);
+      setInvitedNot(Array.isArray(body?.invitedNotRegistered)  ? body.invitedNotRegistered  : []);
+      setSummary(body?.summary ?? null);
+      const hasPract = reg.some(s => {
+        const th = s.sections?.find(x=>x.examType==="THEORY");
+        const pr = s.sections?.find(x=>x.examType==="PRACTICAL");
+        return th?.examResult==="PASS" && (!pr || pr.examResult==null);
+      });
+      onPracticalPhase?.(hasPract);
+    } catch(e){ setError(e.response?.data?.message || "تعذّر تحميل القائمة"); }
+    finally   { setLoading(false); }
+  };
+
+  useEffect(()=>{ loadRoster(); },[courseId]); // eslint-disable-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
+
+  /* ─ derived stats ─ */
+  const readySaveCount = Object.values(local).filter(v => v.theory != null || v.practical != null).length;
+
+  /* ─ actions ─ */
+  const setResult = (certId, field, value) =>
+    setLocal(prev => ({
+      ...prev,
+      [String(certId)]: {
+        ...(prev[String(certId)] || {}),
+        [field]: prev[String(certId)]?.[field] === value ? null : value,
+      }
+    }));
+
+  const setBatch = (field, value) => {
+    const next = { ...local };
+    registered.forEach(s => {
+      const cid  = certIdStr(s);
+      const sect = field === "theory" ? theorySection(s) : practSection(s);
+      if (sect?.examResult != null) return; // already saved
+      if (field === "theory"    && !theorySection(s)) return;
+      if (field === "practical" && !sect)             return;
+      if (field === "practical" && effTheory(s) !== "PASS") return;
+      next[cid] = { ...(next[cid] || {}), [field]: value };
+    });
+    setLocal(next);
+  };
+
+  const handleSave = async () => {
+    const items = [];
+    Object.entries(local).forEach(([certId, vals]) => {
+      const item = { certificateId: Number(certId) };
+      if (vals.theory    != null) item.theory    = vals.theory;
+      if (vals.practical != null) item.practical = vals.practical;
+      if (item.theory !== undefined || item.practical !== undefined) items.push(item);
+    });
+    if (!items.length) return;
+    setSaving(true);
+    try {
+      const r    = await certificatesService.submitResults(courseId, { items });
+      const body = r.data?.data ?? r.data;
+      if (body?.courseClosed) {
+        onToast?.("تم إغلاق الدورة تلقائياً — جميع النتائج سُجِّلت");
+        onRefresh?.();
+        onBack();
+        return;
+      }
+      onToast?.("تم حفظ النتائج بنجاح");
+      setLocal({});
+      await loadRoster();
+      onRefresh?.();
+    } catch(e){ onToast?.(e.response?.data?.message || "فشل الحفظ", "err"); }
+    finally   { setSaving(false); }
+  };
+
+  /* ─ style helpers ─ */
+  const rBtn = (active, clr) => ({
+    padding:"3px 9px", borderRadius:20, border:`1.5px solid ${active?clr:t.border}`,
+    background: active?`${clr}18`:"transparent", color: active?clr:t.textMuted,
+    cursor:"pointer", fontSize:11, fontWeight: active?700:500, fontFamily:"inherit",
+    transition:"all 0.12s", whiteSpace:"nowrap",
+  });
+
+  const savedBadge = (result, attempt) => {
+    const map = { PASS:{ bg:"#DCFCE7", txt:"#166534", lbl:"ناجح" }, FAIL:{ bg:"#FEE2E2", txt:"#991B1B", lbl:"راسب" }, ABSENT:{ bg:"#FEF9C3", txt:"#92400E", lbl:"لم يحضر" } };
+    const m = map[result] || { bg: t.bgElevated, txt: t.textMuted, lbl: "—" };
+    return (
+      <span style={{ padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:700, background:m.bg, color:m.txt }}>
+        {m.lbl}{attempt != null ? ` · م${attempt}` : " · مُسجّلة"}
+      </span>
+    );
+  };
+
+  const OPTS = [
+    { v:"PASS",   lbl:"ناجح",    clr:"#166534" },
+    { v:"FAIL",   lbl:"راسب",    clr:"#DC2626" },
+    { v:"ABSENT", lbl:"لم يحضر", clr:"#D97706" },
+  ];
+
+  // Render a single theory or practical cell
+  const renderCell = (s, field) => {
+    const sect      = field === "theory" ? theorySection(s) : practSection(s);
+    const effective = field === "theory" ? effTheory(s)     : effPract(s);
+    const cid       = certIdStr(s);
+
+    // Practical: locked when no section exists yet
+    if (field === "practical" && !sect) {
+      const th = effTheory(s);
+      return (
+        <span style={{fontSize:11, color:t.textMuted, fontStyle:"italic"}}>
+          {th==="PASS" ? "سيُفتح بعد الحفظ"
+           : th==="FAIL"   ? "راسب في النظري"
+           : th==="ABSENT" ? "لم يحضر النظري"
+           : "يُفتح بعد النجاح في النظري"}
+        </span>
+      );
+    }
+    // Theory: no section (e.g. reexam-practical-only student)
+    if (field === "theory" && !sect) {
+      return <span style={{fontSize:11, color:t.textMuted}}>—</span>;
+    }
+    // Already saved
+    if (sect?.examResult != null) return savedBadge(sect.examResult, sect.attemptNumber);
+    // Editable
+    return (
+      <div style={{display:"flex", gap:4, flexWrap:"wrap"}}>
+        {OPTS.map(opt=>(
+          <button key={opt.v} onClick={()=>setResult(cid, field, opt.v)} style={rBtn(effective===opt.v, opt.clr)}>{opt.lbl}</button>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{padding:"16px 20px", display:"flex", flexDirection:"column", gap:14, overflowY:"auto", flex:1}}>
+
+      {/* ── Breadcrumb ── */}
+      <div style={{display:"flex", alignItems:"center", gap:10, flexWrap:"wrap"}}>
+        <button onClick={onBack} style={{padding:"6px 14px", borderRadius:8, border:`1px solid ${t.border}`, background:t.bgElevated, color:t.text, cursor:"pointer", fontSize:13, fontFamily:"inherit"}}>
+          ← الدورة {courseNumber}
+        </button>
+        <span style={{fontSize:16, fontWeight:800, color:t.text}}>إدخال نتائج الامتحان</span>
+        {summary && (
+          <span style={{fontSize:11, padding:"2px 10px", borderRadius:20, background:summary.pendingResults>0?"#FEF9C3":t.accentLight, color:summary.pendingResults>0?"#92400E":t.accentText, fontWeight:700}}>
+            {summary.pendingResults} بانتظار النتيجة
+          </span>
+        )}
       </div>
 
-      {/* Confirm modal */}
-      {createModal&&(
-        <Modal title="تأكيد إنشاء الدورة" onClose={()=>setCreateModal(false)} t={t} width={380}>
-          <div style={{fontSize:13,color:t.textSec,marginBottom:16}}>
-            سيتم إنشاء دورة جديدة تضم <strong style={{color:t.text}}>{sel.length}</strong> طالباً. سيتم تعيين رقم الدورة تلقائياً من قِبل النظام.
+      {loading ? (
+        <div style={{textAlign:"center", padding:48, color:t.textMuted, fontSize:13}}>جارٍ تحميل قائمة الطلاب...</div>
+      ) : error ? (
+        <div style={{textAlign:"center", padding:48, color:"#c74848", fontSize:13}}>{error}<br/>
+          <button onClick={loadRoster} style={{marginTop:12, padding:"6px 14px", borderRadius:8, border:`1px solid ${t.border}`, background:t.bgElevated, color:t.text, cursor:"pointer", fontSize:12, fontFamily:"inherit"}}>إعادة المحاولة</button>
+        </div>
+      ) : (<>
+
+        {/* ── Stats cards ── */}
+        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10}}>
+          {[
+            { lbl:"المسجلون في الجلسة", val:summary?.total??registered.length, sub:`${summary?.regular??0} نظامي · ${summary?.reexam??0} معيد`, clr:t.accent },
+            { lbl:"بانتظار النتيجة",    val:summary?.pendingResults??0,         sub:"لم تُسجَّل بعد",                                              clr:"#D97706" },
+            { lbl:"مدعوون لم يسجّلوا", val:invitedNot.length,                  sub:"يمكن تسجيل إعادتهم يدوياً",                                   clr:"#DC2626" },
+          ].map(c=>(
+            <div key={c.lbl} style={{background:t.bgSurface, borderRadius:12, border:`1px solid ${t.borderCard}`, padding:"14px 16px"}}>
+              <div style={{fontSize:22, fontWeight:800, color:c.clr, lineHeight:1, marginBottom:4}}>{c.val}</div>
+              <div style={{fontSize:12, fontWeight:700, color:t.text, lineHeight:1.4}}>{c.lbl}</div>
+              <div style={{fontSize:11, color:t.textMuted, marginTop:3}}>{c.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Batch actions ── */}
+        <div style={{display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", padding:"9px 14px", background:t.bgElevated, borderRadius:10, border:`1px solid ${t.border}`}}>
+          <span style={{fontSize:12, fontWeight:700, color:t.textSec}}>نظري:</span>
+          {OPTS.map(a=>(
+            <button key={`th-${a.v}`} onClick={()=>setBatch("theory", a.v)}
+              style={{padding:"4px 12px", borderRadius:7, border:`1px solid ${t.border}`, background:t.bgSurface, color:a.clr, cursor:"pointer", fontSize:11, fontWeight:700, fontFamily:"inherit"}}>
+              {a.v==="PASS"?"الكل ناجح":a.v==="FAIL"?"الكل راسب":"الكل لم يحضر"}
+            </button>
+          ))}
+          <span style={{fontSize:12, fontWeight:700, color:t.textSec, marginRight:6}}>عملي:</span>
+          {OPTS.map(a=>(
+            <button key={`pr-${a.v}`} onClick={()=>setBatch("practical", a.v)}
+              style={{padding:"4px 12px", borderRadius:7, border:`1px solid ${t.border}`, background:t.bgSurface, color:a.clr, cursor:"pointer", fontSize:11, fontWeight:700, fontFamily:"inherit"}}>
+              {a.v==="PASS"?"الكل ناجح":a.v==="FAIL"?"الكل راسب":"الكل لم يحضر"}
+            </button>
+          ))}
+          <button onClick={()=>setLocal({})}
+            style={{padding:"4px 12px", borderRadius:7, border:`1px solid ${t.border}`, background:"transparent", color:t.textMuted, cursor:"pointer", fontSize:11, fontFamily:"inherit", marginRight:"auto"}}>
+            مسح
+          </button>
+        </div>
+
+        {/* ── Main table ── */}
+        <div style={{border:`1px solid ${t.border}`, borderRadius:10, overflow:"hidden"}}>
+          <div style={{display:"grid", gridTemplateColumns:"2fr 80px 1fr 1fr", background:t.bgElevated, borderBottom:`1px solid ${t.border}`}}>
+            {["الطالب","الصفة","الامتحان النظري","الامتحان العملي"].map(h=>(
+              <div key={h} style={{fontSize:11, fontWeight:700, color:t.textMuted, padding:"10px 14px"}}>{h}</div>
+            ))}
           </div>
-          <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none",fontSize:12,color:t.textSec,marginBottom:16}}>
-            <input type="checkbox" checked={allowSmallCourse} onChange={e=>setAllowSmallCourse(e.target.checked)} style={{cursor:"pointer"}}/>
-            تجاوز تحذير «أقل من 20 طالباً»
-          </label>
-          <div style={{display:"flex",gap:8}}>
-            <Btn label={busy?"جاري الإنشاء...":"تأكيد الإنشاء"} onClick={doCreate} t={t} disabled={busy} style={{flex:1}}/>
-            <Btn label="إلغاء" onClick={()=>setCreateModal(false)} t={t} v="ghost"/>
+          {!registered.length ? (
+            <div style={{textAlign:"center", padding:32, color:t.textMuted, fontSize:13}}>لا يوجد طلاب مسجلون</div>
+          ) : registered.map((s, i) => (
+            <div key={certIdStr(s)} style={{display:"grid", gridTemplateColumns:"2fr 80px 1fr 1fr", alignItems:"center", borderBottom:i<registered.length-1?`1px solid ${t.border}`:"none", background:t.bgSurface}}>
+              <div style={{padding:"11px 14px"}}>
+                <div style={{fontSize:13, fontWeight:600, color:t.text}}>{s.studentName||"—"}</div>
+                <div style={{fontSize:11, color:t.textMuted, marginTop:2, direction:"ltr", textAlign:"right"}}>{s.studentPhone||"—"}</div>
+                {s.isReexam&&<span style={{fontSize:10,color:"#C2410C"}}>دورة {s.ownCourseNumber}</span>}
+              </div>
+              <div style={{padding:"11px 14px"}}>
+                <span style={{padding:"2px 9px", borderRadius:20, fontSize:11, fontWeight:600, background:s.isReexam?"#FFF7ED":t.accentLight, color:s.isReexam?"#C2410C":t.accentText}}>
+                  {s.isReexam?"معيد":"نظامي"}
+                </span>
+              </div>
+              <div style={{padding:"9px 14px"}}>{renderCell(s,"theory")}</div>
+              <div style={{padding:"9px 14px"}}>{renderCell(s,"practical")}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Invited not registered ── */}
+        {invitedNot.length > 0 && (
+          <div style={{border:`1px solid #FDE68A`, borderRadius:10, overflow:"hidden"}}>
+            <div style={{padding:"10px 14px", background:"#FFFBEB", borderBottom:`1px solid #FDE68A`}}>
+              <span style={{fontSize:12, fontWeight:700, color:"#92400E"}}>مدعوون للإعادة لم يُسجّلوا ({invitedNot.length})</span>
+              <span style={{fontSize:11, color:"#B45309", marginRight:8}}>— يمكن تسجيل إعادتهم يدوياً من ملف كل طالب</span>
+            </div>
+            {invitedNot.map((s,i)=>(
+              <div key={`inv-${i}`} style={{display:"flex", alignItems:"center", padding:"9px 14px", borderBottom:i<invitedNot.length-1?`1px solid ${t.border}`:"none", background:t.bgSurface, gap:12}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13, fontWeight:600, color:t.text}}>{s.studentName||"—"}</div>
+                  <div style={{fontSize:11, color:t.textMuted}}>دورته الأصلية: {s.ownCourseNumber} · {s.examType==="THEORY"?"نظري":"عملي"}</div>
+                </div>
+                <span style={{fontSize:11, padding:"2px 10px", borderRadius:20, background:"#FFF7ED", color:"#C2410C", fontWeight:600}}>{s.studentPhone||"—"}</span>
+              </div>
+            ))}
           </div>
-        </Modal>
-      )}
+        )}
+
+        {/* ── Footer ── */}
+        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:t.bgSurface, borderRadius:10, border:`1px solid ${t.borderCard}`, flexWrap:"wrap", gap:10}}>
+          <div style={{fontSize:13, fontWeight:readySaveCount>0?700:400, color:readySaveCount>0?t.accent:t.textMuted}}>
+            {readySaveCount>0 ? `${readySaveCount} نتيجة جاهزة للحفظ` : "لم تُدخل أي نتيجة"}
+          </div>
+          <div style={{display:"flex", gap:8}}>
+            <button onClick={onBack} style={{padding:"8px 18px", borderRadius:9, border:`1px solid ${t.border}`, background:"transparent", color:t.textSec, cursor:"pointer", fontSize:13, fontFamily:"inherit"}}>إلغاء</button>
+            <button onClick={handleSave} disabled={readySaveCount===0||saving}
+              style={{padding:"8px 20px", borderRadius:9, border:"none", background:readySaveCount===0||saving?t.border:t.accent, color:"#fff", cursor:readySaveCount===0||saving?"not-allowed":"pointer", fontSize:13, fontFamily:"inherit", fontWeight:700, opacity:readySaveCount===0||saving?0.5:1}}>
+              {saving?"جارٍ الحفظ...":"حفظ النتائج"}
+            </button>
+          </div>
+        </div>
+
+      </>)}
     </div>
   );
 }
@@ -3165,22 +3452,29 @@ function CourseDetailView({t,course:payload,onBack,onToast,toastEl,onRefresh,onO
   const initSess = Array.isArray(payload?.sessions) ? payload.sessions : [];
   const students = Array.isArray(payload?.students) ? payload.students : [];
 
+  const [_simOff,_setSimOff]=useState(()=>Number(localStorage.getItem("sim.clock.offsetMs")||"0"));
+  useEffect(()=>{const id=setInterval(()=>_setSimOff(Number(localStorage.getItem("sim.clock.offsetMs")||"0")),1000);return()=>clearInterval(id);},[]);
+  // eslint-disable-next-line react-hooks/purity
+  const simNow=()=>new Date(Date.now()+_simOff);
+
+  const fmtScheduledAt=(scheduledAt)=>{
+    if(!scheduledAt)return"—";
+    const d=new Date(scheduledAt);
+    return d.toLocaleString("ar-SY",{weekday:"long",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});
+  };
+
   const mkSlot=(n)=>{
     const f=initSess.find(s=>s.sessionNumber===n);
-    return {sessionNumber:n, date:f?.date?.slice(0,10)||"", time:f?.time?.slice(0,5)||""};
+    if(!f?.scheduledAt)return{sessionNumber:n,date:"",time:""};
+    const d=new Date(f.scheduledAt);
+    const date=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const time=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    return{sessionNumber:n,date,time};
   };
   const [sessions,setSessions]=useState([mkSlot(1),mkSlot(2),mkSlot(3)]);
   const [savedSessions,setSavedSessions]=useState(initSess);
   const [notify,setNotify]=useState(false);
   const [sessionsBusy,setSessionsBusy]=useState(false);
-
-  const fmtSessionDisplay=(date,time)=>{
-    if(!date)return"—";
-    const d=new Date(date+"T00:00:00");
-    const weekday=d.toLocaleDateString("ar-SY",{weekday:"long"});
-    const[y,m,day]=date.split("-");
-    return `${weekday} ${day}-${m}-${y} الساعة ${time||"--:--"}`;
-  };
 
   const [examDate,setExamDate]=useState(c.examScheduledAt?c.examScheduledAt.slice(0,10):"");
   const [examTime,setExamTime]=useState(c.examScheduledAt?c.examScheduledAt.slice(11,16):"");
@@ -3188,9 +3482,19 @@ function CourseDetailView({t,course:payload,onBack,onToast,toastEl,onRefresh,onO
   const [examBusy,setExamBusy]=useState(false);
 
   const [exportBusy,setExportBusy]=useState(false);
+  const [showExamResults,setShowExamResults]=useState(false);
+  const [practicalPhase,setPracticalPhase]=useState(false);
 
-  const canEdit    = c.status==="SUBMITTED_TO_GOV";
-  const sessOk     = sessions.every(s=>s.date&&s.time);
+  const canEdit         = c.status==="SUBMITTED_TO_GOV";
+  const allSaved        = savedSessions.length>=3;
+  const sess3Form       = sessions.find(s=>s.sessionNumber===3);
+  const sess3DateTime   = allSaved&&sess3Form?.date&&sess3Form?.time?new Date(`${sess3Form.date}T${sess3Form.time}:00`):null;
+  const sess3Passed     = sess3DateTime?simNow()>sess3DateTime:false;
+  const anyResultRecorded = c.status==="CLOSED";
+  const examAlreadySet  = c.status==="EXAM_SCHEDULED";
+  const canSetExam      = examAlreadySet ? !anyResultRecorded : (allSaved&&sess3Passed&&!anyResultRecorded);
+  const showResults     = examAlreadySet;
+  const resultsTimeLocked=!!c.examScheduledAt&&simNow()<new Date(c.examScheduledAt);
   const inp        = {width:"100%",padding:"8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
   const btnPrimary = (dis)=>({width:"100%",padding:"9px",borderRadius:9,border:"none",background:dis?t.border:t.accent,color:"#fff",cursor:dis?"not-allowed":"pointer",fontSize:13,fontFamily:"inherit",fontWeight:600,opacity:dis?0.5:1});
   const btnSec     = (dis)=>({padding:"6px 14px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:dis?"not-allowed":"pointer",fontSize:12,fontFamily:"inherit",opacity:dis?0.45:1});
@@ -3240,14 +3544,30 @@ function CourseDetailView({t,course:payload,onBack,onToast,toastEl,onRefresh,onO
   };
 
   const statusPipeline=[
-    {label:"أُرسلت للحكومة",  sub:"مُنجزة",                               done:true},
-    {label:"الجلسات الثلاث",  sub:savedSessions.length>=3?"تمت الجدولة":"لم تُدخل", done:savedSessions.length>=3},
-    {label:"موعد الامتحان",   sub:c.examScheduledAt?"تم التحديد":"لم يُحدّد",   done:!!c.examScheduledAt},
-    {label:"إدخال النتائج",   sub:"بانتظار",                               done:false},
-    {label:"إغلاق الدورة",    sub:"مفتوحة",                                done:false},
+    {label:"أُرسلت للحكومة", sub:"مُنجزة",                                                                done:true},
+    {label:"الجلسات الثلاث", sub:allSaved?"تمت الجدولة":"لم تُدخل",                                      done:allSaved},
+    {label:"موعد الامتحان",  sub:c.examScheduledAt?fmtScheduledAt(c.examScheduledAt):"لم يُحدّد",         done:!!c.examScheduledAt},
+    {label:"إدخال النتائج",  sub:c.status==="CLOSED"?"منتهية":showResults&&!resultsTimeLocked?"جاهز":showResults?"لم يحن موعده":"بانتظار الجدولة",
+     done:c.status==="CLOSED",
+     action:showResults&&!resultsTimeLocked?()=>setShowExamResults(true):undefined},
+    {label:"إغلاق الدورة",   sub:c.status==="CLOSED"?"مُغلقة":"مفتوحة",                                  done:c.status==="CLOSED"},
   ];
 
   const StudentsColsTemplate="1fr 120px 60px 1fr 130px 80px";
+
+  if(showExamResults){
+    return(
+      <ExamResultsView
+        t={t}
+        courseId={c.id}
+        courseNumber={c.courseNumber??c.id}
+        onBack={()=>setShowExamResults(false)}
+        onToast={onToast}
+        onRefresh={onRefresh}
+        onPracticalPhase={v=>setPracticalPhase(v)}
+      />
+    );
+  }
 
   return(
     <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:16}}>
@@ -3269,15 +3589,40 @@ function CourseDetailView({t,course:payload,onBack,onToast,toastEl,onRefresh,onO
       {/* ── Status pipeline ── */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
         {statusPipeline.map((s,i)=>(
-          <div key={i} style={{padding:"10px 12px",borderRadius:10,border:`1px solid ${s.done?t.accent:t.border}`,background:s.done?t.accentLight:t.bgSurface}}>
+          <div key={i} onClick={s.action||undefined}
+            style={{padding:"10px 12px",borderRadius:10,border:`1px solid ${s.action?t.accent:s.done?t.accent:t.border}`,background:s.action?t.accentLight:s.done?t.accentLight:t.bgSurface,cursor:s.action?"pointer":"default",transition:"box-shadow 0.15s"}}>
             <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
-              <span style={{width:18,height:18,borderRadius:"50%",background:s.done?t.accent:t.border,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",fontWeight:700,flexShrink:0}}>{s.done?"✓":i+1}</span>
-              <span style={{fontSize:11,fontWeight:700,color:s.done?t.accentText:t.textSec,lineHeight:1.3}}>{s.label}</span>
+              <span style={{width:18,height:18,borderRadius:"50%",background:s.done?t.accent:s.action?t.accent:t.border,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",fontWeight:700,flexShrink:0}}>{s.done?"✓":i+1}</span>
+              <span style={{fontSize:11,fontWeight:700,color:s.done?t.accentText:s.action?t.accentText:t.textSec,lineHeight:1.3}}>{s.label}</span>
             </div>
-            <div style={{fontSize:10,color:s.done?t.accentText:t.textMuted,paddingRight:24}}>{s.sub}</div>
+            <div style={{fontSize:10,color:s.done?t.accentText:s.action?t.accentText:t.textMuted,paddingRight:24}}>
+              {s.sub}{s.action&&<span style={{marginRight:4}}>← انقر</span>}
+            </div>
           </div>
         ))}
       </div>
+
+      {/* ── Results card (EXAM_SCHEDULED only) ── */}
+      {showResults&&(
+        <Card t={t}>
+          <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:16,fontWeight:800,color:t.text,marginBottom:2}}>
+                {students.length} طالب{students.length===1?"":"اً"} بانتظار إدخال النتيجة
+              </div>
+              <div style={{fontSize:11,color:t.textMuted}}>
+                المسجلون {students.length} · موعد الامتحان {fmtScheduledAt(c.examScheduledAt)}
+              </div>
+            </div>
+            <button
+              onClick={()=>!resultsTimeLocked&&setShowExamResults(true)}
+              disabled={resultsTimeLocked}
+              style={{padding:"10px 22px",borderRadius:10,border:"none",background:resultsTimeLocked?t.border:t.accent,color:"#fff",cursor:resultsTimeLocked?"not-allowed":"pointer",fontSize:13,fontFamily:"inherit",fontWeight:700,opacity:resultsTimeLocked?0.6:1,flexShrink:0}}>
+              {resultsTimeLocked?"النتائج تُفتح في موعد الامتحان":practicalPhase?"إدخال نتائج امتحان العملي":"إدخال نتائج الامتحان"}
+            </button>
+          </div>
+        </Card>
+      )}
 
       {/* ── Two-column cards ── */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,alignItems:"start"}}>
@@ -3301,7 +3646,7 @@ function CourseDetailView({t,course:payload,onBack,onToast,toastEl,onRefresh,onO
               {savedSessions.map((s,i)=>(
                 <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0",borderBottom:i<savedSessions.length-1?`1px solid ${t.border}`:"none"}}>
                   <span style={{fontSize:10,fontWeight:700,color:t.textMuted,minWidth:48}}>الجلسة {s.sessionNumber??i+1}</span>
-                  <span style={{fontSize:12,color:t.text,direction:"ltr"}}>{fmtSessionDisplay(s.date?.slice(0,10),s.time?.slice(0,5))}</span>
+                  <span style={{fontSize:12,color:t.text}}>{s.label||fmtScheduledAt(s.scheduledAt)}</span>
                 </div>
               ))}
             </div>
@@ -3347,31 +3692,54 @@ function CourseDetailView({t,course:payload,onBack,onToast,toastEl,onRefresh,onO
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
             <span style={{width:22,height:22,borderRadius:"50%",background:t.accent,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:700,flexShrink:0}}>②</span>
             <span style={{fontSize:13,fontWeight:700,color:t.text}}>موعد الامتحان</span>
-            <span style={{display:"inline-flex",background:"#FFFBEB",color:"#92400E",border:"1px solid #FDE68A",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:600,marginRight:"auto"}}>بعد الجلسات</span>
+            {c.examScheduledAt
+              ?<span style={{display:"inline-flex",background:"#DCFCE7",color:"#166534",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:700,marginRight:"auto"}}>✓ محدّد</span>
+              :<span style={{display:"inline-flex",background:"#FFFBEB",color:"#92400E",border:"1px solid #FDE68A",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:600,marginRight:"auto"}}>بعد الجلسات</span>
+            }
           </div>
 
-          <div style={{marginBottom:12,marginTop:10}}>
-            <div style={{fontSize:11,fontWeight:600,color:t.textSec,marginBottom:4}}>تاريخ الامتحان</div>
-            <input type="date" value={examDate} onChange={e=>setExamDate(e.target.value)} style={inp}/>
-          </div>
-          <div style={{marginBottom:14}}>
-            <div style={{fontSize:11,fontWeight:600,color:t.textSec,marginBottom:4}}>وقت الامتحان</div>
-            <input type="time" value={examTime} onChange={e=>setExamTime(e.target.value)} style={inp}/>
-          </div>
-
-          <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none",fontSize:12,color:t.textSec,marginBottom:14}}>
-            <input type="checkbox" checked={examNotify} onChange={e=>setExamNotify(e.target.checked)} style={{cursor:"pointer"}}/>
-            إرسال الإشعارات
-          </label>
-
-          {!sessOk&&(
-            <div style={{fontSize:11,color:t.textMuted,marginBottom:10,padding:"7px 10px",borderRadius:8,background:t.bgElevated}}>
-              أدخل الجلسات الثلاث أولاً
+          {/* Current exam date when already set */}
+          {c.examScheduledAt&&(
+            <div style={{fontSize:12,color:t.textSec,padding:"8px 12px",borderRadius:8,background:t.bgElevated,border:`1px solid ${t.border}`,marginBottom:10,marginTop:8}}>
+              <span style={{fontWeight:700,color:t.text}}>الموعد الحالي: </span>{fmtScheduledAt(c.examScheduledAt)}
             </div>
           )}
 
-          <button onClick={saveExam} disabled={!sessOk||examBusy||!examDate} style={btnPrimary(!sessOk||examBusy||!examDate)}>
-            {examBusy?"جاري الحفظ...":"ضبط الموعد"}
+          {/* Blocking messages — only before exam is scheduled */}
+          {!examAlreadySet&&!allSaved&&(
+            <div style={{fontSize:11,color:"#92400E",padding:"7px 10px",borderRadius:8,background:"#FFFBEB",border:"1px solid #FDE68A",marginBottom:10,marginTop:8}}>
+              أدخل الجلسات الثلاث واحفظها أولاً
+            </div>
+          )}
+          {!examAlreadySet&&allSaved&&!sess3Passed&&(
+            <div style={{fontSize:11,color:"#92400E",padding:"7px 10px",borderRadius:8,background:"#FFFBEB",border:"1px solid #FDE68A",marginBottom:10,marginTop:8}}>
+              تُفتح بعد انتهاء الجلسة الثالثة — {sess3DateTime?sess3DateTime.toLocaleString("ar-SY",{weekday:"long",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}):"—"}
+            </div>
+          )}
+          {anyResultRecorded&&(
+            <div style={{fontSize:11,color:"#991B1B",padding:"7px 10px",borderRadius:8,background:"#FEE2E2",border:"1px solid #FECACA",marginBottom:10,marginTop:8}}>
+              مقفلة — نتائج سُجِّلت بالفعل
+            </div>
+          )}
+
+          <div style={{marginBottom:12,marginTop:8}}>
+            <div style={{fontSize:11,fontWeight:600,color:t.textSec,marginBottom:4}}>تاريخ الامتحان</div>
+            <input type="date" value={examDate} disabled={!canSetExam} onChange={e=>setExamDate(e.target.value)} style={{...inp,opacity:canSetExam?1:0.5}}/>
+          </div>
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:600,color:t.textSec,marginBottom:4}}>وقت الامتحان</div>
+            <input type="time" value={examTime} disabled={!canSetExam} onChange={e=>setExamTime(e.target.value)} style={{...inp,opacity:canSetExam?1:0.5}}/>
+          </div>
+
+          {canSetExam&&(
+            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none",fontSize:12,color:t.textSec,marginBottom:14}}>
+              <input type="checkbox" checked={examNotify} onChange={e=>setExamNotify(e.target.checked)} style={{cursor:"pointer"}}/>
+              إرسال الإشعارات
+            </label>
+          )}
+
+          <button onClick={saveExam} disabled={!canSetExam||examBusy||!examDate||!examTime} style={btnPrimary(!canSetExam||examBusy||!examDate||!examTime)}>
+            {examBusy?"جاري الحفظ...":examAlreadySet?"تعديل الموعد":"ضبط الموعد"}
           </button>
         </Card>
       </div>
@@ -3440,7 +3808,7 @@ function CertCoursesTab({t,pendingCourseId,onPendingConsumed,onOpenCert}){
     }catch(e){toast(e.response?.data?.message||"حدث خطأ","err");}
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
   useEffect(()=>{if(pendingCourseId){openCourse(pendingCourseId);onPendingConsumed&&onPendingConsumed();}},[]);
 
   const refreshCourse=async()=>{
@@ -3502,7 +3870,11 @@ function CertCoursesTab({t,pendingCourseId,onPendingConsumed,onOpenCert}){
         ):!courses.length?(
           <div style={{textAlign:"center",padding:36,color:t.textMuted,fontSize:13}}>لا توجد دورات</div>
         ):courses.map((c,i)=>(
-          <div key={c.id} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:i<courses.length-1?`1px solid ${t.border}`:"none",background:t.bgSurface}}>
+          /* Entire row is clickable per spec: "الضغط على صفّ → شاشة تفاصيل الدورة" */
+          <div key={c.id} onClick={()=>openCourse(c.id)}
+            style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:i<courses.length-1?`1px solid ${t.border}`:"none",background:t.bgSurface,cursor:"pointer",transition:"background 0.12s"}}
+            onMouseEnter={e=>e.currentTarget.style.background=t.bgElevated}
+            onMouseLeave={e=>e.currentTarget.style.background=t.bgSurface}>
             <div style={{padding:"11px 12px",fontSize:14,fontWeight:700,color:t.text,fontFamily:"monospace"}}>
               {c.courseNumber??`#${c.id}`}
             </div>
@@ -3521,7 +3893,7 @@ function CertCoursesTab({t,pendingCourseId,onPendingConsumed,onOpenCert}){
                 :<span style={{display:"inline-flex",alignItems:"center",gap:3,background:t.bgElevated,color:t.textMuted,padding:"2px 9px",borderRadius:20,fontSize:11,fontWeight:600}}>○ مغلق</span>
               }
             </div>
-            <div style={{padding:"6px 12px"}}>
+            <div style={{padding:"6px 12px"}} onClick={e=>e.stopPropagation()}>
               <button onClick={()=>openCourse(c.id)} style={{padding:"5px 12px",borderRadius:7,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:"pointer",fontSize:11,fontFamily:"inherit",whiteSpace:"nowrap"}}>إدارة الدورة</button>
             </div>
           </div>
@@ -3628,7 +4000,7 @@ function CertSearchTab({t,pendingCertId,onPendingConsumed}){
     finally{setProfileLoading(false);}
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
   useEffect(()=>{if(pendingCertId){openProfile(pendingCertId);onPendingConsumed&&onPendingConsumed();}},[]);
 
   const refreshProfile=async()=>{const id=cert?.id;if(id)await openProfile(id);};
@@ -3671,7 +4043,7 @@ function CertSearchTab({t,pendingCertId,onPendingConsumed}){
       const r=await certificatesService.requestReexam(cert.id);
       const collected=r.data?.data?.collectedAmount;
       toast(collected!=null
-        ?`تم التسجيل · المبلغ المحصّل: ${Number(collected).toLocaleString("ar-SY")} ل.س`
+        ?`تم التسجيل · المبلغ المحصّل: ${Number(collected).toLocaleString("en")} ل.س`
         :"تم تسجيل طلب الإعادة النقدية"
       );
       await refreshProfile();
@@ -3954,15 +4326,15 @@ function CertSearchTab({t,pendingCertId,onPendingConsumed}){
                       return(
                         <div key={ci} style={{borderBottom:ci<charges.length-1?`1px solid ${t.border}`:"none"}}>
                           <div style={{display:"grid",gridTemplateColumns:"1fr auto auto",alignItems:"center",gap:10,padding:"9px 12px",background:t.bgSurface}}>
-                            <span style={{fontSize:13,fontWeight:600,color:t.text}}>{CHARGE_LABEL[ch.chargeType]||ch.chargeType||"—"}</span>
-                            <span style={{fontSize:12,color:t.textSec,fontWeight:600,whiteSpace:"nowrap"}}>{ch.amountDue!=null?Number(ch.amountDue).toLocaleString("ar-SY")+" ل.س":"—"}</span>
+                            <span style={{fontSize:13,fontWeight:600,color:t.text}}>{CHARGE_LABEL[ch.chargeType]||ch.chargeType||"رسم الشهادة"}</span>
+                            <span style={{fontSize:12,color:t.textSec,fontWeight:600,whiteSpace:"nowrap"}}>{ch.amountDue!=null?Number(ch.amountDue).toLocaleString("en")+" ل.س":"—"}</span>
                             {chargeBadge(ch.chargeStatus)}
                           </div>
                           {pmts.map((pm,pi)=>(
                             <div key={pi} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 12px 6px 20px",fontSize:11,color:t.textMuted,borderTop:`1px dashed ${t.border}`}}>
                               <span>دفعة {pi+1}</span>
                               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                                <span style={{fontWeight:600,color:t.textSec}}>{pm.amountPaid!=null?Number(pm.amountPaid).toLocaleString("ar-SY")+" ل.س":"—"}</span>
+                                <span style={{fontWeight:600,color:t.textSec}}>{pm.amountPaid!=null?Number(pm.amountPaid).toLocaleString("en")+" ل.س":"—"}</span>
                                 {chargeBadge(pm.status||pm.paymentStatus)}
                               </div>
                             </div>
@@ -3982,79 +4354,338 @@ function CertSearchTab({t,pendingCertId,onPendingConsumed}){
   );
 }
 
-/* ── Shared KPI card (defined at module level to satisfy React Refresh) ── */
-function CertKPI({label,value,t}){
+/* ── Tab 4: Revenue ──────────────────────────────────────────────────── */
+function CertRevenueTab({t}){
+  const todayISO=()=>new Date().toISOString().slice(0,10);
+  const defaultFrom=()=>{const d=new Date();d.setDate(d.getDate()-30);return d.toISOString().slice(0,10);};
+
+  /* ── range filter state ── */
+  const [fromD,setFromD]         =useState(defaultFrom);
+  const [toD,setToD]             =useState(todayISO);
+  const [appliedFrom,setApplFrom]=useState(defaultFrom);
+  const [appliedTo,setApplTo]   =useState(todayISO);
+  const [summaryBusy,setSumBusy] =useState(false);
+
+  /* ── summary data ── */
+  const [data,setData]     =useState(null);   // raw API response root
+  const [sumLoading,setSumLoading]=useState(true);
+  const [sumError,setSumError]   =useState(null);
+
+  /* ── single-day detail ── */
+  const [detDate,setDetDate]     =useState(todayISO);
+  const [payments,setPayments]   =useState([]);
+  const [detLoading,setDetLoading]=useState(false);
+  const [detError,setDetError]   =useState(null);
+  const [detBusy,setDetBusy]     =useState(false);
+
+  /* ── formatters ── */
+  const fmt  =v=>v!=null?Number(v).toLocaleString("en"):"—";
+  const fmtSy=v=>v!=null?`${Number(v).toLocaleString("en")} ل.س`:"—";
+  const fmtDay=s=>{
+    if(!s)return"—";
+    return new Date(s+"T00:00:00").toLocaleDateString("ar-SY",{weekday:"short",month:"2-digit",day:"2-digit"});
+  };
+  const KIND_LABEL  ={service:"رسم شهادة",reexam:"إعادة امتحان"};
+  const METHOD_LABEL={CASH:"نقداً",SHAM_CASH:"شام كاش"};
+
+  /* ── loaders ── */
+  const loadSummary=async(f,to)=>{
+    setSumLoading(true);setSumError(null);
+    try{
+      const r=await certificatesService.getRevenueSummary(f,to);
+      setData(r.data?.data??r.data);
+    }catch(e){setSumError(e.response?.data?.message||"تعذّر تحميل البيانات");}
+    finally{setSumLoading(false);}
+  };
+
+  const loadDetail=async(date)=>{
+    setDetLoading(true);setDetError(null);
+    try{
+      const r=await certificatesService.getRevenueDaily(date);
+      const body=r.data?.data??r.data;
+      setPayments(Array.isArray(body?.payments)?body.payments:[]);
+    }catch(e){setDetError(e.response?.data?.message||"تعذّر تحميل بيانات اليوم");setPayments([]);}
+    finally{setDetLoading(false);}
+  };
+
+  useEffect(()=>{loadSummary(appliedFrom,appliedTo);},[appliedFrom,appliedTo]); // eslint-disable-line
+  useEffect(()=>{loadDetail(detDate);},[detDate]);                              // eslint-disable-line
+
+  const applyRange=async()=>{
+    if(summaryBusy)return;
+    setSumBusy(true);
+    setApplFrom(fromD);setApplTo(toD);
+    // the effect fires automatically; we just need to re-enable the button after it settles
+    // use a short guard so button can't double-fire
+    setTimeout(()=>setSumBusy(false),600);
+  };
+
+  const applyDetail=async()=>{
+    if(detBusy)return;
+    setDetBusy(true);
+    await loadDetail(detDate);
+    setDetBusy(false);
+  };
+
+  /* ── derived from response ── */
+  const col    = data?.collected??{};
+  const service= data?.service??{};
+  const reexam = data?.reexam??{};
+  const byDay  = Array.isArray(data?.byDay)?data.byDay:[];
+
+  const breakdownRows=[
+    {label:"رسم الشهادة",    count:service.count, total:service.total, school:service.schoolShare, gov:service.governmentShare},
+    {label:"إعادة الامتحان", count:reexam.count,  total:reexam.total,  school:reexam.schoolShare,  gov:reexam.governmentShare},
+  ];
+  const cashRows=[
+    {label:"نقداً",     amount:col.cash},
+    {label:"شام كاش",  amount:col.shamCash},
+  ].filter(r=>r.amount!=null&&Number(r.amount)>0);
+
+  /* ── shared styles ── */
+  const inp   ={padding:"7px 10px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:12,fontFamily:"inherit",outline:"none"};
+  const thSt  ={fontSize:11,fontWeight:700,color:t.textMuted,padding:"9px 12px",textAlign:"right"};
+  const tdN   =(bold,clr)=>({fontSize:13,fontWeight:bold?700:400,color:clr||t.text,padding:"9px 12px",textAlign:"right",whiteSpace:"nowrap"});
+  const acBtn =(disabled)=>({padding:"7px 18px",borderRadius:8,border:"none",background:disabled?t.border:t.accent,color:"#fff",fontSize:12,fontFamily:"inherit",fontWeight:700,cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.6:1});
+
   return(
-    <div style={{background:t.bgSurface,borderRadius:12,border:`1px solid ${t.borderCard}`,padding:16,boxShadow:t.shadow}}>
-      <div style={{fontSize:11,color:t.textMuted,fontWeight:600,marginBottom:6}}>{label}</div>
-      <div style={{fontSize:20,fontWeight:800,color:t.text}}>{value}</div>
+    <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:20,overflowY:"auto",flex:1}}>
+
+      {/* ── Title + range filter ── */}
+      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+        <span style={{fontSize:16,fontWeight:800,color:t.text}}>ملخص الإيرادات</span>
+        <div style={{display:"flex",alignItems:"center",gap:7,marginRight:"auto",flexWrap:"wrap"}}>
+          <span style={{fontSize:12,color:t.textMuted}}>من</span>
+          <input type="date" value={fromD} onChange={e=>setFromD(e.target.value)} style={inp}/>
+          <span style={{fontSize:12,color:t.textMuted}}>إلى</span>
+          <input type="date" value={toD}   onChange={e=>setToD(e.target.value)}   style={inp}/>
+          <button onClick={applyRange} disabled={summaryBusy} style={acBtn(summaryBusy)}>
+            {summaryBusy?"...":"عرض"}
+          </button>
+        </div>
+      </div>
+
+      {/* ══════════ SUMMARY SECTION ══════════ */}
+      {sumLoading?(
+        <div style={{textAlign:"center",padding:48,color:t.textMuted,fontSize:13}}>جارٍ التحميل...</div>
+      ):sumError?(
+        <div style={{textAlign:"center",padding:48,color:"#c74848",fontSize:13}}>
+          {sumError}
+          <br/>
+          <button onClick={()=>loadSummary(appliedFrom,appliedTo)}
+            style={{marginTop:10,padding:"5px 14px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
+            إعادة المحاولة
+          </button>
+        </div>
+      ):(<>
+
+        {/* ── 3 KPI Cards ── */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14}}>
+
+          {/* Total Collected */}
+          <div style={{background:t.bgSurface,borderRadius:14,border:`1px solid ${t.borderCard}`,padding:"20px 20px 16px"}}>
+            <div style={{fontSize:11,fontWeight:600,color:t.textMuted,marginBottom:8,letterSpacing:"0.03em"}}>المحصَّل إجمالاً</div>
+            <div style={{fontSize:28,fontWeight:800,color:t.text,lineHeight:1,marginBottom:6,fontVariantNumeric:"tabular-nums"}}>
+              {fmt(col.total)}
+            </div>
+            <div style={{fontSize:11,color:t.textMuted}}>{fmt(col.count)} دفعة</div>
+            <div style={{display:"flex",gap:10,marginTop:10,paddingTop:10,borderTop:`1px solid ${t.border}`}}>
+              <span style={{fontSize:11,color:t.textMuted}}>نقداً: <strong style={{color:t.text}}>{fmt(col.cash)}</strong></span>
+              <span style={{fontSize:11,color:t.textMuted}}>شام كاش: <strong style={{color:t.text}}>{fmt(col.shamCash)}</strong></span>
+            </div>
+          </div>
+
+          {/* School Share */}
+          <div style={{background:"#f0fdf4",borderRadius:14,border:"1px solid #bbf7d0",padding:"20px 20px 16px"}}>
+            <div style={{fontSize:11,fontWeight:600,color:"#15803d",marginBottom:8,letterSpacing:"0.03em"}}>
+              حصة المدرسة
+              <span style={{fontWeight:400,marginRight:4,opacity:0.8}}>— الدخل الحقيقي</span>
+            </div>
+            <div style={{fontSize:28,fontWeight:800,color:"#15803d",lineHeight:1,marginBottom:6,fontVariantNumeric:"tabular-nums"}}>
+              {fmt(col.schoolShare)}
+            </div>
+            <div style={{fontSize:11,color:"#16a34a"}}>هذا فقط هو دخل المدرسة الفعلي</div>
+          </div>
+
+          {/* Gov Share */}
+          <div style={{background:"#fffbeb",borderRadius:14,border:"1px solid #fde68a",padding:"20px 20px 16px"}}>
+            <div style={{fontSize:11,fontWeight:600,color:"#92400e",marginBottom:8,letterSpacing:"0.03em"}}>
+              حصة الحكومة
+              <span style={{fontWeight:400,marginRight:4,opacity:0.8}}>— أمانة لا دخل</span>
+            </div>
+            <div style={{fontSize:28,fontWeight:800,color:"#b45309",lineHeight:1,marginBottom:6,fontVariantNumeric:"tabular-nums"}}>
+              {fmt(col.governmentShare)}
+            </div>
+            <div style={{fontSize:11,color:"#d97706"}}>محصَّلة للحكومة · تُسلَّم لاحقاً</div>
+          </div>
+        </div>
+
+        {/* ── Warning callout ── */}
+        <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"11px 14px",borderRadius:10,background:"#fffbeb",border:"1px solid #fde68a"}}>
+          <span style={{fontSize:16,flexShrink:0,lineHeight:1.4}}>⚠️</span>
+          <span style={{fontSize:12,color:"#92400e",lineHeight:1.7}}>
+            الإجمالي ليس دخل المدرسة. الدخل هو{" "}
+            <strong>حصة المدرسة وحدها</strong>؛ الباقي محصَّل باسم الحكومة تحتفظ به المدرسة حتى تسليمه.
+            الحصص محسوبة مسبقاً على كل دفعة — لا تتغير بتغيير إعدادات النسبة الحالية.
+          </span>
+        </div>
+
+        {/* ── Breakdown table ── */}
+        <div>
+          <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:10}}>جدول ملخص البنود</div>
+          <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
+            {/* Header */}
+            <div style={{display:"grid",gridTemplateColumns:"2fr 70px 1fr 1fr 1fr",background:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
+              {["البند","العدد","الإجمالي","المدرسة","الحكومة"].map(h=>(
+                <div key={h} style={thSt}>{h}</div>
+              ))}
+            </div>
+            {/* Service + Reexam rows */}
+            {breakdownRows.map((row,i)=>(
+              <div key={i} style={{display:"grid",gridTemplateColumns:"2fr 70px 1fr 1fr 1fr",borderBottom:`1px solid ${t.border}`,background:t.bgSurface,alignItems:"center"}}>
+                <div style={{...tdN(true),paddingRight:14}}>{row.label}</div>
+                <div style={tdN(false,t.textSec)}>{fmt(row.count)}</div>
+                <div style={tdN(true)}>{fmtSy(row.total)}</div>
+                <div style={{...tdN(true,"#15803d")}}>{fmtSy(row.school)}</div>
+                <div style={tdN(false,"#b45309")}>{fmtSy(row.gov)}</div>
+              </div>
+            ))}
+            {/* Cash method summary rows */}
+            {cashRows.length>0&&(
+              <>
+                <div style={{gridColumn:"1/-1",padding:"6px 12px",background:t.bgElevated,display:"grid",gridTemplateColumns:"2fr 70px 1fr 1fr 1fr",borderTop:`1px solid ${t.border}`}}>
+                  <div style={{fontSize:10,fontWeight:700,color:t.textMuted,gridColumn:"1/-1"}}>تفصيل طريقة الدفع</div>
+                </div>
+                {cashRows.map((row,i)=>(
+                  <div key={`cash-${i}`} style={{display:"grid",gridTemplateColumns:"2fr 70px 1fr 1fr 1fr",borderTop:`1px dashed ${t.border}`,background:t.bgSurface,alignItems:"center"}}>
+                    <div style={{...tdN(false,t.textSec),paddingRight:14}}>{row.label}</div>
+                    <div style={tdN(false,t.textMuted)}>—</div>
+                    <div style={tdN(true)}>{fmtSy(row.amount)}</div>
+                    <div style={tdN(false,t.textMuted)}>—</div>
+                    <div style={tdN(false,t.textMuted)}>—</div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ── Daily aggregate table ── */}
+        {byDay.length>0&&(
+          <div>
+            <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:10}}>حسب اليوم</div>
+            <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 70px 1fr 1fr 1fr",background:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
+                {["اليوم","دفعة","الإجمالي","المدرسة","الحكومة"].map(h=>(
+                  <div key={h} style={thSt}>{h}</div>
+                ))}
+              </div>
+              {byDay.map((row,i)=>(
+                <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 70px 1fr 1fr 1fr",borderBottom:i<byDay.length-1?`1px solid ${t.border}`:"none",background:t.bgSurface,alignItems:"center"}}>
+                  <div style={tdN(false,t.textSec)}>{fmtDay(row.date)}</div>
+                  <div style={tdN(false,t.textMuted)}>{fmt(row.count)}</div>
+                  <div style={tdN(true)}>{fmtSy(row.total)}</div>
+                  <div style={tdN(true,"#15803d")}>{fmtSy(row.schoolShare)}</div>
+                  <div style={tdN(false,"#b45309")}>{fmtSy(row.governmentShare)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!data&&(
+          <div style={{textAlign:"center",padding:32,color:t.textMuted,fontSize:13}}>لا توجد بيانات في هذه الفترة</div>
+        )}
+
+      </>)}
+
+      {/* ══════════ SINGLE-DAY DETAIL ══════════ */}
+      <div style={{borderTop:`2px solid ${t.border}`,paddingTop:20}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,flexWrap:"wrap"}}>
+          <span style={{fontSize:13,fontWeight:700,color:t.text}}>دفعات يوم واحد</span>
+          <div style={{display:"flex",alignItems:"center",gap:7,marginRight:"auto"}}>
+            <span style={{fontSize:12,color:t.textMuted}}>اليوم</span>
+            <input type="date" value={detDate} onChange={e=>setDetDate(e.target.value)} style={inp}/>
+            <button onClick={applyDetail} disabled={detBusy} style={acBtn(detBusy)}>
+              {detBusy?"...":"عرض"}
+            </button>
+          </div>
+        </div>
+
+        {detLoading?(
+          <div style={{textAlign:"center",padding:28,color:t.textMuted,fontSize:13}}>جارٍ التحميل...</div>
+        ):detError?(
+          <div style={{textAlign:"center",padding:28,color:"#c74848",fontSize:13}}>{detError}</div>
+        ):!payments.length?(
+          <div style={{textAlign:"center",padding:28,color:t.textMuted,fontSize:13}}>لا توجد دفعات في هذا اليوم</div>
+        ):(
+          <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
+            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",background:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
+              {["الطالب","النوع","الطريقة","المبلغ","حصة المدرسة"].map(h=>(
+                <div key={h} style={thSt}>{h}</div>
+              ))}
+            </div>
+            {payments.map((p,i)=>(
+              <div key={p.paymentId??i} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",borderBottom:i<payments.length-1?`1px solid ${t.border}`:"none",background:t.bgSurface,alignItems:"center"}}>
+                <div style={{padding:"10px 12px"}}>
+                  <div style={{fontSize:13,fontWeight:600,color:t.text}}>{p.studentName||"—"}</div>
+                  <div style={{fontSize:10,color:t.textMuted,marginTop:2,direction:"ltr",textAlign:"right"}}>#{p.paymentId}</div>
+                </div>
+                <div style={tdN(false,t.textSec)}>{KIND_LABEL[p.kind]||p.kind||"—"}</div>
+                <div style={tdN(false,t.textSec)}>{METHOD_LABEL[p.paymentMethod]||p.paymentMethod||"—"}</div>
+                <div style={tdN(true)}>{fmtSy(p.amount)}</div>
+                <div style={tdN(true,"#15803d")}>{fmtSy(p.schoolShare)}</div>
+              </div>
+            ))}
+            {/* Day total footer */}
+            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",background:t.bgElevated,borderTop:`2px solid ${t.border}`}}>
+              <div style={{padding:"9px 12px",fontSize:12,fontWeight:700,color:t.textSec}}>إجمالي اليوم</div>
+              <div style={{padding:"9px 12px"}}/>
+              <div style={{padding:"9px 12px"}}/>
+              <div style={{padding:"9px 12px",fontSize:13,fontWeight:700,color:t.text,textAlign:"right"}}>
+                {fmtSy(payments.reduce((s,p)=>s+Number(p.amount||0),0))}
+              </div>
+              <div style={{padding:"9px 12px",fontSize:13,fontWeight:700,color:"#15803d",textAlign:"right"}}>
+                {fmtSy(payments.reduce((s,p)=>s+Number(p.schoolShare||0),0))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
 
-/* ── Tab 4: Revenue ──────────────────────────────────────────────────── */
-function CertRevenueTab({t}){
-  const [summary,setSummary]=useState(null);
-  const [daily,setDaily]=useState([]);
-  const [days,setDays]=useState(7);
-  const [loading,setLoading]=useState(true);
-  const [dailyLoading,setDailyLoading]=useState(false);
-
-  useEffect(()=>{
-    (async()=>{
-      setLoading(true);
-      try{
-        const r=await certificatesService.getRevenueSummary();
-        setSummary(r.data?.data??r.data);
-      }catch{setSummary(null);}
-      finally{setLoading(false);}
-    })();
-  },[]);
-
-  useEffect(()=>{
-    (async()=>{
-      setDailyLoading(true);
-      try{
-        const r=await certificatesService.getRevenueDaily(days);
-        const arr=r.data?.data;
-        setDaily(Array.isArray(arr)?arr:[]);
-      }catch{setDaily([]);}
-      finally{setDailyLoading(false);}
-    })();
-  },[days]);
-
+/* ── SimClockBar ──────────────────────────────────────────────────────── */
+function SimClockBar({t}){
+  const KEY='sim.clock.offsetMs';
+  const getOffset=()=>Number(localStorage.getItem(KEY)||'0');
+  const [offsetMs,setOffsetMs]=useState(getOffset);
+  useEffect(()=>{const id=setInterval(()=>setOffsetMs(getOffset()),1000);return()=>clearInterval(id);},[]);
+  const shift=(h)=>{const next=offsetMs+h*3600000;localStorage.setItem(KEY,String(next));setOffsetMs(next);};
+  const reset=()=>{localStorage.setItem(KEY,'0');setOffsetMs(0);};
+  // eslint-disable-next-line react-hooks/purity
+  const simTime=new Date(Date.now()+offsetMs);
+  const fmt=d=>d.toLocaleString('en-GB',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
+  const offsetH=Math.round((offsetMs/3600000)*100)/100;
+  const absH=Math.abs(offsetH);
+  const days=Math.floor(absH/24);
+  const hrs=Math.round((absH%24)*10)/10;
+  const parts=[];
+  if(days)parts.push(`${days} يوم`);
+  if(hrs)parts.push(`${hrs} ساعة`);
+  const label=offsetH===0?'الآن':`${offsetH>0?'بعد':'قبل'} ${parts.join(' و')}`;
+  const btn={padding:'3px 9px',border:`1px solid ${t.border}`,borderRadius:5,cursor:'pointer',fontSize:11,fontWeight:600,background:t.bgSurface,color:t.textMuted,fontFamily:'inherit'};
   return(
-    <div style={{padding:"16px 20px"}}>
-      {loading?(
-        <div style={{textAlign:"center",padding:40,color:t.textMuted,fontSize:13}}>جاري التحميل...</div>
-      ):summary&&(
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
-          <CertKPI label="إجمالي الإيرادات" value={fmtCertMoney(summary.totalRevenue)} t={t}/>
-          <CertKPI label="عدد الشهادات" value={Number(summary.totalCertificates??0).toLocaleString("en")} t={t}/>
-          <CertKPI label="ناجحون" value={Number(summary.passed??0).toLocaleString("en")} t={t}/>
-          <CertKPI label="راسبون" value={Number(summary.failed??0).toLocaleString("en")} t={t}/>
-        </div>
-      )}
-      <Card t={t}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <div style={{fontSize:13,fontWeight:700,color:t.text}}>الإيرادات اليومية</div>
-          <div style={{display:"flex",borderRadius:8,background:t.bgElevated,padding:2,gap:1}}>
-            {[7,30,90].map(d=>(
-              <button key={d} onClick={()=>setDays(d)} style={{padding:"4px 12px",borderRadius:6,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:days===d?700:400,background:days===d?t.bgSurface:"transparent",color:days===d?t.text:t.textMuted,boxShadow:days===d?`0 1px 3px ${t.border}`:"none"}}>{d} يوم</button>
-            ))}
-          </div>
-        </div>
-        {dailyLoading?(
-          <div style={{textAlign:"center",padding:24,color:t.textMuted,fontSize:13}}>جاري التحميل...</div>
-        ):!daily.length?(
-          <div style={{textAlign:"center",padding:24,color:t.textMuted,fontSize:13}}>لا توجد بيانات</div>
-        ):daily.map((row,i)=>(
-          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<daily.length-1?`1px solid ${t.border}`:"none",fontSize:13}}>
-            <span style={{color:t.textSec}}>{fmtCertDate(row.date)}</span>
-            <span style={{fontWeight:700,color:t.text}}>{fmtCertMoney(row.revenue)}</span>
-          </div>
-        ))}
-      </Card>
+    <div style={{display:'inline-flex',alignItems:'center',gap:5,padding:'0 10px',marginRight:'auto',flexShrink:0}}>
+      <span style={{fontSize:11,color:t.textMuted,direction:'ltr',fontVariantNumeric:'tabular-nums'}}>{fmt(simTime)}</span>
+      <span style={{padding:'2px 8px',borderRadius:10,fontSize:11,fontWeight:700,background:offsetH!==0?t.accentLight:'transparent',color:offsetH!==0?t.accentText:t.textMuted}}>{label}</span>
+      <button style={btn} onClick={()=>shift(1)}>ساعة+</button>
+      <button style={btn} onClick={()=>shift(24)}>يوم+</button>
+      <button style={btn} onClick={()=>shift(168)}>أسبوع+</button>
+      <button style={btn} onClick={()=>shift(-24)}>يوم−</button>
+      <button style={{...btn,color:t.accent,borderColor:t.accent}} onClick={reset}>الآن</button>
     </div>
   );
 }
@@ -4074,10 +4705,11 @@ function SectionCertificate({t}){
   const goToCert=id=>{setPendingCertId(id);setTab("search");};
   return(
     <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
-      <div style={{display:"flex",borderBottom:`2px solid ${t.border}`,background:t.bgSurface,flexShrink:0,overflowX:"auto"}}>
+      <div style={{display:"flex",borderBottom:`2px solid ${t.border}`,background:t.bgSurface,flexShrink:0,overflowX:"auto",alignItems:"center"}}>
         {TABS.map(tb=>(
           <button key={tb.id} onClick={()=>setTab(tb.id)} style={{padding:"11px 18px",border:"none",borderBottom:tab===tb.id?`2px solid ${t.accent}`:"2px solid transparent",marginBottom:-2,cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:tab===tb.id?700:400,color:tab===tb.id?t.accentText:t.textMuted,background:"transparent",whiteSpace:"nowrap"}}>{tb.label}</button>
         ))}
+        <SimClockBar t={t}/>
       </div>
       <div style={{flex:1,overflowY:"auto"}}>
         {tab==="pool"    &&<CertPoolTab    t={t} onOpenCourse={goToCourse} onOpenCert={goToCert}/>}

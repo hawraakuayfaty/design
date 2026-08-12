@@ -23,13 +23,11 @@ import { GrSchedules } from "react-icons/gr";
 import { FaChartLine } from "react-icons/fa6";
 import { FaChartColumn } from "react-icons/fa6";
 import { FaBellConcierge } from "react-icons/fa6";
-import { FaRegCheckCircle } from "react-icons/fa";
 
 import { LuX, LuEye, LuEyeOff } from "react-icons/lu";
 
 import { MdAdminPanelSettings } from "react-icons/md";
 import { PiMedalFill } from "react-icons/pi";
-import { PiCertificateDuotone } from "react-icons/pi";
 import { BsHourglassSplit } from "react-icons/bs";
 import { RiCalendarScheduleLine } from "react-icons/ri";
 import { TbReportMoney } from "react-icons/tb";
@@ -170,12 +168,6 @@ const navItems = [
     label: "إدارة المركبات",
     icon: <FaCar />,
     page: "Vehicles",
-  },
-  {
-    id: "certificate",
-    label: "الشهادة الحكومية",
-    icon: <FaRegAddressCard />,
-    page: "Certificate",
   },
   { id: "transport", label: "خدمة النقل", icon: <TbBus />, page: "Transport" },
   { id: "reports", label: "التقارير", icon: <TbReport />, page: "Reports" },
@@ -2897,203 +2889,6 @@ function PageVehicles({ t }) {
 }
 
 // ═══════════════════════════════════════════════
-// PAGE: CERTIFICATE (Government)
-// ═══════════════════════════════════════════════
-function PageCertificate({ t }) {
-  return (
-    <div>
-      <SectionHeader
-        title="خدمة الشهادة الحكومية"
-        subtitle="متابعة طلبات رخصة القيادة"
-        action="+ طلب جديد"
-        t={t}
-      />
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4,1fr)",
-          gap: 12,
-          marginBottom: 20,
-        }}
-      >
-        <StatCard
-          label="طلبات نشطة"
-          value="٨"
-          color={t.accent}
-          icon={<TbReport size={24} color="t.accent" />}
-          t={t}
-        />
-        <StatCard
-          label="قيد المتابعة"
-          value="٥"
-          color={t.accent}
-          icon={<BsHourglassSplit size={24} color="t.accent" />}
-          t={t}
-        />
-        <StatCard
-          label="فحص قادم"
-          value="٢"
-          color={t.accent}
-          icon={<RiCalendarScheduleLine size={24} color="t.accent" />}
-          t={t}
-        />
-        <StatCard
-          label="ناجح هذا الشهر"
-          value="١١"
-          color={t.accent}
-          icon={<PiCertificateDuotone size={24} color="t.accent" />}
-          t={t}
-        />
-      </div>
-
-      <Table
-        t={t}
-        headers={[
-          "الطالب",
-          "تاريخ الطلب",
-          "الوثائق",
-          "الفحص النظري",
-          "الفحص العملي",
-          "النتيجة",
-          "النقل",
-          "الحالة",
-        ]}
-        rows={[
-          [
-            "نورا الأحمد",
-            "١ مايو",
-            "مكتملة",
-            "١٥ يونيو",
-            "—",
-            "—",
-            "مسجل",
-            "قيد المتابعة",
-          ],
-          [
-            "كريم عبدو",
-            "٥ مايو",
-            "مكتملة",
-            "١٥ يونيو",
-            "—",
-            "—",
-            "مسجل",
-            "قيد المتابعة",
-          ],
-          [
-            "هناء الصالح",
-            "١٠ مايو",
-            "ناقصة",
-            "—",
-            "—",
-            "—",
-            "لا",
-            "قيد المتابعة",
-          ],
-          [
-            "سعيد المحمد",
-            "١٢ مايو",
-            "مكتملة",
-            "٢٠ يونيو",
-            "٢٥ يونيو",
-            "—",
-            "مسجل",
-            "قيد المتابعة",
-          ],
-          [
-            "لمى الزعبي",
-            "٢٠ مايو",
-            "مكتملة",
-            "٢٠ يونيو",
-            "—",
-            "—",
-            "لا",
-            "قيد المتابعة",
-          ],
-          [
-            "باسل الخطيب",
-            "٢٥ مايو",
-            "مكتملة",
-            "١ يونيو",
-            "٤ يونيو",
-            "مقبول",
-            "مسجل",
-            "مقبول",
-          ],
-          [
-            "رنا سليمان",
-            "٢ أبريل",
-            "مكتملة",
-            "١٠ مايو",
-            "١٥ مايو",
-            "راسب",
-            "مسجل",
-            "قيد المتابعة",
-          ],
-        ]}
-      />
-
-      {/* Ministry Excel Upload */}
-      <div
-        style={{
-          marginTop: 20,
-          background: t.bgSurface,
-          borderRadius: 12,
-          border: `0.5px solid ${t.borderCard}`,
-          padding: 20,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 15,
-            fontWeight: 700,
-            color: t.text,
-            marginBottom: 6,
-          }}
-        >
-          رفع ملف الوزارة — Excel
-        </div>
-        <div style={{ fontSize: 12, color: t.textSec, marginBottom: 16 }}>
-          ارفع الملف القادم من الوزارة لمطابقة الطلاب ومواعيد امتحاناتهم
-          تلقائياً
-        </div>
-        <div
-          style={{
-            border: `2px dashed ${t.border}`,
-            borderRadius: 10,
-            padding: "30px 20px",
-            textAlign: "center",
-            background: t.bgElevated,
-          }}
-        >
-          <div style={{ fontSize: 32, marginBottom: 8 }}>📂</div>
-          <div style={{ fontSize: 13, color: t.textSec, marginBottom: 12 }}>
-            اسحب ملف Excel هنا أو اضغط للاختيار
-          </div>
-          <button
-            style={{
-              padding: "8px 20px",
-              borderRadius: 8,
-              background: t.accent,
-              color: "#fff",
-              border: "none",
-              fontSize: 13,
-              cursor: "pointer",
-            }}
-          >
-            اختيار ملف
-          </button>
-        </div>
-        <div style={{ marginTop: 12, fontSize: 12, color: t.textMuted }}>
-          بعد الرفع: يطابق النظام برقم الهوية أولاً، ثم يعرض قائمة "تحتاج مراجعة
-          يدوية" للأسماء المتشابهة.
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════
 // PAGE: TRANSPORT SERVICE — خدمة النقل
 // ═══════════════════════════════════════════════
 function PageTransport({ t }) {
@@ -3178,153 +2973,6 @@ function PageTransport({ t }) {
           ))}
         </div>
       </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════
-// PAGE: PAYMENTS
-// ═══════════════════════════════════════════════import { TbReportMoney } from "react-icons/tb";
-
-function PagePayments({ t }) {
-  return (
-    <div>
-      <SectionHeader
-        title="الدفعات والعربون"
-        subtitle="متابعة جميع الدفعات وإثباتات الدفع"
-        t={t}
-      />
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4,1fr)",
-          gap: 12,
-          marginBottom: 20,
-        }}
-      >
-        <StatCard
-          label="إيرادات اليوم"
-          value="٤٥٠٠ ل.س"
-          color={t.accent}
-          icon={<TbReportMoney size={24} color="t.accent" />}
-          t={t}
-        />
-        <StatCard
-          label="عربونات مؤكدة"
-          value="٩"
-          color={t.accent}
-          icon={<FaRegCheckCircle size={24} color="t.accent" />}
-          t={t}
-        />
-        <StatCard
-          label="بانتظار التحقق"
-          value="٣"
-          color={t.accent}
-          icon={<BsHourglassSplit size={24} color="t.accent" />}
-          t={t}
-        />
-
-        <StatCard
-          label="عربونات منتهية"
-          value="١"
-          color="#E24B4A"
-          icon={<LuX size={24} color="t.accent" />}
-          t={t}
-        />
-      </div>
-      <Table
-        t={t}
-        headers={[
-          "#",
-          "الطالب",
-          "الحجز",
-          "نوع الدفع",
-          "المبلغ",
-          "الطريقة",
-          "الحالة",
-          "الموظف",
-          "التاريخ",
-        ]}
-        rows={[
-          [
-            "#٥٠١",
-            "أحمد محمد",
-            "#١٢٤٥",
-            "عربون",
-            "١٥٠٠ ل.س",
-            "نقدي",
-            "مدفوع",
-            "أم كمال",
-            "٤ يونيو",
-          ],
-          [
-            "#٥٠٢",
-            "سارة خالد",
-            "#١٢٤٦",
-            "عربون",
-            "١٥٠٠ ل.س",
-            "شام كاش",
-            "تم الإثبات",
-            "—",
-            "٤ يونيو",
-          ],
-          [
-            "#٥٠٣",
-            "علي حسن",
-            "#١٢٤٧",
-            "عربون",
-            "١٥٠٠ ل.س",
-            "شام كاش",
-            "تم الإثبات",
-            "—",
-            "٤ يونيو",
-          ],
-          [
-            "#٥٠٤",
-            "منى العلي",
-            "#١٢٤٨",
-            "عربون",
-            "١٥٠٠ ل.س",
-            "نقدي",
-            "مدفوع",
-            "أم كمال",
-            "٤ يونيو",
-          ],
-          [
-            "#٥٠٥",
-            "منى العلي",
-            "#١٢٤٨",
-            "باقي الدرس",
-            "١٥٠٠ ل.س",
-            "نقدي",
-            "مدفوع",
-            "أم كمال",
-            "٤ يونيو",
-          ],
-          [
-            "#٥٠٦",
-            "نورا الأحمد",
-            "#—",
-            "شهادة حكومية",
-            "٥٠٠٠ ل.س",
-            "نقدي",
-            "مدفوع",
-            "أم كمال",
-            "١ مايو",
-          ],
-          [
-            "#٥٠٧",
-            "نورا الأحمد",
-            "#—",
-            "رسوم نقل",
-            "٢٠٠٠ ل.س",
-            "نقدي",
-            "مدفوع",
-            "أم كمال",
-            "١٠ يونيو",
-          ],
-        ]}
-      />
     </div>
   );
 }
@@ -4051,6 +3699,7 @@ export default function App({
   activePage: externalPage,
   onPageChange,
   adminSubPage: externalAdminSub,
+  accountantSubPage: externalAccountantSub,
   receptionistSubPage: externalReceptionistSub,
   darkMode: externalDarkMode,
 }) {
@@ -4060,12 +3709,14 @@ export default function App({
   const [internalPage, setInternalPage] = useState("Dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [internalAdminSub, setInternalAdminSub] = useState("dash");
-const [internalReceptionistSub, setInternalReceptionistSub] = useState("students");
+  const [internalAccountantSub, setInternalAccountantSub] = useState("general-expenses");
+  const [internalReceptionistSub, setInternalReceptionistSub] = useState("students");
 
   const activePage = embeddedMode ? externalPage : internalPage;
   const setActivePage = embeddedMode ? onPageChange : setInternalPage;
   const adminSubPage = embeddedMode ? (externalAdminSub || "dash") : internalAdminSub;
-const receptionistSubPage = embeddedMode ? (externalReceptionistSub || "students") : internalReceptionistSub;
+  const accountantSubPage = embeddedMode ? (externalAccountantSub || "general-expenses") : internalAccountantSub;
+  const receptionistSubPage = embeddedMode ? (externalReceptionistSub || "students") : internalReceptionistSub;
 
   const t = tokens[darkMode ? "dark" : "light"];
   const sidebarWidth = sidebarCollapsed ? 84 : 324;
@@ -4076,15 +3727,13 @@ const receptionistSubPage = embeddedMode ? (externalReceptionistSub || "students
     Students: <PageStudents t={t} />,
     Instructors: <PageInstructors t={t} />,
     Vehicles: <PageVehicles t={t} />,
-    Certificate: <PageCertificate t={t} />,
     Transport: <PageTransport t={t} />,
-    Payments: <PagePayments t={t} />,
     Accounting: <PageAccounting t={t} />,
     Reports: <PageReports t={t} />,
     Users: <PageUsers t={t} />,
     Settings: <PageSettings t={t} />,
     AdminProPage: <AdminPro embedded={true} page={adminSubPage} darkMode={darkMode} />,
-    AccountantProPage: <AccountantPro embedded={true} darkMode={darkMode} />,
+    AccountantProPage: <AccountantPro embedded={true} page={accountantSubPage} darkMode={darkMode} />,
     ReceptionistPage: <ReceptionistPro embedded={true} page={receptionistSubPage} darkMode={darkMode} />,
   };
 
@@ -4284,15 +3933,40 @@ const receptionistSubPage = embeddedMode ? (externalReceptionistSub || "students
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               {[
                 { id: "dash", label: "لوحة التحكم" },
-                { id: "employees", label: "الموظفون" },
                 { id: "permissions", label: "الصلاحيات" },
-                { id: "pricing", label: "الأسعار وإعدادات النظام " },
+                { id: "pricing", label: "الأسعار وإعدادات النظام" },
               ].map((a) => {
                 const isActive = adminSubPage === a.id;
                 return (
                   <button
                     key={a.id}
                     onClick={() => setInternalAdminSub(a.id)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      border: "none",
+                      cursor: "pointer",
+                      background: isActive ? t.bgSidebarActive : "transparent",
+                      color: isActive ? t.textSidebarActive : t.textMuted,
+                      fontWeight: isActive ? 700 : 600,
+                    }}
+                  >
+                    {a.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : activePage === "AccountantProPage" ? (
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {[
+                { id: "general-expenses", label: "المصاريف العامة" },
+                { id: "employees", label: "الموظفون" },
+              ].map((a) => {
+                const isActive = accountantSubPage === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => setInternalAccountantSub(a.id)}
                     style={{
                       padding: "6px 12px",
                       borderRadius: 8,

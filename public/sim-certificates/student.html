@@ -13,7 +13,7 @@
 <div class="wrap">
   <div class="grid2">
 
-    <!-- الجهة اليسرى: الجوّال -->
+    <!-- الجهة اليسرى: إطار الهاتف -->
     <div>
       <div class="phone">
         <div class="phone__bar">
@@ -21,11 +21,11 @@
           <span id="screenTitle">شهادتي</span>
         </div>
         <div class="phone__body" id="screen">
-          <div class="empty">…جاري التحميل</div>
+          <div class="empty">…جارٍ التحميل</div>
         </div>
       </div>
       <div class="row" style="justify-content:center;margin-top:12px">
-        <button class="btn btn--ghost btn--sm" id="reload" style="color:var(--brand);background:var(--brand-lt);border:none">↻ تحديث الشاشة</button>
+        <button class="btn btn--ghost btn--sm" id="reload">↻ تحديث الشاشة</button>
       </div>
     </div>
 
@@ -36,16 +36,14 @@
           <h2>ما يعرفه الخادم عن هذا الطالب</h2>
           <span class="route explain">GET /student/certificates/eligibility</span>
         </div>
-        <p class="card__sub">
-          الشاشة على اليسار لا تحسب شيئاً — تعرض هذا الجواب حرفياً.
-        </p>
+        <p class="card__sub">الشاشة على اليسار لا تحسب شيئاً — تعرض هذا الجواب حرفياً.</p>
         <div id="decision"></div>
       </div>
 
       <div class="note explain">
         <strong>لماذا لا يحسب التطبيق الأهلية بنفسه</strong><br>
         لأن الدالة التي تنتج هذا القرار على الخادم هي نفسها التي تحرس الدفع.
-        أي حساب موازٍ في التطبيق سيكون عرضةً للتلاعب، وسيظهر زرين مزيفين عند ضغطه.
+        أي حساب موازٍ في التطبيق سيكون عرضةً للتلاعب، وسيُظهر أزراراً مزيفة عند ضغطه.
       </div>
 
       <div id="logHost"></div>
@@ -59,12 +57,12 @@
 /* =============================================================================
  * تطبيق الطالب — خمس مسارات
  * /eligibility يحدد ما تعرضه الشاشة. لا نفحص requestStatus ولا exams
- * محليًا لإظهار زر — الخادم يرسله.
+ * محلياً لإظهار زر — الخادم يرسله.
  * ========================================================================== */
 
-const screenEl  = document.getElementById('screen');
-const titleEl   = document.getElementById('screenTitle');
-const backBtn   = document.getElementById('backBtn');
+const screenEl   = document.getElementById('screen');
+const titleEl    = document.getElementById('screenTitle');
+const backBtn    = document.getElementById('backBtn');
 const decisionEl = document.getElementById('decision');
 
 mountLogDrawer(document.getElementById('logHost'));
@@ -126,7 +124,7 @@ function timeline(status) {
  * ═══════════════════════════════════════════════════════════════════════ */
 async function screenHome() {
   titleEl.textContent = 'شهادتي';
-  screenEl.innerHTML = '<div class="empty">…جاري التحميل</div>';
+  screenEl.innerHTML = '<div class="empty">…جارٍ التحميل</div>';
 
   const e = await call(me, 'GET', '/student/certificates/eligibility');
   paintDecision(e);
@@ -157,7 +155,7 @@ async function screenHome() {
         موعد الامتحان<br><strong style="color:#fff">${esc(rx.examScheduledLabel || '—')}</strong><br><br>
         الرسم المطلوب<br><strong style="color:#fff">${money(rx.fee)} ل.س</strong><br><br>
         آخر موعد للتسجيل<br><strong style="color:#fff">${esc(rx.registrationClosesLabel || '—')}</strong>
-        ${rx.registrationClosesAt ? `<br>يتبقى <span class="countdown" id="cd"></span>` : ''}
+        ${rx.registrationClosesAt ? `<br>يتبقّى <span class="countdown" id="cd"></span>` : ''}
       </div>
       <button class="bigbtn" onclick="go({name:'reexam'})">ادفع وسجّل الآن</button>
     </div>`;
@@ -196,7 +194,7 @@ async function screenHome() {
   }
 
   /* ── رابط كل الطلبات ── */
-  html += `<button class="btn btn--block" style="background:rgba(28,95,176,.12);color:var(--brand);border:none;border-radius:10px;padding:.75rem;font-size:.85rem"
+  html += `<button class="bigbtn" style="background:rgba(28,95,176,.12);color:var(--brand)"
             onclick="go({name:'list'})">📋 كل طلباتي</button>`;
 
   screenEl.innerHTML = html;
@@ -212,7 +210,7 @@ function startCountdown(closesAt) {
     const h = Math.floor(ms / 3600000);
     const m = Math.floor((ms % 3600000) / 60000);
     const s = Math.floor((ms % 60000) / 1000);
-    el.textContent = `${h}س ${String(m).padStart(2,'0')}د ${String(s).padStart(2,'0')}ث`;
+    el.textContent = `${h}س ${String(m).padStart(2, '0')}د ${String(s).padStart(2, '0')}ث`;
   };
   tick();
   countdownTimer = setInterval(tick, 1000);
@@ -255,10 +253,10 @@ function paintDecision(e) {
  * ═══════════════════════════════════════════════════════════════════════ */
 async function screenList() {
   titleEl.textContent = 'كل طلباتي';
-  screenEl.innerHTML = '<div class="empty">…جاري التحميل</div>';
+  screenEl.innerHTML = '<div class="empty">…جارٍ التحميل</div>';
 
   const data = await call(me, 'GET', '/student/certificates?limit=50');
-  const rows = Array.isArray(data) ? data : (data?.data || data || []);
+  const rows = Array.isArray(data) ? data : (data?.data || []);
 
   screenEl.innerHTML = rows.length
     ? rows.map((c) => `
@@ -277,7 +275,7 @@ async function screenList() {
  * ═══════════════════════════════════════════════════════════════════════ */
 async function screenDetail(id) {
   titleEl.textContent = 'تفاصيل الطلب';
-  screenEl.innerHTML = '<div class="empty">…جاري التحميل</div>';
+  screenEl.innerHTML = '<div class="empty">…جارٍ التحميل</div>';
 
   const d = await call(me, 'GET', `/student/certificates/${id}`);
   const c = d.certificate || d;
@@ -294,9 +292,9 @@ async function screenDetail(id) {
     <div class="mcard mcard--hero">
       <div class="mcard__t">${STATUS_AR[c.requestStatus] || esc(c.requestStatus)}</div>
       <div class="mcard__s">
-        ${TRANSMISSION_AR[c.transmissionType] || c.transmissionType} · الفئة ${esc(c.category || '—')}
+        ${TRANSMISSION_AR[c.transmissionType] || esc(c.transmissionType || '')} · الفئة ${esc(c.category || '—')}
         ${c.courseNumber ? `<br>الدورة ${esc(c.courseNumber)}` : '<br>لم تُسند لدورة بعد'}
-        ${c.governmentStudentNumber ? `<br>رقمك الحكومي ${esc(c.governmentStudentNumber)}` : ''}
+        ${c.governmentStudentNumber ? `<br>رقمك الحكومي: ${esc(c.governmentStudentNumber)}` : ''}
         <br>${c.transportRequested
           ? '<span class="pill" style="background:rgba(255,255,255,.25);color:#fff">طلبت فانٍ مدرسي</span>'
           : '<span class="pill" style="background:rgba(255,255,255,.15);color:rgba(255,255,255,.7)">بلا نقل مدرسي</span>'}
@@ -308,7 +306,7 @@ async function screenDetail(id) {
       <div class="mcard__t">مواعيد التدريب الحكومي</div>
       ${(d.sessions || []).length
         ? d.sessions.map((s) =>
-            `<div class="mcard__s">
+            `<div class="mcard__s" style="margin-bottom:4px">
               <strong>الجلسة ${s.sessionNumber}</strong> — ${esc(s.label || formatSchoolTime(s.scheduledAt))}
             </div>`).join('')
         : '<div class="mcard__s">لم تصدر المواعيد بعد</div>'}
@@ -323,18 +321,20 @@ async function screenDetail(id) {
               ${x.examResult
                 ? `<span class="pill pill--${x.examResult === 'PASS' ? 'ok' : x.examResult === 'FAIL' ? 'err' : 'warn'}">${RESULT_AR[x.examResult] || x.examResult}</span>`
                 : '<span class="pill pill--warn">بانتظار النتيجة</span>'}
-              ${x.scheduledAt ? `<br><span style="font-size:11px;color:var(--ink-2)">موعد الامتحان: ${esc(formatSchoolTime(x.scheduledAt))}</span>` : ''}
+              ${x.scheduledAt ? `<br><span style="font-size:11px;color:var(--ink-2)">موعد: ${esc(formatSchoolTime(x.scheduledAt))}</span>` : ''}
             </div>`).join('')
         : '<div class="mcard__s">لم يبدأ الامتحان بعد</div>'}
     </div>
 
     <div class="mcard">
       <div class="mcard__t">الدفعات</div>
-      ${(d.charges || []).map((ch) =>
-          `<div class="mcard__s" style="margin-bottom:5px">
-            ${CHARGE_AR[ch.chargeReason] || esc(ch.chargeReason)} — ${money(ch.amountDue)} ل.س
-            <span class="pill pill--${ch.chargeStatus === 'PAID' ? 'ok' : 'warn'}">${CHARGE_STATUS_AR[ch.chargeStatus] || ch.chargeStatus}</span>
-          </div>`).join('') || '<div class="mcard__s">لا مستحقات</div>'}
+      ${(d.charges || []).length
+        ? d.charges.map((ch) =>
+            `<div class="mcard__s" style="margin-bottom:5px">
+              ${CHARGE_AR[ch.chargeReason] || esc(ch.chargeReason)} — ${money(ch.amountDue)} ل.س
+              <span class="pill pill--${ch.chargeStatus === 'PAID' ? 'ok' : 'warn'}">${CHARGE_STATUS_AR[ch.chargeStatus] || ch.chargeStatus}</span>
+            </div>`).join('')
+        : '<div class="mcard__s">لا مستحقات</div>'}
     </div>
 
     ${(d.documents && (d.documents.personalPhotoUrl || d.documents.idFrontUrl || d.documents.idBackUrl)) ? `
@@ -359,7 +359,7 @@ async function screenDetail(id) {
  * ═══════════════════════════════════════════════════════════════════════ */
 async function screenNew() {
   titleEl.textContent = 'طلب شهادة قيادة';
-  screenEl.innerHTML = '<div class="empty">…جاري التحميل</div>';
+  screenEl.innerHTML = '<div class="empty">…جارٍ التحميل</div>';
 
   const e = await call(me, 'GET', '/student/certificates/eligibility');
   const types = (e.newRequest && e.newRequest.availableTransmissionTypes) || [];
@@ -394,13 +394,13 @@ async function screenNew() {
     </div>
 
     <div class="mcard">
-      <div class="mcard__t">٤. الدفع عبر شاه ماش</div>
+      <div class="mcard__t">٤. الدفع عبر شام كاش</div>
       <div class="row" style="margin-top:8px">
         <input id="txn" value="${randomTxnId()}" maxlength="9" style="flex:1;direction:ltr">
         <button class="btn btn--ghost btn--sm" id="regen">رقم آخر</button>
       </div>
       <div class="mcard__s explain" style="margin-top:6px">
-        ٩ أرقام. تحت الباقاس يقبل أي رقم غير مستعمل.
+        ٩ أرقام. الباقاس يقبل أي رقم غير مستعمل.
       </div>
     </div>
 
@@ -412,12 +412,12 @@ async function screenNew() {
 
   document.getElementById('submit').onclick = guard(async (ev) => {
     ev.target.disabled = true;
-    ev.target.textContent = '…جاري الإرسال';
+    ev.target.textContent = '…جارٍ الإرسال';
     try {
-      const fd = new FormData();
-      fd.append('transmissionType', document.getElementById('tt').value);
+      const fd    = new FormData();
+      fd.append('transmissionType',  document.getElementById('tt').value);
       fd.append('transportRequested', document.getElementById('tr').checked ? 'true' : 'false');
-      fd.append('transactionId', document.getElementById('txn').value);
+      fd.append('transactionId',     document.getElementById('txn').value);
 
       const picked = document.getElementById('files').files;
       const names  = ['personalPhoto', 'idFront', 'idBack'];
@@ -441,9 +441,9 @@ async function screenNew() {
  * ═══════════════════════════════════════════════════════════════════════ */
 async function screenReexam() {
   titleEl.textContent = 'إعادة الامتحان';
-  screenEl.innerHTML = '<div class="empty">…جاري التحميل</div>';
+  screenEl.innerHTML = '<div class="empty">…جارٍ التحميل</div>';
 
-  const e = await call(me, 'GET', '/student/certificates/eligibility');
+  const e  = await call(me, 'GET', '/student/certificates/eligibility');
   const rx = e.reexam || {};
 
   if (!rx.eligible) {
@@ -468,13 +468,10 @@ async function screenReexam() {
     </div>
 
     <div class="mcard">
-      <div class="mcard__t">رقم عملية شاه ماش</div>
+      <div class="mcard__t">رقم عملية شام كاش</div>
       <div class="row" style="margin-top:8px">
         <input id="txn" value="${randomTxnId()}" maxlength="9" style="flex:1;direction:ltr">
         <button class="btn btn--ghost btn--sm" id="regen">رقم آخر</button>
-      </div>
-      <div class="mcard__s explain" style="margin-top:6px">
-        الرقم لا يُرسل — الخادم يشتقل من نتائجه.
       </div>
     </div>
 

@@ -8,8 +8,7 @@ import qeyadahLogo from "../../assets/qeyadah-logo.jpg";
 import { CiSettings } from "react-icons/ci";
 import { PiUsersThin } from "react-icons/pi";
 import { TbReport } from "react-icons/tb";
-import { FaRegAddressCard, FaCar, FaUserTie } from "react-icons/fa";
-import { CiCreditCard1 } from "react-icons/ci";
+import { FaCar, FaUserTie } from "react-icons/fa";
 import { TbBus } from "react-icons/tb";
 import { PiStudent } from "react-icons/pi";
 import { FaChartLine, FaChartColumn, FaBellConcierge } from "react-icons/fa6";
@@ -68,25 +67,11 @@ const navItems = [
     permission: P.VEHICLES_READ,
   },
   {
-    id: "certificate",
-    label: "الشهادة الحكومية",
-    icon: <FaRegAddressCard />,
-    page: "Certificate",
-    permission: P.CERTIFICATES_READ,
-  },
-  {
     id: "transport",
     label: "خدمة النقل",
     icon: <TbBus />,
     page: "Transport",
     permission: P.TRANSPORT_READ,
-  },
-  {
-    id: "payments",
-    label: "الدفعات والعربون",
-    icon: <CiCreditCard1 />,
-    page: "Payments",
-    permission: P.PAYMENTS_READ,
   },
   {
     id: "reports",
@@ -112,9 +97,13 @@ const navItems = [
 
 const ADMIN_SUB_TABS = [
   { id: "dash", label: "لوحة التحكم" },
-  { id: "employees", label: "الموظفون" },
   { id: "permissions", label: "الصلاحيات" },
   { id: "pricing", label: "الأسعار و إعدادات النظام " },
+];
+
+const ACCOUNTANT_SUB_TABS = [
+  { id: "general-expenses", label: "المصاريف العامة" },
+  { id: "employees", label: "الموظفون" },
 ];
 
 
@@ -132,12 +121,15 @@ export default function MainLayout({
   onPageChange,
   adminSubPage,
   onAdminSubPageChange,
+  accountantSubPage,
+  onAccountantSubPageChange,
   receptionistSubPage,
   onReceptionistSubPageChange,
   darkMode = false,
   onDarkModeToggle,
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { user, hasPermission, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -304,7 +296,7 @@ export default function MainLayout({
           }}
         >
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutConfirm(true)}
             style={{
               width: "100%",
               padding: "10px",
@@ -375,6 +367,17 @@ export default function MainLayout({
                   background: adminSubPage === tab.id ? t.bgSidebarActive : "transparent",
                   color: adminSubPage === tab.id ? t.textSidebarActive : t.textMuted,
                   fontWeight: adminSubPage === tab.id ? 700 : 600, fontSize: 13,
+                }}>{tab.label}</button>
+              ))}
+            </div>
+          ) : activePage === "AccountantProPage" && onAccountantSubPageChange ? (
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              {ACCOUNTANT_SUB_TABS.map((tab) => (
+                <button key={tab.id} onClick={() => onAccountantSubPageChange(tab.id)} style={{
+                  padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+                  background: accountantSubPage === tab.id ? t.bgSidebarActive : "transparent",
+                  color: accountantSubPage === tab.id ? t.textSidebarActive : t.textMuted,
+                  fontWeight: accountantSubPage === tab.id ? 700 : 600, fontSize: 13,
                 }}>{tab.label}</button>
               ))}
             </div>
@@ -451,6 +454,59 @@ export default function MainLayout({
         {/* Page Content */}
         <div className="hide-scrollbar app-page">{children}</div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div
+          onClick={() => setShowLogoutConfirm(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: t.bgSurface, borderRadius: 16, padding: "28px 28px 22px",
+              width: 320, boxShadow: "0 20px 48px rgba(0,0,0,0.22)",
+              border: `1px solid ${t.borderCard}`, textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: 36, marginBottom: 12 }}>
+              <FiLogOut color="#c74848" />
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 6 }}>
+              تسجيل الخروج
+            </div>
+            <div style={{ fontSize: 13, color: t.textMuted, marginBottom: 22 }}>
+              هل أنت متأكد أنك تريد تسجيل الخروج من النظام؟
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={handleLogout}
+                style={{
+                  flex: 1, padding: "10px", borderRadius: 10, border: "none",
+                  background: "#c74848", color: "#fff", fontSize: 14,
+                  fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                تسجيل الخروج
+              </button>
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                style={{
+                  flex: 1, padding: "10px", borderRadius: 10, cursor: "pointer",
+                  background: t.bgElevated, color: t.textSec, fontSize: 14,
+                  fontWeight: 600, border: `1px solid ${t.border}`, fontFamily: "inherit",
+                }}
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
