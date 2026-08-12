@@ -24,6 +24,10 @@ const certificatesService = {
   getRevenueSummary()    { return client.get("/certificates/revenue/summary"); },
   getRevenueDaily(days)  { return client.get("/certificates/revenue/daily", { params: { days } }); },
 
+  /* ── Revenue (report dashboard — from/to & date per front-end-GUI-GUIDE §5) ── */
+  getRevenueSummaryByRange(params) { return client.get("/certificates/revenue/summary", { params }); },
+  getRevenueDailyByDate(params)    { return client.get("/certificates/revenue/daily", { params }); },
+
   /* ── Legacy (kept for any remaining callers) ──────────────────────── */
   cancel(id, data)            { return client.post(`/reception/certificates/${id}/cancel`, data); },
   exportFile(data)            { return client.post("/reception/certificates/export", data, { responseType: "blob" }); },

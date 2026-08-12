@@ -7,6 +7,9 @@ import ReceptionistPro from "./ReceptionistPro";
 import VehicleReportDashboard from "./VehicleReportDashboard";
 import InstructorReportDashboard from "./InstructorReportDashboard";
 import BookingRevenueReportDashboard from "./BookingRevenueReportDashboard";
+import EmployeeReportDashboard from "./EmployeeReportDashboard";
+import GeneralExpensesReportDashboard from "./GeneralExpensesReportDashboard";
+import GovCertificateReportDashboard from "./GovCertificateReportDashboard";
 import { studentsService, instructorsService, vehiclesService, dashboardService, accountingService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
@@ -14,7 +17,7 @@ import { CiSettings } from "react-icons/ci";
 import { PiChartLineDown, PiChartLineUp, PiUsersThin } from "react-icons/pi";
 import { TbReport } from "react-icons/tb";
 import { FaRegAddressCard } from "react-icons/fa";
-import { TbBus } from "react-icons/tb";
+import { TbBus, TbUserDollar } from "react-icons/tb";
 import { FaCar } from "react-icons/fa";
 
 import { FaUserTie } from "react-icons/fa";
@@ -3633,6 +3636,9 @@ function PageReports({ t }) {
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
   const [instructorReportOpen, setInstructorReportOpen] = useState(false);
   const [bookingRevenueReportOpen, setBookingRevenueReportOpen] = useState(false);
+  const [employeeReportOpen, setEmployeeReportOpen] = useState(false);
+  const [generalExpensesReportOpen, setGeneralExpensesReportOpen] = useState(false);
+  const [govCertificateReportOpen, setGovCertificateReportOpen] = useState(false);
 
   if (selectedVehicleId) {
     return <VehicleReportDashboard t={t} vehicleId={selectedVehicleId} onBack={() => setSelectedVehicleId(null)} />;
@@ -3644,6 +3650,18 @@ function PageReports({ t }) {
 
   if (bookingRevenueReportOpen) {
     return <BookingRevenueReportDashboard t={t} onBack={() => setBookingRevenueReportOpen(false)} />;
+  }
+
+  if (employeeReportOpen) {
+    return <EmployeeReportDashboard t={t} onBack={() => setEmployeeReportOpen(false)} />;
+  }
+
+  if (generalExpensesReportOpen) {
+    return <GeneralExpensesReportDashboard t={t} onBack={() => setGeneralExpensesReportOpen(false)} />;
+  }
+
+  if (govCertificateReportOpen) {
+    return <GovCertificateReportDashboard t={t} onBack={() => setGovCertificateReportOpen(false)} />;
   }
 
   if (vehicleReportOpen) {
@@ -3677,51 +3695,51 @@ function PageReports({ t }) {
       >
         {[
           {
-            title: "تقرير الحجوزات",
-            desc: "إيرادات مقبوضة، مستحقات قادمة، تفصيل يومي للدفعات",
-            icon: <RiCalendarScheduleLine size={24} color="t.accent" />,
-          },
-          {
-            title: "تقرير الطلاب",
-            desc: "جدد، نشطون، قيد التدريب، أنهوا، طلبوا شهادة",
-            icon: <PiStudent size={24} color="t.accent" />,
-          },
-          {
+            key: "instructors",
             title: "تقرير المدربين",
             desc: "جلسات مكتملة، ملغية، مستحقات",
             icon: <FaUserTie size={24} color="t.accent" />,
+            onOpen: () => setInstructorReportOpen(true),
           },
           {
+            key: "vehicles",
             title: "تقرير المركبات",
             desc: "استخدام كل مركبة، صيانة، توقف",
             icon: <FaCar size={24} color="t.accent" />,
+            onOpen: () => setVehicleReportOpen(true),
           },
           {
-            title: "تقرير الشهادة الحكومية",
-            desc: "طلبات، فحوص، نجاح، رسوب، إعادة",
-            icon: <FaRegAddressCard size={24} color="t.accent" />,
+            key: "bookingRevenue",
+            title: "تقرير الحجوزات والإيرادات",
+            desc: "إيرادات مقبوضة، مستحقات قادمة، تفصيل يومي للدفعات",
+            icon: <RiCalendarScheduleLine size={24} color="t.accent" />,
+            onOpen: () => setBookingRevenueReportOpen(true),
           },
-          { title: "تقرير خدمة النقل", desc: "رحلات، حضور، دفعات", icon:<TbBus size={24} color="t.accent" /> },
           {
-            title: "التقرير المالي المختصر",
-            desc: "إيرادات، مصاريف، صافي، مستحقات",
+            key: "employeeExpenses",
+            title: "تقرير مصاريف الموظفين",
+            desc: "رواتب، مكافآت، مصاريف أخرى — استقبال ومحاسبة",
+            icon: <TbUserDollar size={24} color="t.accent" />,
+            onOpen: () => setEmployeeReportOpen(true),
+          },
+          {
+            key: "generalExpenses",
+            title: "تقرير المصاريف العامة",
+            desc: "مياه، كهرباء، إنترنت، مطبخ، قرطاسية، وغير ذلك",
             icon: <TbReportMoney size={24} color="t.accent" />,
+            onOpen: () => setGeneralExpensesReportOpen(true),
           },
-        ].map((r) => {
-          const isVehicleReport = r.title === "تقرير المركبات";
-          const isInstructorReport = r.title === "تقرير المدربين";
-          const isBookingRevenueReport = r.title === "تقرير الحجوزات";
-          const openReport = isVehicleReport
-            ? () => setVehicleReportOpen(true)
-            : isInstructorReport
-              ? () => setInstructorReportOpen(true)
-              : isBookingRevenueReport
-                ? () => setBookingRevenueReportOpen(true)
-                : undefined;
-          return (
+          {
+            key: "govCertificate",
+            title: "تقرير الشهادة الحكومية والإيرادات",
+            desc: "رسوم الشهادة، إعادة الامتحان، حصة المدرسة والحكومة",
+            icon: <FaRegAddressCard size={24} color="t.accent" />,
+            onOpen: () => setGovCertificateReportOpen(true),
+          },
+        ].map((r) => (
           <div
-            key={r.title}
-            onClick={openReport}
+            key={r.key}
+            onClick={r.onOpen}
             style={{
               background: t.bgSurface,
               borderRadius: 12,
@@ -3741,32 +3759,11 @@ function PageReports({ t }) {
             >
               {r.title}
             </div>
-            <div style={{ fontSize: 12, color: t.textSec, marginBottom: 14 }}>
+            <div style={{ fontSize: 12, color: t.textSec }}>
               {r.desc}
             </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              {["يومي", "أسبوعي", "شهري"].map((p) => (
-                <button
-                  key={p}
-                  onClick={openReport ? (ev) => ev.stopPropagation() : undefined}
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    background: t.accentLight,
-                    color: t.accentText,
-                    border: "none",
-                    fontSize: 11,
-                    cursor: "pointer",
-                    fontWeight: 600,
-                  }}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
           </div>
-          );
-        })}
+        ))}
       </div>
     </div>
   );
