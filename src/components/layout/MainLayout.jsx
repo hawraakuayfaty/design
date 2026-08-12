@@ -117,15 +117,6 @@ const ADMIN_SUB_TABS = [
   { id: "pricing", label: "الأسعار و إعدادات النظام " },
 ];
 
-const ACCOUNTANT_SUB_TABS = [
-  { id: "dash", label: "لوحة الحسابات" },
-  { id: "payments", label: "الدفعات" },
-  { id: "invoices", label: "الفواتير" },
-  { id: "payroll", label: "الرواتب" },
-  { id: "revenues", label: "الإيرادات" },
-  { id: "generalExpenses", label: "المصاريف العامة" },
-  { id: "pricing", label: "الأسعار" },
-];
 
 const RECEPTIONIST_SUB_TABS = [
   { id: "students", label: "الطلاب" },
@@ -141,8 +132,6 @@ export default function MainLayout({
   onPageChange,
   adminSubPage,
   onAdminSubPageChange,
-  accountantSubPage,
-  onAccountantSubPageChange,
   receptionistSubPage,
   onReceptionistSubPageChange,
   darkMode = false,
@@ -386,17 +375,6 @@ export default function MainLayout({
                   background: adminSubPage === tab.id ? t.bgSidebarActive : "transparent",
                   color: adminSubPage === tab.id ? t.textSidebarActive : t.textMuted,
                   fontWeight: adminSubPage === tab.id ? 700 : 600, fontSize: 13,
-                }}>{tab.label}</button>
-              ))}
-            </div>
-          ) : activePage === "AccountantProPage" && onAccountantSubPageChange ? (
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {ACCOUNTANT_SUB_TABS.map((tab) => (
-                <button key={tab.id} onClick={() => onAccountantSubPageChange(tab.id)} style={{
-                  padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
-                  background: accountantSubPage === tab.id ? t.bgSidebarActive : "transparent",
-                  color: accountantSubPage === tab.id ? t.textSidebarActive : t.textMuted,
-                  fontWeight: accountantSubPage === tab.id ? 700 : 600, fontSize: 13,
                 }}>{tab.label}</button>
               ))}
             </div>
