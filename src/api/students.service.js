@@ -13,6 +13,14 @@ const studentsService = {
     return client.post("/users/students", data);
   },
 
+  update(id, data) {
+    return client.patch(`/students/${id}`, data);
+  },
+
+  setBlocked(id, blocked) {
+    return client.put(`/students/${id}/block`, { blocked });
+  },
+
   getCharges(studentId, params) {
     return client.get(`/students/${studentId}/charges`, { params });
   },

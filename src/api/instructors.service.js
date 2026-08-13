@@ -13,6 +13,14 @@ const instructorsService = {
     return client.post("/users/instructors", data);
   },
 
+  update(id, data) {
+    return client.patch(`/instructors/${id}`, data);
+  },
+
+  archive(id, archived) {
+    return client.put(`/instructors/${id}/archive`, { archived });
+  },
+
   getProfile(id) {
     return client.get(`/instructors/${id}/profile`);
   },

@@ -4,7 +4,7 @@ import AdminDashboard from "./AdminDashboard_3.jsx";
 
 export default function DashboardShell() {
   const [activePage, setActivePage] = useState("Dashboard");
-  const [adminSubPage, setAdminSubPage] = useState("dash");
+  const [adminSubPage, setAdminSubPage] = useState("employees");
   const [accountantSubPage, setAccountantSubPage] = useState("dash");
   const [receptionistSubPage, setReceptionistSubPage] = useState("students");
   const [darkMode, setDarkMode] = useState(false);

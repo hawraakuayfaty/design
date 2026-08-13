@@ -111,7 +111,6 @@ const navItems = [
 ];
 
 const ADMIN_SUB_TABS = [
-  { id: "dash", label: "لوحة التحكم" },
   { id: "employees", label: "الموظفون" },
   { id: "permissions", label: "الصلاحيات" },
   { id: "pricing", label: "الأسعار و إعدادات النظام " },

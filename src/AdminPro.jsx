@@ -1,19 +1,8 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { todayStr, firstOfMonthStr, currentYearMonth } from "./utils/dateUtils";
-import { TbBus } from "react-icons/tb";
-import { TbReceiptTax } from "react-icons/tb";
-import { PiChartLineDown } from "react-icons/pi";
-import { PiChartLineUp } from "react-icons/pi";
-import { IoIosCalendar } from "react-icons/io";
-import { FaRegAddressCard } from "react-icons/fa";
-import { GiAutoRepair } from "react-icons/gi";
 import { FaUserTie } from "react-icons/fa";
 import { IoIosUnlock } from "react-icons/io";
 import { TbReportMoney } from "react-icons/tb";
-import { PiUsersThin } from "react-icons/pi";
-import { IoDocumentTextOutline } from "react-icons/io5";
-import { MdOutlineAttachMoney } from "react-icons/md";
-import { PiMedalFill } from "react-icons/pi";
 import { employeesService, settingsService, employeeAccountingService } from "./api";
 import { FiTrash2 } from "react-icons/fi";
 import { LuEye, LuEyeOff } from "react-icons/lu";
@@ -76,236 +65,8 @@ const T = {
 };
 
 function Badge({s,t}){const m={"نشط":t.completed,"غير نشط":t.expired,"مدير":t.admin,"موظف إداري":t.confirmed,"محاسب":t.pending,"مدرب":{bg:"#FFF7ED",text:"#C2410C",dot:"#F97316"},"موقوف":t.cancelled,"فعّال":t.completed};const c=m[s]||t.expired;return <span style={{display:"inline-flex",alignItems:"center",gap:5,background:c.bg,color:c.text,padding:"2px 9px",borderRadius:20,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>{s}</span>;}
-function Card({children,t,p=16,mb=12,style={}}){return <div style={{background:t.bgSurface,borderRadius:12,border:`1px solid ${t.borderCard}`,padding:p,marginBottom:mb,boxShadow:t.shadow,...style}}>{children}</div>;}
 function Modal({title,onClose,children,t,width=500}){return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(2px)"}} onClick={onClose}><div onClick={e=>e.stopPropagation()} style={{background:t.bgSurface,borderRadius:16,width,maxWidth:"calc(100vw - 40px)",maxHeight:"85vh",overflow:"hidden",boxShadow:t.shadowLg,display:"flex",flexDirection:"column"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px",borderBottom:`1px solid ${t.border}`}}><div style={{fontSize:16,fontWeight:700,color:t.text}}>{title}</div><button onClick={onClose} style={{width:28,height:28,borderRadius:7,border:"none",background:t.bgElevated,cursor:"pointer",fontSize:16,color:t.textMuted}}>✕</button></div><div style={{padding:"18px 20px",overflowY:"auto"}}>{children}</div></div></div>;}
 function Btn({label,onClick,v="primary",sz="md",t,style={}}){const base={padding:sz==="sm"?"4px 11px":"9px 18px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:sz==="sm"?12:14,fontWeight:600};const vs={primary:{background:t.grad,color:"#fff"},secondary:{background:t.accentLight,color:t.accentText,border:`1px solid ${t.accent}30`},danger:{background:"#FFF1F2",color:"#9F1239",border:"1px solid #FECDD3"},ghost:{background:"transparent",color:t.textSec,border:`1px solid ${t.border}`}};return <button onClick={onClick} style={{...base,...vs[v],...style}}>{label}</button>;}
-function KPI({label,value,color,sub,icon,t}){return <div style={{background:t.bgSurface,borderRadius:12,border:`1px solid ${t.borderCard}`,padding:"16px 18px",boxShadow:t.shadow}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div><div style={{fontSize:24,fontWeight:700,color,lineHeight:1,marginBottom:4}}>{value}</div><div style={{fontSize:13,fontWeight:600,color:t.text}}>{label}</div>{sub&&<div style={{fontSize:11,color:t.textMuted,marginTop:2}}>{sub}</div>}</div><div style={{fontSize:24,opacity:0.8}}>{icon}</div></div></div>;}
-
-// ─── DASHBOARD ───
-function PgDash({t}){
-  const kpis1 = [
-    {
-      label: "حجوزات اليوم",
-      value: "١٤",
-      color: t.accent,
-      sub: "↑٢ عن أمس",
-      icon: <IoIosCalendar color={t.accent} />,
-    },
-    {
-      label: "مكتملة اليوم",
-      value: "٦",
-      color: t.accent,
-      sub: "٤٣٪",
-      icon: "✔",
-    },
-    {
-      label: "إيرادات اليوم",
-      value: "٤,٥٠٠ ل.س",
-      color: t.accent,
-      sub: "تقديري",
-      icon: <TbReportMoney color={t.accent} />,
-    },
-    { label: "No-Show اليوم", value: "١", color: t.accent , icon: "⚠"   },
-  ];
-  const kpis2 = [
-    {
-      label: "إيرادات الشهر",
-      value: "١٢٠,٠٠٠ ل.س",
-      color: t.accent,
-      icon: <PiChartLineUp size={24} color={t.accent} />,
-    },
-    {
-      label: "مصاريف الشهر",
-      value: "٣٥,٠٠٠ ل.س",
-      color: "#b91c1c",
-      icon: <PiChartLineDown size={24} color={t.accent} />,
-    },
-    {
-      label: "صافي الربح",
-      value: "٨٥,٠٠٠ ل.س",
-      color: t.accent,
-      icon: <MdOutlineAttachMoney size={24} color={t.accent} />,
-    },
-    {
-      label: "ضريبة مستحقة",
-      value: "١٧,٠٠٠ ل.س",
-      color: "#b91c1c",
-      icon: <TbReceiptTax size={24} color={t.accent} />,
-    },
-    {
-      label: "طلاب جدد الشهر",
-      value: "١٢",
-      color: t.accent,
-      icon: <PiUsersThin size={24} color={t.accent} />,
-    },
-    {
-      label: "دروس مكتملة",
-      value: "٨٦",
-      color: t.accent,
-      icon: <PiMedalFill size={24} color={t.accent} />,
-    },
-    {
-      label: "طلبات شهادة",
-      value: "٨",
-      color: t.accent,
-      icon: <IoDocumentTextOutline size={24} color={t.accent} />,
-    },
-    {
-      label: "رحلات نقل",
-      value: "٢",
-      color: t.accent,
-      icon: <TbBus size={24} color={t.accent} />,
-    },
-  ];
-  return (
-    <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 700,
-          color: t.textMuted,
-          marginBottom: 8,
-        }}
-      >
-        {" "}
-        اليوم — الخميس ٤ يونيو ٢٠٢٦
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4,1fr)",
-          gap: 10,
-          marginBottom: 14,
-        }}
-      >
-        {kpis1.map((k, i) => (
-          <KPI key={i} {...k} t={t} />
-        ))}
-      </div>
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 700,
-          color: t.textMuted,
-          marginBottom: 8,
-        }}
-      >
-        {" "}
-        يونيو ٢٠٢٦
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4,1fr)",
-          gap: 10,
-          marginBottom: 20,
-        }}
-      >
-        {kpis2.map((k, i) => (
-          <KPI key={i} {...k} t={t} />
-        ))}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14 }}>
-        <Card t={t} p={16}>
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: t.text,
-              marginBottom: 12,
-            }}
-          >
-            مقارنة شهرية
-          </div>
-          {[
-            ["شهر", "الإيرادات", "المصاريف", "الصافي"],
-            ["يونيو ٢٠٢٦", "١٢٠,٠٠٠ ل.س", "٣٥,٠٠٠ ل.س", "٨٥,٠٠٠ ل.س"],
-            ["مايو ٢٠٢٦", "١١٠,٠٠٠ ل.س", "٣٢,٠٠٠ ل.س", "٧٨,٠٠٠ ل.س"],
-            ["أبريل ٢٠٢٦", "١٠٥,٠٠٠ ل.س", "٣٤,٠٠٠ ل.س", "٧١,٠٠٠ ل.س"],
-          ].map((row, ri) => (
-            <div
-              key={ri}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                padding: "7px 0",
-                borderBottom: `1px solid ${t.border}`,
-                fontSize: ri === 0 ? 11 : 12,
-                fontWeight: ri === 0 ? 600 : 400,
-                color: ri === 0 ? t.textMuted : t.text,
-              }}
-            >
-              {row.map((c, ci) => (
-                <span
-                  key={ci}
-                  style={{
-                    color:
-                      ri > 0 && ci === 3
-                        ? "#166534"
-                        : ri === 0
-                          ? t.textMuted
-                          : t.text,
-                    fontWeight: ri > 0 && ci === 3 ? 700 : 400,
-                  }}
-                >
-                  {c}
-                </span>
-              ))}
-            </div>
-          ))}
-        </Card>
-        <Card t={t} p={14}>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: t.text,
-              marginBottom: 10,
-            }}
-          >
-            تنبيهات
-          </div>
-          {[
-            {
-              icon: <FaRegAddressCard />,
-              text: "٣ إثباتات بانتظار التحقق",
-              c: t.pending,
-            },
-            {
-              icon: <GiAutoRepair />,
-              text: "سيارة أ·ب·ج ١٠٢ في الصيانة",
-              c: t.cancelled,
-            },
-            { icon: "🌴", text: "مدربة سمر في إجازة اليوم", c: t.pending },
-            {
-              icon: "🏛️",
-              text: "ضريبة الشهر: ١٧,٠٠٠ ل.س مستحقة",
-              c: t.cancelled,
-            },
-          ].map((a, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                gap: 8,
-                padding: "8px 10px",
-                borderRadius: 8,
-                background: a.c.bg,
-                border: `1px solid ${a.c.dot}20`,
-                marginBottom: 6,
-              }}
-            >
-              <span style={{ fontSize: 13 }}>{a.icon}</span>
-              <span style={{ fontSize: 11, color: a.c.text, fontWeight: 600 }}>
-                {a.text}
-              </span>
-            </div>
-          ))}
-        </Card>
-      </div>
-    </div>
-  );
-}
 
 // ─── EMPLOYEES ───
 const ROLE_LABEL_MAP = { MANAGER: "مدير", RECEPTIONIST: "موظف إداري", ACCOUNTANT: "محاسب" };
@@ -1137,7 +898,6 @@ function PgPricing({t}){
 }
 
 const NAV = [
-  { id: "dash", label: "لوحة التحكم", icon: "⊞" },
   { id: "employees", label: "الموظفون", icon: <FaUserTie /> },
   { id: "permissions", label: "الصلاحيات", icon: <IoIosUnlock /> },
   { id: "pricing", label: "الأسعار وإعدادات النظام", icon: <TbReportMoney /> },
@@ -1146,13 +906,13 @@ const NAV = [
 export default function AdminPro({embedded=false,page:forcedPage,darkMode}){
   const [localDark,setLocalDark]=useState(false);
   const dark = (embedded && typeof darkMode !== 'undefined') ? darkMode : localDark;
-  const [page,setPage]=useState(forcedPage||"dash");
+  const [page,setPage]=useState(forcedPage||"employees");
   const [collapsed,setCollapsed]=useState(false);
   const t=T[dark?"dark":"light"];
   const sidebarWidth = collapsed ? 84 : 320;
   // sync when parent forces a page (embedded mode)
   if(forcedPage && forcedPage!==page){ setPage(forcedPage); }
-  const pages={dash:<PgDash t={t}/>,employees:<PgEmployees t={t}/>,permissions:<PgPermissions t={t}/>,pricing:<PgPricing t={t}/>};
+  const pages={employees:<PgEmployees t={t}/>,permissions:<PgPermissions t={t}/>,pricing:<PgPricing t={t}/>};
   return(
     <div dir="rtl" style={{display:"flex",height: embedded?"100%":"100vh",overflow:"hidden",background:t.bgApp,fontFamily:"var(--font-body)"}}>
       {!embedded && <div style={{width:sidebarWidth,flexShrink:0}} />}

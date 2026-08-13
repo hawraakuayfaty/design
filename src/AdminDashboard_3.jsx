@@ -28,7 +28,7 @@ import { FaChartColumn } from "react-icons/fa6";
 import { FaBellConcierge } from "react-icons/fa6";
 import { FaRegCheckCircle } from "react-icons/fa";
 
-import { LuX, LuEye, LuEyeOff } from "react-icons/lu";
+import { LuX, LuEye, LuEyeOff, LuPencil, LuBan, LuLockOpen } from "react-icons/lu";
 
 import { MdAdminPanelSettings } from "react-icons/md";
 import { PiMedalFill } from "react-icons/pi";
@@ -773,6 +773,88 @@ function PageDashboard({ t }) {
         ))}
       </div>
 
+      <div
+        className="dashboard-panel"
+        style={{
+          background: t.bgSurface,
+          borderRadius: 20,
+          border: `1px solid ${t.borderCard}`,
+          padding: 18,
+          boxShadow: darkShadow(t),
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: t.text }}>
+              الدروس القادمة اليوم
+            </div>
+            <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>
+              ترتيب زمني مع إشارة سريعة إلى الدفع والحالة
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 4, background: t.bgElevated, borderRadius: 999, padding: 4 }}>
+              {[
+                { key: "upcoming", label: "القادمة" },
+                { key: "all", label: "الكل" },
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => setScope(opt.key)}
+                  style={{
+                    padding: "5px 14px",
+                    borderRadius: 999,
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    background: scope === opt.key ? t.accent : "transparent",
+                    color: scope === opt.key ? "#fff" : t.textSec,
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div
+              style={{
+                padding: "7px 12px",
+                borderRadius: 999,
+                background: t.accentLight,
+                color: t.accentText,
+                fontSize: 12,
+                fontWeight: 700,
+              }}
+            >
+              {lessonsLoading ? "جارٍ التحميل..." : `${lessons.length} حصة مجدولة`}
+            </div>
+          </div>
+        </div>
+        <Table
+          t={t}
+          headers={[
+            "الطالب",
+            "المدرب",
+            "الوقت",
+            "النوع",
+            "المركبة",
+            "الحالة",
+            "حالة الدفع",
+          ]}
+          rows={lessonRows}
+          minColWidths={[170, 150, 110, 100, 140, 120, 200]}
+        />
+      </div>
+
       <div className="dashboard-panels-grid">
         <div
           className="dashboard-panel"
@@ -786,143 +868,59 @@ function PageDashboard({ t }) {
         >
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 12,
+              fontSize: 14,
+              fontWeight: 800,
+              color: t.text,
               marginBottom: 12,
-              flexWrap: "wrap",
             }}
           >
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: t.text }}>
-                الدروس القادمة اليوم
-              </div>
-              <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>
-                ترتيب زمني مع إشارة سريعة إلى الدفع والحالة
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <div style={{ display: "flex", gap: 4, background: t.bgElevated, borderRadius: 999, padding: 4 }}>
-                {[
-                  { key: "upcoming", label: "القادمة" },
-                  { key: "all", label: "الكل" },
-                ].map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => setScope(opt.key)}
-                    style={{
-                      padding: "5px 14px",
-                      borderRadius: 999,
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      background: scope === opt.key ? t.accent : "transparent",
-                      color: scope === opt.key ? "#fff" : t.textSec,
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              <div
-                style={{
-                  padding: "7px 12px",
-                  borderRadius: 999,
-                  background: t.accentLight,
-                  color: t.accentText,
-                  fontSize: 12,
-                  fontWeight: 700,
-                }}
-              >
-                {lessonsLoading ? "جارٍ التحميل..." : `${lessons.length} حصة مجدولة`}
-              </div>
-            </div>
+            دفعات معلقة بانتظار الانتهاء
           </div>
           <Table
             t={t}
-            headers={[
-              "الطالب",
-              "المدرب",
-              "الوقت",
-              "النوع",
-              "المركبة",
-              "الحالة",
-              "حالة الدفع",
-            ]}
-            rows={lessonRows}
-            minColWidths={[170, 150, 110, 100, 140, 120, 200]}
+            headers={["الطالب", "المبلغ المستحق", "ينتهي في", "الوقت المتبقي"]}
+            rows={pendingRows}
+            minColWidths={[150, 140, 130, 140]}
           />
         </div>
-
-        <div className="dashboard-side-stack">
+        <div
+          className="dashboard-panel"
+          style={{
+            background: t.bgSurface,
+            borderRadius: 20,
+            border: `1px solid ${t.borderCard}`,
+            padding: 18,
+            boxShadow: darkShadow(t),
+          }}
+        >
           <div
-            className="dashboard-panel"
             style={{
-              background: t.bgSurface,
-              borderRadius: 20,
-              border: `1px solid ${t.borderCard}`,
-              padding: 18,
-              boxShadow: darkShadow(t),
+              fontSize: 14,
+              fontWeight: 800,
+              color: t.text,
+              marginBottom: 12,
             }}
           >
-            <div
-              style={{
-                fontSize: 14,
-                fontWeight: 800,
-                color: t.text,
-                marginBottom: 12,
-              }}
-            >
-              دفعات معلقة بانتظار الانتهاء
-            </div>
-            <Table
-              t={t}
-              headers={["الطالب", "المبلغ المستحق", "ينتهي في", "الوقت المتبقي"]}
-              rows={pendingRows}
-              minColWidths={[150, 140, 130, 140]}
-            />
+            المركبات والمدربون
           </div>
-          <div
-            className="dashboard-panel"
-            style={{
-              background: t.bgSurface,
-              borderRadius: 20,
-              border: `1px solid ${t.borderCard}`,
-              padding: 18,
-              boxShadow: darkShadow(t),
-            }}
-          >
-            <div
-              style={{
-                fontSize: 14,
-                fontWeight: 800,
-                color: t.text,
-                marginBottom: 12,
-              }}
-            >
-              المركبات والمدربون
-            </div>
-            <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 8 }}>
-              المركبات
-            </div>
-            <Table
-              t={t}
-              headers={["المركبة", "النوع", "الحالة"]}
-              rows={vehicleRows}
-              minColWidths={[140, 120, 130]}
-            />
-            <div style={{ fontSize: 12, color: t.textMuted, margin: "14px 0 8px" }}>
-              المدربون
-            </div>
-            <Table
-              t={t}
-              headers={["المدرب", "النوع", "الحالة اليوم"]}
-              rows={instructorRows}
-              minColWidths={[140, 160, 230]}
-            />
+          <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 8 }}>
+            المركبات
           </div>
+          <Table
+            t={t}
+            headers={["المركبة", "النوع", "الحالة"]}
+            rows={vehicleRows}
+            minColWidths={[140, 120, 130]}
+          />
+          <div style={{ fontSize: 12, color: t.textMuted, margin: "14px 0 8px" }}>
+            المدربون
+          </div>
+          <Table
+            t={t}
+            headers={["المدرب", "النوع", "الحالة اليوم"]}
+            rows={instructorRows}
+            minColWidths={[140, 160, 230]}
+          />
         </div>
       </div>
     </div>
@@ -1152,14 +1150,197 @@ function AddStudentModal({ t, onClose, onSuccess }) {
   );
 }
 
+function EditStudentModal({ t, student, onClose, onSuccess }) {
+  const [form, setForm] = useState({
+    name: student.user?.name || student.name || "",
+    phone: student.user?.phone || student.phone || "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "الاسم مطلوب";
+    if (!form.phone.trim()) e.phone = "رقم الهاتف مطلوب";
+    else if (!/^09\d{8}$/.test(form.phone.trim())) e.phone = "رقم الهاتف غير صالح (مثال: 0991234567)";
+    return e;
+  };
+
+  const handleSubmit = async (ev) => {
+    ev.preventDefault();
+    setServerError("");
+    const v = validate();
+    setErrors(v);
+    if (Object.keys(v).length) return;
+
+    setSubmitting(true);
+    try {
+      await studentsService.update(student.studentId ?? student.id, {
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+      });
+      onSuccess();
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "حدث خطأ أثناء تعديل بيانات الطالب");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const fieldStyle = (field) => ({
+    width: "100%", padding: "12px 14px", borderRadius: 10,
+    border: `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+    background: t.bgElevated, color: t.text, fontSize: 14,
+    outline: "none", transition: "border-color 0.2s",
+  });
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.45)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
+        width: "100%", maxWidth: 440, border: `1px solid ${t.borderCard}`,
+        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: t.text }}>تعديل معلومات الطالب</h3>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+
+        {serverError && (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+            fontSize: 13, color: "#c74848",
+          }}>{serverError}</div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>الاسم الكامل</label>
+            <input value={form.name} onChange={(ev) => { setForm({ ...form, name: ev.target.value }); setErrors({ ...errors, name: undefined }); }}
+              style={fieldStyle("name")} />
+            {errors.name && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.name}</div>}
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>رقم الهاتف</label>
+            <input value={form.phone} onChange={(ev) => { setForm({ ...form, phone: ev.target.value }); setErrors({ ...errors, phone: undefined }); }}
+              dir="ltr" style={{ ...fieldStyle("phone"), textAlign: "left" }} />
+            {errors.phone && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.phone}</div>}
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="submit" disabled={submitting} style={{
+              flex: 1, padding: "12px", borderRadius: 12,
+              background: submitting ? t.textMuted : "#778a3b",
+              color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
+              cursor: submitting ? "not-allowed" : "pointer",
+            }}>{submitting ? "جارٍ الحفظ..." : "حفظ التعديلات"}</button>
+            <button type="button" onClick={onClose} style={{
+              padding: "12px 20px", borderRadius: 12,
+              background: t.bgElevated, color: t.textSec,
+              border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
+              cursor: "pointer",
+            }}>إلغاء</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function BlockStudentConfirm({ t, student, onClose, onSuccess }) {
+  const isBlocked = (student.user?.accountStatus || student.accountStatus) === "BLOCKED";
+  const name = student.user?.name || student.name || "الطالب";
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleConfirm = async () => {
+    setError("");
+    setSubmitting(true);
+    try {
+      await studentsService.setBlocked(student.studentId ?? student.id, !isBlocked);
+      onSuccess();
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join("، ") : msg || `حدث خطأ أثناء ${isBlocked ? "إلغاء حظر" : "حظر"} الطالب`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.45)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
+        width: "100%", maxWidth: 400, border: `1px solid ${t.borderCard}`,
+        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: t.text }}>{isBlocked ? "إلغاء حظر الطالب" : "حظر الطالب"}</h3>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+        <div style={{
+          padding: "10px 12px", borderRadius: 9, background: t.cancelled.bg,
+          marginBottom: 16, fontSize: 13, color: t.cancelled.text,
+        }}>
+          {isBlocked
+            ? `هل أنت متأكد من إلغاء حظر الطالب ${name}؟ سيعود الحساب نشطاً.`
+            : `هل أنت متأكد من حظر الطالب ${name}؟ لن يتمكن من الحجز أو تسجيل الدخول.`}
+        </div>
+        {error && (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+            fontSize: 13, color: "#c74848",
+          }}>{error}</div>
+        )}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={handleConfirm} disabled={submitting} style={{
+            flex: 1, padding: "12px", borderRadius: 12,
+            background: submitting ? t.textMuted : "#c74848",
+            color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
+            cursor: submitting ? "not-allowed" : "pointer",
+          }}>{submitting ? "جارٍ التنفيذ..." : (isBlocked ? "تأكيد إلغاء الحظر" : "تأكيد الحظر")}</button>
+          <button onClick={onClose} style={{
+            padding: "12px 20px", borderRadius: 12,
+            background: t.bgElevated, color: t.textSec,
+            border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
+            cursor: "pointer",
+          }}>إلغاء</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PageStudents({ t }) {
   const { hasPermission } = useAuth();
   const canCreate = hasPermission(P.STUDENTS_CREATE);
+  const canUpdate = hasPermission(P.STUDENTS_UPDATE);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [editStudent, setEditStudent] = useState(null);
+  const [blockTarget, setBlockTarget] = useState(null);
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -1195,15 +1376,7 @@ function PageStudents({ t }) {
     return () => { cancelled = true; };
   }, [search, statusFilter]);
 
-  const tableRows = students.map((s) => [
-    s.user?.name || s.name || "—",
-    s.user?.phone || s.phone || "—",
-    STUDENT_STATUS_MAP[s.studentStatus] || s.studentStatus || "—",
-    String(s.id),
-    "—",
-    "—",
-    "—",
-  ]);
+  const isBlocked = (student) => (student.user?.accountStatus || student.accountStatus) === "BLOCKED";
 
   return (
     <div>
@@ -1254,11 +1427,63 @@ function PageStudents({ t }) {
           لا توجد نتائج
         </div>
       ) : (
-        <Table
-          t={t}
-          headers={["الاسم الكامل", "رقم الهاتف", "الحالة", "رقم الطالب", "الحجوزات", "آخر درس", "الشهادة"]}
-          rows={tableRows}
-        />
+        <div style={{ borderRadius: 10, border: `0.5px solid ${t.border}`, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "30%" }} />
+              <col style={{ width: "20%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "34%" }} />
+            </colgroup>
+            <thead>
+              <tr style={{ background: t.bgElevated }}>
+                {["الاسم الكامل", "رقم الهاتف", "الحالة", "إجراءات"].map((h, i) => (
+                  <th key={i} style={{
+                    padding: "13px 18px", textAlign: i === 3 ? "center" : "right",
+                    color: t.textMuted, fontWeight: 700,
+                    fontSize: 12, borderBottom: `0.5px solid ${t.border}`,
+                    whiteSpace: "nowrap",
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {students.map((s, ri) => (
+                <tr key={s.studentId ?? s.id ?? ri} style={{
+                  background: ri % 2 === 0 ? t.bgSurface : t.bgPage,
+                  borderBottom: `0.5px solid ${t.border}`,
+                }}>
+                  <td style={{ padding: "13px 18px", color: t.text, fontSize: 14, fontWeight: 600, verticalAlign: "middle" }}>{s.user?.name || s.name || "—"}</td>
+                  <td style={{ padding: "13px 18px", color: t.textSec, fontSize: 13, verticalAlign: "middle" }} dir="ltr">{s.user?.phone || s.phone || "—"}</td>
+                  <td style={{ padding: "13px 18px", verticalAlign: "middle" }}><Badge status={STUDENT_STATUS_MAP[s.studentStatus] || s.studentStatus || "—"} t={t} /></td>
+                  <td style={{ padding: "10px 18px", verticalAlign: "middle" }}>
+                    {canUpdate ? (
+                      <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                        <button onClick={() => setEditStudent(s)} style={{
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                          padding: "6px 14px", borderRadius: 8, background: t.accentLight,
+                          color: t.accentText, border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                        }}><LuPencil size={13} /> تعديل المعلومات</button>
+                        <button onClick={() => setBlockTarget(s)} style={{
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                          padding: "6px 14px", borderRadius: 8,
+                          background: isBlocked(s) ? t.confirmed.bg : t.cancelled.bg,
+                          color: isBlocked(s) ? t.confirmed.text : t.cancelled.text,
+                          border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                        }}>
+                          {isBlocked(s) ? <LuLockOpen size={13} /> : <LuBan size={13} />}
+                          {isBlocked(s) ? "إلغاء الحظر" : "حظر"}
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: "center", color: t.textMuted, fontSize: 12 }}>—</div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1276,6 +1501,24 @@ function PageStudents({ t }) {
           t={t}
           onClose={() => setShowModal(false)}
           onSuccess={() => { setShowModal(false); fetchStudents(); }}
+        />
+      )}
+
+      {editStudent && (
+        <EditStudentModal
+          t={t}
+          student={editStudent}
+          onClose={() => setEditStudent(null)}
+          onSuccess={() => { setEditStudent(null); fetchStudents(); }}
+        />
+      )}
+
+      {blockTarget && (
+        <BlockStudentConfirm
+          t={t}
+          student={blockTarget}
+          onClose={() => setBlockTarget(null)}
+          onSuccess={() => { setBlockTarget(null); fetchStudents(); }}
         />
       )}
     </div>
@@ -1461,15 +1704,369 @@ function AddInstructorModal({ t, onClose, onSuccess }) {
   );
 }
 
+function EditInstructorModal({ t, instructor, onClose, onSuccess }) {
+  const [form, setForm] = useState({
+    name: instructor.user?.name || instructor.name || "",
+    phone: instructor.user?.phone || instructor.phone || "",
+    gender: instructor.gender || "",
+    instructorType: instructor.instructorType || "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "الاسم مطلوب";
+    if (!form.phone.trim()) e.phone = "رقم الهاتف مطلوب";
+    else if (!/^09\d{8}$/.test(form.phone.trim())) e.phone = "رقم الهاتف غير صالح (مثال: 0991234567)";
+    if (!form.gender) e.gender = "الجنس مطلوب";
+    if (!form.instructorType) e.instructorType = "نوع التدريب مطلوب";
+    return e;
+  };
+
+  const handleSubmit = async (ev) => {
+    ev.preventDefault();
+    setServerError("");
+    const v = validate();
+    setErrors(v);
+    if (Object.keys(v).length) return;
+
+    setSubmitting(true);
+    try {
+      await instructorsService.update(instructor.instructorId, {
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        gender: form.gender,
+        instructorType: form.instructorType,
+      });
+      onSuccess();
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setServerError(Array.isArray(msg) ? msg.join("، ") : msg || "حدث خطأ أثناء تعديل بيانات المدرب");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const fieldStyle = (field) => ({
+    width: "100%", padding: "12px 14px", borderRadius: 10,
+    border: `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+    background: t.bgElevated, color: t.text, fontSize: 14,
+    outline: "none", transition: "border-color 0.2s",
+  });
+
+  const selectChipStyle = (field, value) => ({
+    flex: 1, padding: "10px 8px", borderRadius: 10, border: "none",
+    cursor: "pointer", fontSize: 13, fontWeight: 600, textAlign: "center",
+    transition: "all 0.15s",
+    background: form[field] === value ? "#778a3b" : t.bgElevated,
+    color: form[field] === value ? "#fff" : t.textSec,
+    outline: form[field] === value ? "none" : `1.5px solid ${errors[field] ? "#c74848" : t.border}`,
+  });
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.45)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
+        width: "100%", maxWidth: 480, border: `1px solid ${t.borderCard}`,
+        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+        maxHeight: "90vh", overflowY: "auto",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: t.text }}>تعديل معلومات المدرب</h3>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+
+        {serverError && (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+            fontSize: 13, color: "#c74848",
+          }}>{serverError}</div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>الاسم الكامل</label>
+            <input value={form.name} onChange={(ev) => { setForm({ ...form, name: ev.target.value }); setErrors({ ...errors, name: undefined }); }}
+              style={fieldStyle("name")} />
+            {errors.name && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.name}</div>}
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 6 }}>رقم الهاتف</label>
+            <input value={form.phone} onChange={(ev) => { setForm({ ...form, phone: ev.target.value }); setErrors({ ...errors, phone: undefined }); }}
+              dir="ltr" style={{ ...fieldStyle("phone"), textAlign: "left" }} />
+            {errors.phone && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.phone}</div>}
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 8 }}>الجنس</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => { setForm({ ...form, gender: "MALE" }); setErrors({ ...errors, gender: undefined }); }} style={selectChipStyle("gender", "MALE")}>ذكر</button>
+              <button type="button" onClick={() => { setForm({ ...form, gender: "FEMALE" }); setErrors({ ...errors, gender: undefined }); }} style={selectChipStyle("gender", "FEMALE")}>أنثى</button>
+            </div>
+            {errors.gender && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.gender}</div>}
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: t.textSec, marginBottom: 8 }}>نوع التدريب</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => { setForm({ ...form, instructorType: "MANUAL" }); setErrors({ ...errors, instructorType: undefined }); }} style={selectChipStyle("instructorType", "MANUAL")}>عادي</button>
+              <button type="button" onClick={() => { setForm({ ...form, instructorType: "AUTOMATIC" }); setErrors({ ...errors, instructorType: undefined }); }} style={selectChipStyle("instructorType", "AUTOMATIC")}>أوتوماتيك</button>
+              <button type="button" onClick={() => { setForm({ ...form, instructorType: "BOTH" }); setErrors({ ...errors, instructorType: undefined }); }} style={selectChipStyle("instructorType", "BOTH")}>كلاهما</button>
+            </div>
+            {errors.instructorType && <div style={{ fontSize: 12, color: "#c74848", marginTop: 4 }}>{errors.instructorType}</div>}
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="submit" disabled={submitting} style={{
+              flex: 1, padding: "12px", borderRadius: 12,
+              background: submitting ? t.textMuted : "#778a3b",
+              color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
+              cursor: submitting ? "not-allowed" : "pointer",
+              transition: "background 0.2s",
+            }}>{submitting ? "جارٍ الحفظ..." : "حفظ التعديلات"}</button>
+            <button type="button" onClick={onClose} style={{
+              padding: "12px 20px", borderRadius: 12,
+              background: t.bgElevated, color: t.textSec,
+              border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
+              cursor: "pointer",
+            }}>إلغاء</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ArchiveInstructorConfirm({ t, instructor, onClose, onSuccess }) {
+  const isArchived = (instructor.user?.accountStatus || instructor.accountStatus) === "ARCHIVED";
+  const name = instructor.user?.name || instructor.name || "المدرب";
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleConfirm = async () => {
+    setError("");
+    setSubmitting(true);
+    try {
+      await instructorsService.archive(instructor.instructorId, !isArchived);
+      onSuccess();
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join("، ") : msg || `حدث خطأ أثناء ${isArchived ? "إلغاء أرشفة" : "أرشفة"} المدرب`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.45)", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
+        width: "100%", maxWidth: 400, border: `1px solid ${t.borderCard}`,
+        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: t.text }}>{isArchived ? "إلغاء أرشفة المدرب" : "أرشفة المدرب"}</h3>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+        <div style={{
+          padding: "10px 12px", borderRadius: 9, background: t.cancelled.bg,
+          marginBottom: 16, fontSize: 13, color: t.cancelled.text,
+        }}>
+          {isArchived
+            ? `هل أنت متأكد من إلغاء أرشفة المدرب ${name}؟ سيعود الحساب نشطاً.`
+            : `هل أنت متأكد من أرشفة المدرب ${name}؟ لن يظهر كمتاح للحجوزات الجديدة.`}
+        </div>
+        {error && (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+            fontSize: 13, color: "#c74848",
+          }}>{error}</div>
+        )}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={handleConfirm} disabled={submitting} style={{
+            flex: 1, padding: "12px", borderRadius: 12,
+            background: submitting ? t.textMuted : "#c74848",
+            color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
+            cursor: submitting ? "not-allowed" : "pointer",
+          }}>{submitting ? "جارٍ التنفيذ..." : (isArchived ? "تأكيد إلغاء الأرشفة" : "تأكيد الأرشفة")}</button>
+          <button onClick={onClose} style={{
+            padding: "12px 20px", borderRadius: 12,
+            background: t.bgElevated, color: t.textSec,
+            border: `1px solid ${t.border}`, fontSize: 14, fontWeight: 600,
+            cursor: "pointer",
+          }}>إلغاء</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// INSTRUCTOR PROFILE MODAL — helpers
+// ═══════════════════════════════════════════════
+const INSTRUCTOR_LEAVE_STATUS_LABEL = { FULL_DAY_LEAVE: "إجازة يوم كامل", PARTIAL_LEAVE: "إجازة جزئية" };
+
+function formatNum(v) {
+  if (v == null || v === "") return "—";
+  const n = Number(v);
+  return isNaN(n) ? String(v) : n.toLocaleString("en");
+}
+
+function ProfileInfoRow({ k, v, t, last }) {
+  return (
+    <div style={{
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+      padding: "9px 0", borderBottom: last ? "none" : `1px solid ${t.border}`, fontSize: 13,
+    }}>
+      <span style={{ color: t.textMuted }}>{k}</span>
+      <span style={{ fontWeight: 600, color: t.text, textAlign: "left" }}>{v}</span>
+    </div>
+  );
+}
+
+function InstructorProfileModal({ t, instructorId, onClose }) {
+  const [profile, setProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setProfileLoading(true);
+      try {
+        const { data } = await instructorsService.getProfile(instructorId);
+        if (!cancelled) setProfile(data?.data ?? data);
+      } catch {
+        if (!cancelled) setProfile(null);
+      } finally {
+        if (!cancelled) setProfileLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [instructorId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setStatsLoading(true);
+      try {
+        const { data } = await instructorsService.getStats(instructorId);
+        if (!cancelled) setStats(data?.data ?? data);
+      } catch {
+        if (!cancelled) setStats(null);
+      } finally {
+        if (!cancelled) setStatsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [instructorId]);
+
+  const cardBox = {
+    background: t.bgSurface, borderRadius: 16, border: `1px solid ${t.borderCard}`,
+    padding: 18, marginBottom: 16,
+  };
+  const cardTitle = { fontSize: 14, fontWeight: 800, color: t.text, marginBottom: 14 };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.5)", display: "flex",
+      alignItems: "center", justifyContent: "center", padding: 16,
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgPage, borderRadius: 20, width: "100%", maxWidth: 520,
+        border: `1px solid ${t.borderCard}`, boxShadow: "0 24px 48px rgba(0,0,0,0.25)",
+        padding: "26px 24px 30px", maxHeight: "90vh", overflowY: "auto",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: t.text }}>بروفايل المدرب</h3>
+            <p style={{ margin: "4px 0 0", fontSize: 13, color: t.textSec }}>
+              {profileLoading ? "جارٍ التحميل..." : (profile?.name || "—")}
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+
+        {/* بطاقة البيانات الشخصية */}
+        <div style={cardBox}>
+          <div style={cardTitle}>البيانات الشخصية</div>
+          {profileLoading ? (
+            <div style={{ fontSize: 13, color: t.textMuted }}>جارٍ التحميل...</div>
+          ) : !profile ? (
+            <div style={{ fontSize: 13, color: t.textMuted }}>تعذر تحميل بيانات المدرب</div>
+          ) : (
+            <>
+              <ProfileInfoRow t={t} k="الاسم" v={profile.name || "—"} />
+              <ProfileInfoRow t={t} k="الهاتف" v={<span dir="ltr">{profile.phone || "—"}</span>} />
+              <ProfileInfoRow t={t} k="الجنس" v={GENDER_MAP[profile.gender] || profile.gender || "—"} />
+              <ProfileInfoRow t={t} k="القدرات" v={INSTRUCTOR_TYPE_MAP[profile.instructorType] || profile.instructorType || "—"} />
+              <ProfileInfoRow t={t} k="أجر الجلسة الحالي" v={formatMoney(profile.sessionWage)} />
+              <ProfileInfoRow t={t} k="جلسات اليوم" v={formatNum(profile.todayLessonsCount ?? 0)} />
+              <ProfileInfoRow t={t} k="حالة الإجازة اليوم" v={profile.leaveStatus ? (INSTRUCTOR_LEAVE_STATUS_LABEL[profile.leaveStatus] || profile.leaveStatus) : "لا يوجد"} last />
+            </>
+          )}
+        </div>
+
+        {/* الإحصائيات */}
+        <div style={{ ...cardBox, marginBottom: 0 }}>
+          <div style={cardTitle}>الإحصائيات</div>
+          {statsLoading ? (
+            <div style={{ fontSize: 13, color: t.textMuted }}>جارٍ التحميل...</div>
+          ) : !stats ? (
+            <div style={{ fontSize: 13, color: t.textMuted }}>تعذر تحميل الإحصائيات</div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+              <StatCard t={t} label="جلسات هذا الشهر" value={formatNum(stats.sessionsThisMonth ?? 0)} color={t.accent} icon={<RiCalendarScheduleLine size={20} />} />
+              <StatCard t={t} label="غياب هذا الشهر" value={formatNum(stats.noShowsThisMonth ?? 0)} color={t.cancelled.text} icon={<MdOutlineCancel size={20} />} />
+              <StatCard t={t} label="نسبة الإكمال" value={stats.completionRate != null ? `${stats.completionRate}%` : "—"} color={t.completed.text} icon={<PiMedalFill size={20} />} />
+              <StatCard t={t} label="مستحق اليوم" value={formatMoney(stats.dueToday)} color={t.pending.text} icon={<BsHourglassSplit size={20} />} />
+              <StatCard t={t} label="إجمالي المستحقات" value={formatMoney(stats.totalOutstanding)} color={t.accent} icon={<TbReportMoney size={20} />} />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PageInstructors({ t }) {
   const { hasPermission } = useAuth();
   const canCreate = hasPermission(P.INSTRUCTORS_CREATE);
+  const canUpdate = hasPermission(P.INSTRUCTORS_UPDATE);
   const [instructors, setInstructors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [genderFilter, setGenderFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [editInstructor, setEditInstructor] = useState(null);
+  const [archiveTarget, setArchiveTarget] = useState(null);
+  const [profileInstructorId, setProfileInstructorId] = useState(null);
 
   const fetchInstructors = async () => {
     setLoading(true);
@@ -1514,14 +2111,7 @@ function PageInstructors({ t }) {
     return "نشط";
   };
 
-  const tableRows = instructors.map((ins) => [
-    ins.user?.name || ins.name || "—",
-    GENDER_MAP[ins.gender] || ins.gender || "—",
-    INSTRUCTOR_TYPE_MAP[ins.instructorType] || ins.instructorType || "—",
-    ins.user?.phone || ins.phone || "—",
-    statusLabel(ins),
-    String(ins.id),
-  ]);
+  const isArchived = (instructor) => (instructor.user?.accountStatus || instructor.accountStatus) === "ARCHIVED";
 
   return (
     <div>
@@ -1571,37 +2161,91 @@ function PageInstructors({ t }) {
           لا توجد نتائج
         </div>
       ) : (
-        <Table
-          t={t}
-          headers={["الاسم", "الجنس", "القدرات", "رقم الهاتف", "الحالة", "رقم المدرب"]}
-          rows={tableRows}
-        />
-      )}
-
-      {/* Instructor availability section */}
-      <div style={{ marginTop: 20, background: t.bgSurface, borderRadius: 12, border: `0.5px solid ${t.borderCard}`, padding: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 12 }}>إدارة أوقات التوفر الأسبوعية</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
-          {["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"].map((day, i) => (
-            <div key={day} style={{
-              padding: "8px 4px", borderRadius: 8, textAlign: "center",
-              background: i < 5 ? t.accentLight : t.bgElevated,
-              border: `0.5px solid ${i < 5 ? t.accentText + "40" : t.border}`,
-              fontSize: 11, color: i < 5 ? t.accentText : t.textMuted,
-              fontWeight: i < 5 ? 600 : 400,
-            }}>
-              <div>{day}</div>
-              {i < 5 && <div style={{ fontSize: 10, marginTop: 4 }}>08:00 — 17:00</div>}
-            </div>
-          ))}
+        <div style={{ borderRadius: 10, border: `0.5px solid ${t.border}`, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <thead>
+              <tr style={{ background: t.bgElevated }}>
+                {["الاسم", "الجنس", "القدرات", "رقم الهاتف", "الحالة", "إجراءات"].map((h, i) => (
+                  <th key={i} style={{
+                    padding: "10px 14px", textAlign: "right",
+                    color: t.textMuted, fontWeight: 600,
+                    fontSize: 12, borderBottom: `0.5px solid ${t.border}`,
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {instructors.map((ins, ri) => (
+                <tr key={ins.instructorId ?? ri} style={{
+                  background: ri % 2 === 0 ? t.bgSurface : t.bgPage,
+                  borderBottom: `0.5px solid ${t.border}`,
+                }}>
+                  <td style={{ padding: "10px 14px", color: t.text, fontSize: 14 }}>{ins.user?.name || ins.name || "—"}</td>
+                  <td style={{ padding: "10px 14px" }}><Badge status={GENDER_MAP[ins.gender] || ins.gender || "—"} t={t} /></td>
+                  <td style={{ padding: "10px 14px" }}><Badge status={INSTRUCTOR_TYPE_MAP[ins.instructorType] || ins.instructorType || "—"} t={t} /></td>
+                  <td style={{ padding: "10px 14px", color: t.text, fontSize: 14 }} dir="ltr">{ins.user?.phone || ins.phone || "—"}</td>
+                  <td style={{ padding: "10px 14px" }}><Badge status={statusLabel(ins)} t={t} /></td>
+                  <td style={{ padding: "10px 14px" }}>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      <button onClick={() => setProfileInstructorId(ins.instructorId)} style={{
+                        padding: "4px 10px", borderRadius: 6, background: t.bgElevated,
+                        color: t.text, border: `1px solid ${t.border}`, fontSize: 11, cursor: "pointer", fontWeight: 600,
+                        display: "flex", alignItems: "center", gap: 4,
+                      }}><LuEye size={13} />البروفايل</button>
+                      {canUpdate && (
+                        <>
+                          <button onClick={() => setEditInstructor(ins)} style={{
+                            padding: "4px 10px", borderRadius: 6, background: t.accentLight,
+                            color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                          }}>تعديل المعلومات</button>
+                          <button onClick={() => setArchiveTarget(ins)} style={{
+                            padding: "4px 10px", borderRadius: 6,
+                            background: isArchived(ins) ? t.confirmed.bg : t.cancelled.bg,
+                            color: isArchived(ins) ? t.confirmed.text : t.cancelled.text,
+                            border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                          }}>{isArchived(ins) ? "إلغاء الأرشفة" : "أرشفة"}</button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
+      )}
 
       {showModal && (
         <AddInstructorModal
           t={t}
           onClose={() => setShowModal(false)}
           onSuccess={() => { setShowModal(false); fetchInstructors(); }}
+        />
+      )}
+
+      {editInstructor && (
+        <EditInstructorModal
+          t={t}
+          instructor={editInstructor}
+          onClose={() => setEditInstructor(null)}
+          onSuccess={() => { setEditInstructor(null); fetchInstructors(); }}
+        />
+      )}
+
+      {archiveTarget && (
+        <ArchiveInstructorConfirm
+          t={t}
+          instructor={archiveTarget}
+          onClose={() => setArchiveTarget(null)}
+          onSuccess={() => { setArchiveTarget(null); fetchInstructors(); }}
+        />
+      )}
+
+      {profileInstructorId && (
+        <InstructorProfileModal
+          t={t}
+          instructorId={profileInstructorId}
+          onClose={() => setProfileInstructorId(null)}
         />
       )}
     </div>
@@ -4056,12 +4700,12 @@ export default function App({
   const darkMode = embeddedMode ? (externalDarkMode ?? false) : internalDarkMode;
   const [internalPage, setInternalPage] = useState("Dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [internalAdminSub, setInternalAdminSub] = useState("dash");
+  const [internalAdminSub, setInternalAdminSub] = useState("employees");
 const [internalReceptionistSub, setInternalReceptionistSub] = useState("students");
 
   const activePage = embeddedMode ? externalPage : internalPage;
   const setActivePage = embeddedMode ? onPageChange : setInternalPage;
-  const adminSubPage = embeddedMode ? (externalAdminSub || "dash") : internalAdminSub;
+  const adminSubPage = embeddedMode ? (externalAdminSub || "employees") : internalAdminSub;
 const receptionistSubPage = embeddedMode ? (externalReceptionistSub || "students") : internalReceptionistSub;
 
   const t = tokens[darkMode ? "dark" : "light"];
@@ -4280,7 +4924,6 @@ const receptionistSubPage = embeddedMode ? (externalReceptionistSub || "students
           {activePage === "AdminProPage" ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               {[
-                { id: "dash", label: "لوحة التحكم" },
                 { id: "employees", label: "الموظفون" },
                 { id: "permissions", label: "الصلاحيات" },
                 { id: "pricing", label: "الأسعار وإعدادات النظام " },
