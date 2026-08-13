@@ -21,8 +21,8 @@ const certificatesService = {
   exportCourse(id, data={})   { return client.post(`/reception/certificate-courses/${id}/export`, data, { responseType: "blob" }); },
 
   /* ── Revenue ──────────────────────────────────────────────────────── */
-  getRevenueSummary()    { return client.get("/certificates/revenue/summary"); },
-  getRevenueDaily(days)  { return client.get("/certificates/revenue/daily", { params: { days } }); },
+  getRevenueSummary(from, to)  { return client.get("/certificates/revenue/summary", { params: { from, to } }); },
+  getRevenueDaily(date)        { return client.get("/certificates/revenue/daily",   { params: { date } }); },
 
   /* ── Revenue (report dashboard — from/to & date per front-end-GUI-GUIDE §5) ── */
   getRevenueSummaryByRange(params) { return client.get("/certificates/revenue/summary", { params }); },

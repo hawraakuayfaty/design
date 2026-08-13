@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { todayStr, firstOfMonthStr } from "./utils/dateUtils";
-import { generalExpensesService } from "./api";
+import { todayStr, firstOfMonthStr, currentYearMonth } from "./utils/dateUtils";
+import { generalExpensesService, employeesService, employeeAccountingService } from "./api";
 import { FiTrash2 } from "react-icons/fi";
+import { LuEye, LuEyeOff } from "react-icons/lu";
 
 const T = {
   light: {
@@ -19,7 +20,12 @@ const T = {
     accentLight: "#EEF2E4",
     accentText: "#715317",
     grad: "linear-gradient(135deg,#778A3B 0%,#5F702D 100%)",
-    pending: { bg: "rgba(201,138,40,0.14)", text: "#C98A28" },
+    pending:   { bg: "rgba(201,138,40,0.14)", text: "#C98A28", dot: "#C98A28" },
+    completed: { bg: "rgba(63,107,58,0.14)",  text: "#3F6B3A", dot: "#3F6B3A" },
+    cancelled: { bg: "rgba(199,72,72,0.12)",  text: "#C74848", dot: "#C74848" },
+    confirmed: { bg: "rgba(119,124,59,0.12)", text: "#5F702D", dot: "#778A3B" },
+    expired:   { bg: "rgba(183,189,178,0.16)",text: "#747A70", dot: "#B7BDB2" },
+    admin:     { bg: "rgba(119,124,59,0.10)", text: "#5F702D", dot: "#778A3B" },
     shadow: "0 12px 28px rgba(119,138,59,0.10)",
     shadowLg: "0 20px 48px rgba(119,138,59,0.16)",
   },
@@ -38,7 +44,12 @@ const T = {
     accentLight: "rgba(119,138,59,0.22)",
     accentText: "#D4EDAA",
     grad: "linear-gradient(135deg,#778A3B 0%,#5F702D 100%)",
-    pending: { bg: "rgba(201,138,40,0.22)", text: "#F0CB8C" },
+    pending:   { bg: "rgba(201,138,40,0.22)", text: "#F0CB8C", dot: "#F0CB8C" },
+    completed: { bg: "rgba(63,107,58,0.26)",  text: "#86EFAC", dot: "#86EFAC" },
+    cancelled: { bg: "rgba(199,72,72,0.22)",  text: "#FCA5A5", dot: "#FCA5A5" },
+    confirmed: { bg: "rgba(119,138,59,0.22)", text: "#D4EDAA", dot: "#D4EDAA" },
+    expired:   { bg: "rgba(161,161,170,0.14)",text: "#A1A1AA", dot: "#A1A1AA" },
+    admin:     { bg: "rgba(119,138,59,0.20)", text: "#D4EDAA", dot: "#D4EDAA" },
     shadow: "0 12px 28px rgba(0,0,0,0.40)",
     shadowLg: "0 20px 48px rgba(0,0,0,0.50)",
   },
@@ -113,7 +124,7 @@ const selectSt = t => ({
   boxSizing: "border-box", outline: "none",
 });
 
-function ExpTypeBadge({ type, t }) {
+function ExpTypeBadge({ type }) {
   const m = EXP_TYPE_MAP[type] || { lbl: type, clr: "#6B7280" };
   return (
     <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 20, background: `${m.clr}18`, color: m.clr, fontSize: 12, fontWeight: 600 }}>
@@ -473,17 +484,186 @@ function PgGeneralExpenses({ t }) {
   );
 }
 
-export default function AccountantPro({ embedded = false, darkMode }) {
-  const [localDark, setLocalDark] = useState(false);
+// ─── EMPLOYEE COMPONENTS (moved from AdminPro) ───────────────────────────────
+
+function Badge({s,t}){const m={"نشط":t.completed,"غير نشط":t.expired,"مدير":t.admin,"موظف إداري":t.confirmed,"محاسب":t.pending,"مدرب":{bg:"#FFF7ED",text:"#C2410C",dot:"#F97316"},"موقوف":t.cancelled,"فعّال":t.completed};const c=m[s]||t.expired;return <span style={{display:"inline-flex",alignItems:"center",gap:5,background:c.bg,color:c.text,padding:"2px 9px",borderRadius:20,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>{s}</span>;}
+
+const ROLE_LABEL_MAP={MANAGER:"مدير",RECEPTIONIST:"موظف إداري",ACCOUNTANT:"محاسب"};
+const ROLE_COLORS={"مدير":"#6B21A8","موظف إداري":"#1D4ED8","محاسب":"#92400E"};
+const STATUS_LABEL={ACTIVE:"نشط",BLOCKED:"موقوف",ARCHIVED:"مؤرشف"};
+const EMP_EXP_TYPES=[{v:"SALARY",lbl:"راتب شهري"},{v:"BONUS",lbl:"مكافأة"},{v:"OTHER",lbl:"سلفة / مصروف آخر"}];
+const EMP_EXP_LABEL={SALARY:"راتب شهري",BONUS:"مكافأة",OTHER:"سلفة / مصروف آخر"};
+const EMP_PAY_LABEL={CASH:"نقداً",SHAM_CASH:"شام كاش"};
+const _eToday=todayStr;
+const _eYM=currentYearMonth;
+const _eFom=firstOfMonthStr;
+const fmtM=n=>(n!=null&&n!=="")?(Number(n).toLocaleString("en")):"—";
+const empFldSt=(t,err)=>({width:"100%",padding:"9px 12px",borderRadius:9,border:`1.5px solid ${err?"#c74848":t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none"});
+
+function AddEmployeeModal({t,onClose,onSuccess}){
+  const [form,setForm]=useState({name:"",phone:"",password:"",role:"",monthlySalary:"",hireDate:""});
+  const [submitting,setSubmitting]=useState(false);
+  const [showPassword,setShowPassword]=useState(false);
+  const [errors,setErrors]=useState({});
+  const [serverError,setServerError]=useState("");
+  const set=(field,value)=>{setForm(prev=>({...prev,[field]:value}));setErrors(prev=>({...prev,[field]:undefined}));};
+  const validate=()=>{const e={};if(!form.name.trim())e.name="الاسم مطلوب";if(!form.phone.trim())e.phone="رقم الهاتف مطلوب";else if(!/^09\d{8}$/.test(form.phone.trim()))e.phone="رقم هاتف غير صالح";if(!form.password)e.password="كلمة المرور مطلوبة";else if(form.password.length<4)e.password="٤ أحرف على الأقل";if(!form.role)e.role="يجب اختيار الدور";if(!form.monthlySalary&&form.monthlySalary!==0)e.monthlySalary="الراتب الشهري مطلوب";else if(isNaN(Number(form.monthlySalary)))e.monthlySalary="يجب أن يكون رقم";else if(Number(form.monthlySalary)<=0)e.monthlySalary="يجب أن يكون أكبر من صفر";return e;};
+  const handleSubmit=async(e)=>{e.preventDefault();setServerError("");const v=validate();setErrors(v);if(Object.keys(v).length)return;const payload={name:form.name.trim(),phone:form.phone.trim(),password:form.password,role:form.role,monthlySalary:Number(form.monthlySalary),hireDate:form.hireDate||new Date().toISOString().split("T")[0]};setSubmitting(true);try{const response=await employeesService.create(payload);const body=response.data?.data||response.data;const hasError=body?.error||body?.statusCode>=400;const errorMsg=body?.message;if(hasError){setServerError(Array.isArray(errorMsg)?errorMsg.join("، "):errorMsg||"فشل حفظ الموظف في قاعدة البيانات");return;}onSuccess();}catch(err){const data=err.response?.data?.data||err.response?.data;const msg=data?.message||err.response?.data?.message||err.message;setServerError(Array.isArray(msg)?msg.join("، "):msg||"حدث خطأ أثناء الإضافة");}finally{setSubmitting(false);}};
+  const fieldStyle=(field)=>({width:"100%",padding:"10px 12px",borderRadius:9,border:`1.5px solid ${errors[field]?"#c74848":t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none"});
+  const chipStyle=(value)=>({flex:1,padding:"10px 8px",borderRadius:10,border:"none",cursor:"pointer",fontSize:13,fontWeight:600,textAlign:"center",background:form.role===value?"#778a3b":t.bgElevated,color:form.role===value?"#fff":t.textSec,outline:form.role===value?"none":`1.5px solid ${errors.role?"#c74848":t.border}`});
+  return(
+    <Modal title="إضافة موظف جديد" onClose={onClose} t={t} width={480}>
+      {serverError&&<div style={{background:"rgba(199,72,72,0.1)",border:"1px solid rgba(199,72,72,0.3)",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:13,color:"#c74848"}}>{serverError}</div>}
+      <form onSubmit={handleSubmit}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
+          <div><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>الاسم الكامل</label><input value={form.name} onChange={e=>set("name",e.target.value)} placeholder="محمد أحمد..." style={fieldStyle("name")}/>{errors.name&&<div style={{fontSize:11,color:"#c74848",marginTop:3}}>{errors.name}</div>}</div>
+          <div><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>رقم الهاتف</label><input value={form.phone} onChange={e=>set("phone",e.target.value)} placeholder="0991234567" dir="ltr" style={{...fieldStyle("phone"),textAlign:"left"}}/>{errors.phone&&<div style={{fontSize:11,color:"#c74848",marginTop:3}}>{errors.phone}</div>}</div>
+          <div><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>كلمة المرور</label><div style={{position:"relative"}}><input type={showPassword?"text":"password"} value={form.password} onChange={e=>set("password",e.target.value)} placeholder="كلمة مرور الحساب" style={{...fieldStyle("password"),paddingLeft:36}}/><button type="button" onClick={()=>setShowPassword(v=>!v)} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:t.textMuted,display:"flex",alignItems:"center",padding:0,fontSize:16}}>{showPassword?<LuEyeOff/>:<LuEye/>}</button></div>{errors.password&&<div style={{fontSize:11,color:"#c74848",marginTop:3}}>{errors.password}</div>}</div>
+          <div><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>الراتب الشهري</label><input type="number" value={form.monthlySalary} onChange={e=>set("monthlySalary",e.target.value)} placeholder="100000" dir="ltr" style={{...fieldStyle("monthlySalary"),textAlign:"left"}}/>{errors.monthlySalary&&<div style={{fontSize:11,color:"#c74848",marginTop:3}}>{errors.monthlySalary}</div>}</div>
+        </div>
+        <div style={{marginBottom:14}}><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:6}}>تاريخ التعيين (اختياري)</label><input type="date" value={form.hireDate} onChange={e=>set("hireDate",e.target.value)} style={{...fieldStyle("hireDate"),width:"100%"}}/></div>
+        <div style={{marginBottom:16}}><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:6}}>الدور الوظيفي</label><div style={{display:"flex",gap:8}}><button type="button" onClick={()=>set("role","RECEPTIONIST")} style={chipStyle("RECEPTIONIST")}>موظف إداري</button><button type="button" onClick={()=>set("role","ACCOUNTANT")} style={chipStyle("ACCOUNTANT")}>محاسب</button></div>{errors.role&&<div style={{fontSize:11,color:"#c74848",marginTop:4}}>{errors.role}</div>}</div>
+        <div style={{display:"flex",gap:8}}><button type="submit" disabled={submitting} style={{flex:1,padding:"11px",borderRadius:10,border:"none",cursor:submitting?"not-allowed":"pointer",background:submitting?t.textMuted:t.grad,color:"#fff",fontSize:14,fontWeight:700,fontFamily:"inherit"}}>{submitting?"جارٍ الحفظ...":"إنشاء الحساب"}</button><Btn label="إلغاء" onClick={onClose} t={t} v="ghost"/></div>
+      </form>
+    </Modal>
+  );
+}
+
+function IssueExpenseModal({t,employee,onClose,onSuccess}){
+  const empId=employee.employeeId;
+  const empName=employee.user?.name||employee.name||"الموظف";
+  const [form,setForm]=useState({type:"SALARY",month:_eYM(),amount:"",paymentMethod:"CASH",expenseDate:_eToday(),note:""});
+  const [errors,setErrors]=useState({});
+  const [submitting,setSubmitting]=useState(false);
+  const [serverError,setServerError]=useState("");
+  const set=(k,v)=>{setForm(p=>({...p,[k]:v}));setErrors(p=>({...p,[k]:undefined}));};
+  const validate=()=>{const e={};if(!form.type)e.type="النوع مطلوب";if(form.type==="SALARY"&&!form.month)e.month="الشهر مطلوب";if((form.type==="BONUS"||form.type==="OTHER")&&(!form.amount||isNaN(Number(form.amount))||Number(form.amount)<=0))e.amount="المبلغ مطلوب وأكبر من صفر";return e;};
+  const handleSubmit=async()=>{setServerError("");const v=validate();setErrors(v);if(Object.keys(v).length)return;const payload={type:form.type,paymentMethod:form.paymentMethod};if(form.type==="SALARY"){payload.month=form.month;}else{payload.amount=Number(form.amount);}if(form.expenseDate)payload.expenseDate=form.expenseDate;if(form.note.trim())payload.note=form.note.trim();setSubmitting(true);try{await employeeAccountingService.issueExpense(empId,payload);onSuccess();}catch(err){const msg=err.response?.data?.message||err.message||"حدث خطأ";setServerError(Array.isArray(msg)?msg.join("، "):msg);}finally{setSubmitting(false);};};
+  return(
+    <Modal title={`إصدار فاتورة — ${empName}`} onClose={()=>{if(!submitting)onClose();}} t={t} width={460}>
+      {serverError&&<div style={{background:"rgba(199,72,72,0.1)",border:"1px solid rgba(199,72,72,0.3)",borderRadius:9,padding:"9px 14px",marginBottom:12,fontSize:13,color:"#c74848"}}>{serverError}</div>}
+      <div style={{marginBottom:14}}><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:6}}>نوع الصرف <span style={{color:"#c74848"}}>*</span></label><div style={{display:"flex",gap:6}}>{EMP_EXP_TYPES.map(x=>(<button key={x.v} type="button" onClick={()=>set("type",x.v)} style={{flex:1,padding:"8px 6px",borderRadius:9,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,background:form.type===x.v?t.grad:t.bgElevated,color:form.type===x.v?"#fff":t.textSec,outline:form.type===x.v?"none":`1.5px solid ${t.border}`,transition:"all 0.15s"}}>{x.lbl}</button>))}</div>{errors.type&&<div style={{fontSize:11,color:"#c74848",marginTop:3}}>{errors.type}</div>}</div>
+      {form.type==="SALARY"&&(<><div style={{marginBottom:12}}><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>الشهر <span style={{color:"#c74848"}}>*</span></label><input type="month" value={form.month} onChange={e=>set("month",e.target.value)} style={empFldSt(t,errors.month)}/>{errors.month&&<div style={{fontSize:11,color:"#c74848",marginTop:3}}>{errors.month}</div>}</div>{employee.monthlySalary&&(<div style={{padding:"9px 14px",borderRadius:9,background:t.accentLight,color:t.accentText,fontSize:13,fontWeight:600,marginBottom:12}}>سيُصرف الراتب المسجل: <strong>{fmtM(employee.monthlySalary)} ل.س</strong></div>)}</>)}
+      {(form.type==="BONUS"||form.type==="OTHER")&&(<div style={{marginBottom:12}}><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>المبلغ (ل.س) <span style={{color:"#c74848"}}>*</span></label><input type="number" min="1" value={form.amount} onChange={e=>set("amount",e.target.value)} placeholder="50000" dir="ltr" style={{...empFldSt(t,errors.amount),textAlign:"left"}}/>{errors.amount&&<div style={{fontSize:11,color:"#c74848",marginTop:3}}>{errors.amount}</div>}</div>)}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}><div><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>طريقة الدفع</label><select value={form.paymentMethod} onChange={e=>set("paymentMethod",e.target.value)} style={{...empFldSt(t,false),appearance:"auto"}}><option value="CASH">نقداً</option><option value="SHAM_CASH">شام كاش</option></select></div><div><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>تاريخ الصرف</label><input type="date" value={form.expenseDate} onChange={e=>set("expenseDate",e.target.value)} style={empFldSt(t,false)}/></div></div>
+      <div style={{marginBottom:14}}><label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>ملاحظات (اختياري)</label><input value={form.note} onChange={e=>set("note",e.target.value)} placeholder="عيدية / الراتب الشهري..." style={empFldSt(t,false)}/></div>
+      <div style={{display:"flex",gap:8}}><button onClick={handleSubmit} disabled={submitting} style={{flex:1,padding:"11px",borderRadius:10,border:"none",cursor:submitting?"not-allowed":"pointer",background:submitting?t.textMuted:t.grad,color:"#fff",fontSize:14,fontWeight:700,fontFamily:"inherit",transition:"background 0.15s"}}>{submitting?"جارٍ الإصدار...":"إصدار الفاتورة"}</button><Btn label="إلغاء" onClick={()=>{if(!submitting)onClose();}} t={t} v="ghost"/></div>
+    </Modal>
+  );
+}
+
+function EmployeeStatementModal({t,employee,onClose}){
+  const empId=employee.employeeId;
+  const empName=employee.user?.name||employee.name||"الموظف";
+  const [rows,setRows]=useState([]);
+  const [empInfo,setEmpInfo]=useState(null);
+  const [totals,setTotals]=useState(null);
+  const [meta,setMeta]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [pg,setPg]=useState(1);
+  const [fType,setFType]=useState("");
+  const [fFrom,setFFrom]=useState("");
+  const [fTo,setFTo]=useState("");
+  const [delTarget,setDelTarget]=useState(null);
+  const [deleting,setDeleting]=useState(false);
+  const [notice,setNotice]=useState(null);
+  const [refreshKey,setRefreshKey]=useState(0);
+  const showNotice=(msg,err=false)=>{setNotice({msg,err});setTimeout(()=>setNotice(null),3000);};
+  useEffect(()=>{let cancelled=false;(async()=>{setLoading(true);try{const params={page:pg,limit:10};if(fType)params.type=fType;if(fFrom)params.from=fFrom;if(fTo)params.to=fTo;const res=await employeeAccountingService.getExpenses(empId,params);const body=res.data?.data??res.data;if(!cancelled){setEmpInfo(body?.employee||null);setRows(Array.isArray(body?.data)?body.data:[]);setTotals(body?.totals||null);setMeta(body?.meta||null);}}catch(err){if(!cancelled)showNotice(err.response?.data?.message||"فشل تحميل الكشف",true);}finally{if(!cancelled)setLoading(false);}})();return()=>{cancelled=true;};},[empId,pg,fType,fFrom,fTo,refreshKey]);
+  const handleDelete=async()=>{if(!delTarget||deleting)return;setDeleting(true);try{await employeeAccountingService.deleteExpense(empId,delTarget.expenseId);setRows(prev=>prev.filter(r=>r.expenseId!==delTarget.expenseId));setDelTarget(null);showNotice("تم حذف السجل بنجاح");setRefreshKey(k=>k+1);}catch(err){showNotice(err.response?.data?.message||"فشل الحذف",true);}finally{setDeleting(false);};};
+  const thS={padding:"9px 12px",fontSize:11,fontWeight:700,color:t.textSec,textAlign:"right",background:t.bgElevated,borderBottom:`1px solid ${t.border}`,whiteSpace:"nowrap"};
+  const tdS={padding:"10px 12px",fontSize:12,color:t.text,borderBottom:`1px solid ${t.border}`,verticalAlign:"middle"};
+  const selSt={padding:"7px 10px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:12,fontFamily:"inherit",outline:"none"};
+  return(
+    <Modal title={`كشف فواتير — ${empName}`} onClose={onClose} t={t} width={740}>
+      {notice&&<div style={{padding:"8px 14px",borderRadius:8,background:notice.err?"rgba(199,72,72,0.1)":"rgba(63,107,58,0.1)",border:`1px solid ${notice.err?"rgba(199,72,72,0.3)":"rgba(63,107,58,0.3)"}`,fontSize:12,color:notice.err?"#c74848":"#3F6B3A",marginBottom:12}}>{notice.msg}</div>}
+      <div style={{display:"flex",gap:16,flexWrap:"wrap",padding:"10px 14px",borderRadius:9,background:t.bgElevated,marginBottom:14}}><span style={{fontSize:13,color:t.text}}><span style={{color:t.textMuted,fontSize:11}}>الموظف: </span><strong>{empInfo?.name||empName}</strong></span>{empInfo?.monthlySalary&&(<span style={{fontSize:13,color:t.text}}><span style={{color:t.textMuted,fontSize:11}}>الراتب الشهري: </span><strong style={{color:t.accent}}>{fmtM(empInfo.monthlySalary)} ل.س</strong></span>)}</div>
+      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}><input type="date" value={fFrom} onChange={e=>{setFFrom(e.target.value);setPg(1);}} style={selSt} title="من تاريخ"/><input type="date" value={fTo} onChange={e=>{setFTo(e.target.value);setPg(1);}} style={selSt} title="إلى تاريخ"/><select value={fType} onChange={e=>{setFType(e.target.value);setPg(1);}} style={selSt}><option value="">كل الأنواع</option>{EMP_EXP_TYPES.map(x=><option key={x.v} value={x.v}>{x.lbl}</option>)}</select>{(fFrom||fTo||fType)&&<Btn label="مسح" onClick={()=>{setFFrom("");setFTo("");setFType("");setPg(1);}} t={t} v="ghost" sz="sm"/>}</div>
+      {loading?(<div style={{textAlign:"center",padding:"28px",color:t.textMuted,fontSize:13}}>جارٍ التحميل...</div>):rows.length===0?(<div style={{textAlign:"center",padding:"28px",color:t.textMuted,fontSize:13}}>لا توجد سجلات بهذه المعايير</div>):(<div style={{overflowX:"auto",borderRadius:9,border:`1px solid ${t.border}`,marginBottom:12}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["#","النوع","المبلغ","طريقة الدفع","الشهر","التاريخ","ملاحظات","حذف"].map((h,i)=>(<th key={i} style={{...thS,...(i===7&&{textAlign:"center"})}}>{h}</th>))}</tr></thead><tbody>{rows.map(row=>(<tr key={row.expenseId} onMouseEnter={e=>e.currentTarget.style.background=t.bgElevated} onMouseLeave={e=>e.currentTarget.style.background=""}><td style={{...tdS,color:t.textMuted,fontSize:10}}>{row.expenseId}</td><td style={tdS}><span style={{padding:"2px 9px",borderRadius:20,fontSize:11,fontWeight:600,background:t.accentLight,color:t.accentText}}>{EMP_EXP_LABEL[row.type]||row.type}</span></td><td style={{...tdS,fontWeight:700,color:t.accent}}>{fmtM(row.amount)} ل.س</td><td style={tdS}>{EMP_PAY_LABEL[row.paymentMethod]||row.paymentMethod||"—"}</td><td style={{...tdS,color:t.textSec}}>{row.month||"—"}</td><td style={{...tdS,color:t.textSec}}>{row.expenseDate||row.paidAt?.split("T")[0]||"—"}</td><td style={{...tdS,color:t.textMuted,maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.note||"—"}</td><td style={{...tdS,textAlign:"center"}}><button onClick={()=>setDelTarget(row)} style={{background:"none",border:"none",cursor:"pointer",color:"#C74848",padding:"3px 5px",borderRadius:6,display:"inline-flex",alignItems:"center"}}><FiTrash2 size={14}/></button></td></tr>))}</tbody></table></div>)}
+      {totals&&(<div style={{display:"flex",gap:14,flexWrap:"wrap",padding:"9px 14px",borderRadius:9,background:t.bgElevated,marginBottom:12,fontSize:13}}><span style={{fontWeight:700,color:t.text}}>الإجمالي: <span style={{color:t.accent}}>{fmtM(totals.totalAmount)} ل.س</span></span><span style={{color:t.textSec}}>نقداً: <strong>{fmtM(totals.totalCash)}</strong></span><span style={{color:t.textSec}}>شام كاش: <strong>{fmtM(totals.totalShamCash)}</strong></span></div>)}
+      {meta&&meta.totalPages>1&&(<div style={{display:"flex",gap:6,alignItems:"center",justifyContent:"center",marginBottom:8}}><button onClick={()=>setPg(p=>Math.max(1,p-1))} disabled={pg===1} style={{padding:"5px 12px",borderRadius:7,border:`1px solid ${t.border}`,background:"transparent",color:pg===1?t.textMuted:t.text,cursor:pg===1?"default":"pointer",fontSize:12,fontFamily:"inherit"}}>السابق</button><span style={{fontSize:12,color:t.textSec}}>صفحة {pg} من {meta.totalPages}</span><button onClick={()=>setPg(p=>Math.min(meta.totalPages,p+1))} disabled={pg===meta.totalPages} style={{padding:"5px 12px",borderRadius:7,border:`1px solid ${t.border}`,background:"transparent",color:pg===meta.totalPages?t.textMuted:t.text,cursor:pg===meta.totalPages?"default":"pointer",fontSize:12,fontFamily:"inherit"}}>التالي</button></div>)}
+      {delTarget&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1100}} onClick={()=>{if(!deleting)setDelTarget(null);}}><div onClick={e=>e.stopPropagation()} style={{background:t.bgSurface,borderRadius:14,padding:"24px 20px",maxWidth:340,width:"90%",boxShadow:t.shadowLg}}><div style={{textAlign:"center",marginBottom:4,color:"#C74848",display:"flex",justifyContent:"center"}}><FiTrash2 size={32}/></div><div style={{fontSize:15,fontWeight:700,color:t.text,marginBottom:8,textAlign:"center"}}>تأكيد الحذف</div><div style={{fontSize:13,color:t.textSec,marginBottom:14,textAlign:"center",lineHeight:1.6}}><strong>{EMP_EXP_LABEL[delTarget.type]||delTarget.type}</strong><br/>{fmtM(delTarget.amount)} ل.س{delTarget.note&&<><br/><span style={{fontSize:12,color:t.textMuted}}>{delTarget.note}</span></>}</div><div style={{padding:"8px 12px",borderRadius:8,background:"#FFF1F2",fontSize:11,color:"#9F1239",textAlign:"center",marginBottom:14}}>هذا الإجراء لا يمكن التراجع عنه</div><div style={{display:"flex",gap:8}}><button onClick={handleDelete} disabled={deleting} style={{flex:1,padding:"9px",borderRadius:9,border:"none",cursor:deleting?"not-allowed":"pointer",background:deleting?t.textMuted:"#9F1239",color:"#fff",fontSize:13,fontWeight:700,fontFamily:"inherit"}}>{deleting?"جارٍ الحذف...":"تأكيد الحذف"}</button><Btn label="إلغاء" onClick={()=>{if(!deleting)setDelTarget(null);}} t={t} v="ghost"/></div></div></div>)}
+    </Modal>
+  );
+}
+
+function PgEmployees({t}){
+  const [employees,setEmployees]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [addModal,setAddModal]=useState(false);
+  const [issueModal,setIssueModal]=useState(null);
+  const [statementModal,setStatementModal]=useState(null);
+  const [summary,setSummary]=useState(null);
+  const [sumLoading,setSumLoading]=useState(true);
+  const [toast,setToast]=useState(null);
+  const [empRefresh,setEmpRefresh]=useState(0);
+  const showToast=(msg,err=false)=>{setToast({msg,err});setTimeout(()=>setToast(null),3500);};
+  useEffect(()=>{let cancelled=false;(async()=>{setLoading(true);try{const response=await employeesService.getAll();const body=response.data?.data||response.data;if(!cancelled)setEmployees(Array.isArray(body)?body:[]);}catch{if(!cancelled)setEmployees([]);}finally{if(!cancelled)setLoading(false);}})();return()=>{cancelled=true;};},[empRefresh]);
+  useEffect(()=>{let cancelled=false;(async()=>{setSumLoading(true);try{const res=await employeeAccountingService.getSummary({from:_eFom(),to:_eToday()});const body=res.data?.data??res.data;if(!cancelled)setSummary(body);}catch{/* silent */}finally{if(!cancelled)setSumLoading(false);}})();return()=>{cancelled=true;};},[empRefresh]);
+  const mapRoles=(emp)=>{const role=emp.role||"";if(!role)return[];const label=ROLE_LABEL_MAP[role.toUpperCase()]||role;return[label];};
+  const mapStatus=(emp)=>{const s=emp.user?.accountStatus||emp.accountStatus||"ACTIVE";return STATUS_LABEL[s.toUpperCase()]||s;};
+  const sumTypes=summary?.byType||{};
+  return(
+    <div style={{padding:"20px 24px",overflowY:"auto",flex:1,position:"relative"}}>
+      {toast&&<div style={{position:"fixed",top:22,left:"50%",transform:"translateX(-50%)",zIndex:3000,background:toast.err?"#9F1239":"#3F6B3A",color:"#fff",padding:"11px 26px",borderRadius:12,fontSize:13,fontWeight:600,boxShadow:"0 8px 28px rgba(0,0,0,0.22)",whiteSpace:"nowrap",pointerEvents:"none"}}>{toast.msg}</div>}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div><div style={{fontSize:20,fontWeight:700,color:t.text}}>الموظفون والمستخدمون</div><div style={{fontSize:13,color:t.textSec,marginTop:2}}>{loading?"جارٍ التحميل...":`${employees.length} موظف مسجل`}</div></div>
+        <Btn label="+ إضافة موظف" onClick={()=>setAddModal(true)} t={t}/>
+      </div>
+      {!sumLoading&&summary&&(
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:12,fontWeight:700,color:t.textMuted,marginBottom:8,paddingRight:4,borderRight:`3px solid ${t.accent}`}}>إحصائيات مالية الموظفين — الشهر الحالي</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>
+            {[{lbl:"إجمالي المصروف",val:summary.totalAmount,clr:t.accent,sub:`${summary.totalCount||0} عملية`},{lbl:"نقداً",val:summary.cash,clr:"#374151",sub:""},{lbl:"شام كاش",val:summary.shamCash,clr:"#7C3AED",sub:""},{lbl:"رواتب",val:Number(sumTypes.salary?.total||0),clr:"#059669",sub:`${sumTypes.salary?.count||0} صرفة`},{lbl:"مكافآت وأخرى",val:Number(sumTypes.bonus?.total||0)+Number(sumTypes.other?.total||0),clr:"#D97706",sub:""}].map(c=>(
+              <div key={c.lbl} style={{background:t.bgSurface,borderRadius:10,border:`1px solid ${t.borderCard}`,padding:"11px 13px",boxShadow:t.shadow}}><div style={{fontSize:15,fontWeight:700,color:c.clr,lineHeight:1,marginBottom:3}}>{fmtM(c.val)} <span style={{fontSize:10,fontWeight:500}}>ل.س</span></div><div style={{fontSize:11,fontWeight:600,color:t.text}}>{c.lbl}</div>{c.sub&&<div style={{fontSize:10,color:t.textMuted,marginTop:2}}>{c.sub}</div>}</div>
+            ))}
+          </div>
+        </div>
+      )}
+      {loading?(<div style={{padding:40,textAlign:"center",color:t.textMuted,fontSize:14}}>جارٍ تحميل بيانات الموظفين...</div>):employees.length===0?(<div style={{padding:40,textAlign:"center",color:t.textMuted,fontSize:14}}>لا يوجد موظفون مسجلون بعد</div>):(
+        <div style={{borderRadius:11,border:`1px solid ${t.border}`,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+            <thead><tr style={{background:t.bgElevated}}>{["الاسم","رقم الهاتف","الدور","الحالة","الراتب","تاريخ التعيين","الإجراءات"].map((h,i)=>(<th key={i} style={{padding:"10px 14px",textAlign:"right",color:t.textMuted,fontWeight:600,fontSize:11,borderBottom:`1px solid ${t.border}`}}>{h}</th>))}</tr></thead>
+            <tbody>{employees.map((emp,i)=>{const roleLabels=mapRoles(emp);const status=mapStatus(emp);return(<tr key={emp.id||i} style={{background:i%2===0?t.bgSurface:t.bgElevated,borderBottom:`1px solid ${t.border}`}}><td style={{padding:"11px 14px",fontWeight:600,color:t.text}}>{emp.user?.name||emp.name||"—"}</td><td style={{padding:"11px 14px",color:t.textSec,fontSize:12,direction:"ltr",textAlign:"right"}}>{emp.user?.phone||emp.phone||"—"}</td><td style={{padding:"11px 14px"}}><div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{roleLabels.map(r=>(<span key={r} style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:600,background:`${ROLE_COLORS[r]||"#747A70"}18`,color:ROLE_COLORS[r]||"#747A70"}}>{r}</span>))}</div></td><td style={{padding:"11px 14px"}}><Badge s={status} t={t}/></td><td style={{padding:"11px 14px",color:t.textSec,fontSize:12}}>{emp.monthlySalary?`${Number(emp.monthlySalary).toLocaleString("en")} ل.س`:"—"}</td><td style={{padding:"11px 14px",color:t.textMuted,fontSize:12}}>{emp.hireDate||"—"}</td><td style={{padding:"8px 14px"}}><div style={{display:"flex",gap:6}}><Btn label="صرف دفعة" onClick={()=>setIssueModal(emp)} t={t} sz="sm" v="primary"/><Btn label="كشف الحساب" onClick={()=>setStatementModal(emp)} t={t} sz="sm" v="secondary"/></div></td></tr>);})}</tbody>
+          </table>
+        </div>
+      )}
+      {addModal&&<AddEmployeeModal t={t} onClose={()=>setAddModal(false)} onSuccess={()=>{setAddModal(false);setEmpRefresh(k=>k+1);}}/>}
+      {issueModal&&<IssueExpenseModal t={t} employee={issueModal} onClose={()=>setIssueModal(null)} onSuccess={()=>{setIssueModal(null);setEmpRefresh(k=>k+1);showToast("تم إصدار الفاتورة بنجاح");}}/>}
+      {statementModal&&<EmployeeStatementModal t={t} employee={statementModal} onClose={()=>setStatementModal(null)}/>}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ACCOUNTANT_TABS = [
+  { id: "general-expenses", label: "المصاريف العامة" },
+  { id: "employees",        label: "الموظفون" },
+];
+
+export default function AccountantPro({ embedded = false, darkMode, page: forcedPage }) {
+  const [localDark, setLocalDark]     = useState(false);
+  const [internalPage, setInternalPage] = useState("general-expenses");
   const dark = (embedded && typeof darkMode !== "undefined") ? darkMode : localDark;
-  const t = T[dark ? "dark" : "light"];
+  const t    = T[dark ? "dark" : "light"];
+  // When embedded, the parent (MainLayout topbar) drives the active tab via forcedPage
+  const activePage = forcedPage ?? internalPage;
 
   return (
     <div dir="rtl" style={{ display: "flex", height: embedded ? "100%" : "100vh", overflow: "hidden", background: t.bgApp, fontFamily: "var(--font-body)" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* Standalone topbar with inline tab switcher */}
         {!embedded && (
-          <div style={{ height: 50, background: t.bgSurface, borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", padding: "0 18px", gap: 10, flexShrink: 0, boxShadow: t.shadow }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>المصاريف العامة</div>
+          <div style={{ height: 50, background: t.bgSurface, borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", padding: "0 18px", gap: 6, flexShrink: 0, boxShadow: t.shadow }}>
+            {ACCOUNTANT_TABS.map(tab => (
+              <button key={tab.id} onClick={() => setInternalPage(tab.id)} style={{
+                padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+                background: activePage === tab.id ? t.grad : "transparent",
+                color: activePage === tab.id ? "#fff" : t.textMuted,
+                fontWeight: activePage === tab.id ? 700 : 600, fontSize: 13, fontFamily: "inherit",
+              }}>{tab.label}</button>
+            ))}
             <div style={{ flex: 1 }} />
             <button onClick={() => setLocalDark(d => !d)} style={{ padding: "5px 13px", borderRadius: 7, background: t.accentLight, color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
               {dark ? "☀️ نهاري" : "🌙 ليلي"}
@@ -491,7 +671,8 @@ export default function AccountantPro({ embedded = false, darkMode }) {
           </div>
         )}
         <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-          <PgGeneralExpenses t={t} />
+          {activePage === "general-expenses" && <PgGeneralExpenses t={t} />}
+          {activePage === "employees"        && <PgEmployees t={t} />}
         </div>
       </div>
     </div>

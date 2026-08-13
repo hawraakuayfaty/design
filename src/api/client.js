@@ -13,6 +13,10 @@ client.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const offsetMs = Number(localStorage.getItem("sim.clock.offsetMs") || "0");
+  if (Number.isFinite(offsetMs) && offsetMs !== 0) {
+    config.headers["X-Simulated-Now"] = new Date(Date.now() + offsetMs).toISOString();
+  }
   return config;
 });
 
