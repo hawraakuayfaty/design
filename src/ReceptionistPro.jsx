@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useAuth } from "./contexts/useAuth";
 import { todayStr } from "./utils/dateUtils";
 import { TbBus } from "react-icons/tb";
 import { IoIosCalendar } from "react-icons/io";
@@ -4355,304 +4356,651 @@ function CertSearchTab({t,pendingCertId,onPendingConsumed}){
 }
 
 /* ── Tab 4: Revenue ──────────────────────────────────────────────────── */
-function CertRevenueTab({t}){
+// ─── REVENUE SUB-TAB 1: Period Summary ───────────────────────────────────────
+function RevSummaryTab({t}){
   const todayISO=()=>new Date().toISOString().slice(0,10);
   const defaultFrom=()=>{const d=new Date();d.setDate(d.getDate()-30);return d.toISOString().slice(0,10);};
-
-  /* ── range filter state ── */
-  const [fromD,setFromD]         =useState(defaultFrom);
-  const [toD,setToD]             =useState(todayISO);
-  const [appliedFrom,setApplFrom]=useState(defaultFrom);
-  const [appliedTo,setApplTo]   =useState(todayISO);
-  const [summaryBusy,setSumBusy] =useState(false);
-
-  /* ── summary data ── */
-  const [data,setData]     =useState(null);   // raw API response root
-  const [sumLoading,setSumLoading]=useState(true);
-  const [sumError,setSumError]   =useState(null);
-
-  /* ── single-day detail ── */
-  const [detDate,setDetDate]     =useState(todayISO);
-  const [payments,setPayments]   =useState([]);
-  const [detLoading,setDetLoading]=useState(false);
-  const [detError,setDetError]   =useState(null);
-  const [detBusy,setDetBusy]     =useState(false);
-
-  /* ── formatters ── */
-  const fmt  =v=>v!=null?Number(v).toLocaleString("en"):"—";
+  const fmt=v=>v!=null?Number(v).toLocaleString("en"):"—";
   const fmtSy=v=>v!=null?`${Number(v).toLocaleString("en")} ل.س`:"—";
-  const fmtDay=s=>{
-    if(!s)return"—";
-    return new Date(s+"T00:00:00").toLocaleDateString("ar-SY",{weekday:"short",month:"2-digit",day:"2-digit"});
+  const fmtDay=s=>{if(!s)return"—";return new Date(s+"T00:00:00").toLocaleDateString("ar-SY",{weekday:"short",month:"2-digit",day:"2-digit"});};
+
+  const [fromD,setFromD]=useState(defaultFrom);
+  const [toD,setToD]=useState(todayISO);
+  const [applied,setApplied]=useState({from:defaultFrom(),to:todayISO()});
+  const [data,setData]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState(null);
+  const [busy,setBusy]=useState(false);
+
+  const load=async(from,to)=>{
+    setLoading(true);setError(null);
+    try{const r=await certificatesService.getRevenueSummary(from,to);setData(r.data?.data??r.data);}
+    catch(e){setError(e.response?.data?.message||"تعذّر تحميل البيانات");}
+    finally{setLoading(false);}
   };
-  const KIND_LABEL  ={service:"رسم شهادة",reexam:"إعادة امتحان"};
-  const METHOD_LABEL={CASH:"نقداً",SHAM_CASH:"شام كاش"};
+  useEffect(()=>{load(applied.from,applied.to);},[applied.from,applied.to]); // eslint-disable-line
 
-  /* ── loaders ── */
-  const loadSummary=async(f,to)=>{
-    setSumLoading(true);setSumError(null);
-    try{
-      const r=await certificatesService.getRevenueSummary(f,to);
-      setData(r.data?.data??r.data);
-    }catch(e){setSumError(e.response?.data?.message||"تعذّر تحميل البيانات");}
-    finally{setSumLoading(false);}
-  };
+  const apply=()=>{if(busy)return;setBusy(true);setApplied({from:fromD,to:toD});setTimeout(()=>setBusy(false),600);};
 
-  const loadDetail=async(date)=>{
-    setDetLoading(true);setDetError(null);
-    try{
-      const r=await certificatesService.getRevenueDaily(date);
-      const body=r.data?.data??r.data;
-      setPayments(Array.isArray(body?.payments)?body.payments:[]);
-    }catch(e){setDetError(e.response?.data?.message||"تعذّر تحميل بيانات اليوم");setPayments([]);}
-    finally{setDetLoading(false);}
-  };
+  const col=data?.collected??{};
+  const service=data?.service??{};
+  const reexam=data?.reexam??{};
+  const byDay=Array.isArray(data?.byDay)?data.byDay:[];
+  const totalC=Number(col.total||0),schShare=Number(col.schoolShare||0),govShare=Number(col.governmentShare||0);
+  const mathOk=Math.abs((schShare+govShare)-totalC)<1;
 
-  useEffect(()=>{loadSummary(appliedFrom,appliedTo);},[appliedFrom,appliedTo]); // eslint-disable-line
-  useEffect(()=>{loadDetail(detDate);},[detDate]);                              // eslint-disable-line
-
-  const applyRange=async()=>{
-    if(summaryBusy)return;
-    setSumBusy(true);
-    setApplFrom(fromD);setApplTo(toD);
-    // the effect fires automatically; we just need to re-enable the button after it settles
-    // use a short guard so button can't double-fire
-    setTimeout(()=>setSumBusy(false),600);
-  };
-
-  const applyDetail=async()=>{
-    if(detBusy)return;
-    setDetBusy(true);
-    await loadDetail(detDate);
-    setDetBusy(false);
-  };
-
-  /* ── derived from response ── */
-  const col    = data?.collected??{};
-  const service= data?.service??{};
-  const reexam = data?.reexam??{};
-  const byDay  = Array.isArray(data?.byDay)?data.byDay:[];
-
-  const breakdownRows=[
-    {label:"رسم الشهادة",    count:service.count, total:service.total, school:service.schoolShare, gov:service.governmentShare},
-    {label:"إعادة الامتحان", count:reexam.count,  total:reexam.total,  school:reexam.schoolShare,  gov:reexam.governmentShare},
-  ];
-  const cashRows=[
-    {label:"نقداً",     amount:col.cash},
-    {label:"شام كاش",  amount:col.shamCash},
-  ].filter(r=>r.amount!=null&&Number(r.amount)>0);
-
-  /* ── shared styles ── */
-  const inp   ={padding:"7px 10px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:12,fontFamily:"inherit",outline:"none"};
-  const thSt  ={fontSize:11,fontWeight:700,color:t.textMuted,padding:"9px 12px",textAlign:"right"};
-  const tdN   =(bold,clr)=>({fontSize:13,fontWeight:bold?700:400,color:clr||t.text,padding:"9px 12px",textAlign:"right",whiteSpace:"nowrap"});
-  const acBtn =(disabled)=>({padding:"7px 18px",borderRadius:8,border:"none",background:disabled?t.border:t.accent,color:"#fff",fontSize:12,fontFamily:"inherit",fontWeight:700,cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.6:1});
+  const inp={padding:"7px 10px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:12,fontFamily:"inherit",outline:"none"};
+  const thSt={fontSize:11,fontWeight:700,color:t.textMuted,padding:"9px 12px",textAlign:"right",borderBottom:`1px solid ${t.border}`,background:t.bgElevated};
+  const tdSt=(bold,clr)=>({fontSize:13,fontWeight:bold?700:400,color:clr||t.text,padding:"9px 12px",textAlign:"right",whiteSpace:"nowrap"});
 
   return(
-    <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:20,overflowY:"auto",flex:1}}>
-
-      {/* ── Title + range filter ── */}
-      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-        <span style={{fontSize:16,fontWeight:800,color:t.text}}>ملخص الإيرادات</span>
+    <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:16}}>
+      {/* Filter */}
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:13,fontWeight:700,color:t.text,flexShrink:0}}>ملخص الفترة</span>
         <div style={{display:"flex",alignItems:"center",gap:7,marginRight:"auto",flexWrap:"wrap"}}>
           <span style={{fontSize:12,color:t.textMuted}}>من</span>
           <input type="date" value={fromD} onChange={e=>setFromD(e.target.value)} style={inp}/>
           <span style={{fontSize:12,color:t.textMuted}}>إلى</span>
-          <input type="date" value={toD}   onChange={e=>setToD(e.target.value)}   style={inp}/>
-          <button onClick={applyRange} disabled={summaryBusy} style={acBtn(summaryBusy)}>
-            {summaryBusy?"...":"عرض"}
+          <input type="date" value={toD} onChange={e=>setToD(e.target.value)} style={inp}/>
+          <button onClick={apply} disabled={busy} style={{padding:"7px 18px",borderRadius:8,border:"none",background:busy?t.border:t.accent,color:"#fff",fontSize:12,fontFamily:"inherit",fontWeight:700,cursor:busy?"not-allowed":"pointer"}}>
+            {busy?"...":"عرض"}
           </button>
         </div>
       </div>
 
-      {/* ══════════ SUMMARY SECTION ══════════ */}
-      {sumLoading?(
+      {loading?(
         <div style={{textAlign:"center",padding:48,color:t.textMuted,fontSize:13}}>جارٍ التحميل...</div>
-      ):sumError?(
-        <div style={{textAlign:"center",padding:48,color:"#c74848",fontSize:13}}>
-          {sumError}
-          <br/>
-          <button onClick={()=>loadSummary(appliedFrom,appliedTo)}
-            style={{marginTop:10,padding:"5px 14px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
+      ):error?(
+        <div style={{textAlign:"center",padding:40,color:"#c74848",fontSize:13}}>
+          {error}<br/>
+          <button onClick={()=>load(applied.from,applied.to)} style={{marginTop:10,padding:"5px 14px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>إعادة المحاولة</button>
+        </div>
+      ):(<>
+
+        {/* 4 KPI cards */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+          <div style={{background:t.bgSurface,borderRadius:14,border:`1px solid ${t.borderCard}`,padding:"16px 18px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:t.textMuted,marginBottom:6}}>إجمالي المحصَّل</div>
+            <div style={{fontSize:24,fontWeight:800,color:t.text,lineHeight:1,marginBottom:4,fontVariantNumeric:"tabular-nums"}}>{fmt(col.total)}</div>
+            <div style={{fontSize:11,color:t.textMuted}}>{fmt(col.count)} دفعة</div>
+          </div>
+          <div style={{background:"#f0fdf4",borderRadius:14,border:"1px solid #bbf7d0",padding:"16px 18px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#15803d",marginBottom:6}}>حصة المدرسة — الدخل الحقيقي</div>
+            <div style={{fontSize:24,fontWeight:800,color:"#15803d",lineHeight:1,marginBottom:4,fontVariantNumeric:"tabular-nums"}}>{fmt(col.schoolShare)}</div>
+            <div style={{fontSize:11,color:"#16a34a"}}>دخل المدرسة الفعلي</div>
+          </div>
+          <div style={{background:"#fffbeb",borderRadius:14,border:"1px solid #fde68a",padding:"16px 18px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#92400e",marginBottom:6}}>حصة الحكومة — أمانة</div>
+            <div style={{fontSize:24,fontWeight:800,color:"#b45309",lineHeight:1,marginBottom:4,fontVariantNumeric:"tabular-nums"}}>{fmt(col.governmentShare)}</div>
+            <div style={{fontSize:11,color:"#d97706"}}>تُسلَّم للحكومة لاحقاً</div>
+          </div>
+          <div style={{background:t.bgSurface,borderRadius:14,border:`1px solid ${t.borderCard}`,padding:"16px 18px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:t.textMuted,marginBottom:6}}>تفصيل طريقة الدفع</div>
+            <div style={{fontSize:12,color:t.textMuted,marginBottom:4}}>نقداً: <strong style={{color:t.text,fontSize:14}}>{fmt(col.cash)}</strong></div>
+            <div style={{fontSize:12,color:t.textMuted}}>شام كاش: <strong style={{color:t.text,fontSize:14}}>{fmt(col.shamCash)}</strong></div>
+          </div>
+        </div>
+
+        {/* Math validation banner */}
+        <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,background:mathOk?"#f0fdf4":"#fef2f2",border:`1px solid ${mathOk?"#86efac":"#fca5a5"}`}}>
+          <span style={{fontSize:16}}>{mathOk?"✓":"⚠"}</span>
+          <span style={{fontSize:12,color:mathOk?"#15803d":"#b91c1c",fontWeight:600}}>
+            تحقق: حصة المدرسة ({fmt(schShare)}) + حصة الحكومة ({fmt(govShare)}) {mathOk?"= ✓":"≠"} الإجمالي ({fmt(totalC)})
+          </span>
+        </div>
+
+        {/* Breakdown by Fee Type */}
+        <div>
+          <div style={{fontSize:12,fontWeight:700,color:t.text,marginBottom:8}}>حسب نوع الرسم</div>
+          <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
+            <div style={{display:"grid",gridTemplateColumns:"2fr 70px 1fr 1fr 1fr"}}>
+              {["البند","العدد","الإجمالي","حصة المدرسة","حصة الحكومة"].map(h=><div key={h} style={thSt}>{h}</div>)}
+            </div>
+            {[
+              {label:"رسم الشهادة",count:service.count,total:service.total,school:service.schoolShare,gov:service.governmentShare},
+              {label:"إعادة الامتحان",count:reexam.count,total:reexam.total,school:reexam.schoolShare,gov:reexam.governmentShare},
+            ].map((row,i)=>(
+              <div key={i} style={{display:"grid",gridTemplateColumns:"2fr 70px 1fr 1fr 1fr",borderTop:`1px solid ${t.border}`,background:t.bgSurface}}>
+                <div style={{...tdSt(true),paddingRight:14}}>{row.label}</div>
+                <div style={tdSt(false,t.textSec)}>{fmt(row.count)}</div>
+                <div style={tdSt(true)}>{fmtSy(row.total)}</div>
+                <div style={tdSt(true,"#15803d")}>{fmtSy(row.school)}</div>
+                <div style={tdSt(false,"#b45309")}>{fmtSy(row.gov)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Breakdown by Day */}
+        {byDay.length>0&&(
+          <div>
+            <div style={{fontSize:12,fontWeight:700,color:t.text,marginBottom:8}}>حسب اليوم</div>
+            <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
+              <div style={{display:"grid",gridTemplateColumns:"1.2fr 60px 1fr 1fr 1fr 1fr 1fr"}}>
+                {["اليوم","دفعات","الإجمالي","نقداً","شام كاش","حصة المدرسة","حصة الحكومة"].map(h=><div key={h} style={thSt}>{h}</div>)}
+              </div>
+              {byDay.map((row,i)=>(
+                <div key={i} style={{display:"grid",gridTemplateColumns:"1.2fr 60px 1fr 1fr 1fr 1fr 1fr",borderTop:`1px solid ${t.border}`,background:t.bgSurface}}>
+                  <div style={tdSt(false,t.textSec)}>{fmtDay(row.date)}</div>
+                  <div style={tdSt(false,t.textMuted)}>{fmt(row.count)}</div>
+                  <div style={tdSt(true)}>{fmtSy(row.total)}</div>
+                  <div style={tdSt(false)}>{fmtSy(row.cash)}</div>
+                  <div style={tdSt(false)}>{fmtSy(row.shamCash)}</div>
+                  <div style={tdSt(true,"#15803d")}>{fmtSy(row.schoolShare)}</div>
+                  <div style={tdSt(false,"#b45309")}>{fmtSy(row.governmentShare)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!data&&<div style={{textAlign:"center",padding:32,color:t.textMuted,fontSize:13}}>لا توجد بيانات في هذه الفترة</div>}
+      </>)}
+    </div>
+  );
+}
+
+// ─── Shared payment badges (used by RevDailyTab) ─────────────────────────────
+function MethodBadge({m}){
+  const cfg={
+    CASH:     {bg:"#dcfce7",clr:"#15803d",dot:"#16a34a",label:"نقدي"},
+    SHAM_CASH:{bg:"#dbeafe",clr:"#1d4ed8",dot:"#2563eb",label:"شام كاش"},
+  };
+  const c=cfg[m]||{bg:"#f3f4f6",clr:"#6b7280",dot:"#9ca3af",label:m||"—"};
+  return(
+    <span style={{display:"inline-flex",alignItems:"center",gap:5,padding:"3px 9px",borderRadius:20,background:c.bg,color:c.clr,fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>
+      <span style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>
+      {c.label}
+    </span>
+  );
+}
+
+function KindBadge({k}){
+  const cfg={
+    SERVICE:{bg:"#eff6ff",clr:"#1d4ed8",label:"رسم شهادة"},
+    REEXAM: {bg:"#fff7ed",clr:"#c2410c",label:"إعادة امتحان"},
+  };
+  const c=cfg[k]||{bg:"#f3f4f6",clr:"#6b7280",label:k||"—"};
+  return(
+    <span style={{display:"inline-block",padding:"3px 9px",borderRadius:20,background:c.bg,color:c.clr,fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>
+      {c.label}
+    </span>
+  );
+}
+
+// ─── REVENUE SUB-TAB 2: Daily Details ────────────────────────────────────────
+function RevDailyTab({t,onViewCertificate}){
+  const todayISO=()=>new Date().toISOString().slice(0,10);
+  const fmt=v=>v!=null?Number(v).toLocaleString("en"):"—";
+  const fmtSy=v=>v!=null?`${Number(v).toLocaleString("en")} ل.س`:"—";
+
+  const [date,setDate]=useState(todayISO);
+  const [applied,setApplied]=useState(todayISO());
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState(null);
+  const [data,setData]=useState(null);
+  const [payments,setPayments]=useState([]);
+  const [busy,setBusy]=useState(false);
+
+  const load=async(d)=>{
+    setLoading(true);setError(null);
+    try{
+      const r=await certificatesService.getRevenueDaily(d);
+      const body=r.data?.data??r.data;
+      setData(body);
+      setPayments(Array.isArray(body?.payments)?body.payments:[]);
+    }catch(e){setError(e.response?.data?.message||"تعذّر تحميل بيانات اليوم");setPayments([]);}
+    finally{setLoading(false);}
+  };
+  useEffect(()=>{load(applied);},[applied]); // eslint-disable-line
+
+  const apply=()=>{if(busy)return;setBusy(true);setApplied(date);setTimeout(()=>setBusy(false),600);};
+
+  /* daily response returns totals at root level (not inside "collected") */
+  const totAmt=payments.reduce((s,p)=>s+Number(p.amount||0),0);
+  const totSch=payments.reduce((s,p)=>s+Number(p.schoolShare||0),0);
+  const totGov=payments.reduce((s,p)=>s+Number(p.governmentShare||0),0);
+
+  const inp={padding:"7px 10px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:12,fontFamily:"inherit",outline:"none"};
+  const thSt={fontSize:11,fontWeight:700,color:t.textMuted,padding:"9px 12px",textAlign:"right",background:t.bgElevated,borderBottom:`1px solid ${t.border}`};
+  const COLS="42px 1.8fr 130px 130px 100px 1fr 1fr 1fr 110px";
+
+  return(
+    <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:16}}>
+      {/* Filter bar */}
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:13,fontWeight:700,color:t.text,flexShrink:0}}>تفصيل يوم</span>
+        <div style={{display:"flex",alignItems:"center",gap:7,marginRight:"auto"}}>
+          <span style={{fontSize:12,color:t.textMuted}}>اليوم</span>
+          <input type="date" value={date} onChange={e=>setDate(e.target.value)} style={inp}/>
+          <button onClick={apply} disabled={busy}
+            style={{padding:"7px 18px",borderRadius:8,border:"none",background:busy?t.border:t.accent,color:"#fff",fontSize:12,fontFamily:"inherit",fontWeight:700,cursor:busy?"not-allowed":"pointer"}}>
+            {busy?"...":"عرض"}
+          </button>
+        </div>
+      </div>
+
+      {loading?(
+        <div style={{textAlign:"center",padding:48,color:t.textMuted,fontSize:13}}>جارٍ التحميل...</div>
+      ):error?(
+        <div style={{textAlign:"center",padding:40,color:"#c74848",fontSize:13}}>
+          {error}<br/>
+          <button onClick={()=>load(applied)}
+            style={{marginTop:8,padding:"5px 14px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
             إعادة المحاولة
           </button>
         </div>
       ):(<>
 
-        {/* ── 3 KPI Cards ── */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14}}>
-
-          {/* Total Collected */}
-          <div style={{background:t.bgSurface,borderRadius:14,border:`1px solid ${t.borderCard}`,padding:"20px 20px 16px"}}>
-            <div style={{fontSize:11,fontWeight:600,color:t.textMuted,marginBottom:8,letterSpacing:"0.03em"}}>المحصَّل إجمالاً</div>
-            <div style={{fontSize:28,fontWeight:800,color:t.text,lineHeight:1,marginBottom:6,fontVariantNumeric:"tabular-nums"}}>
-              {fmt(col.total)}
-            </div>
-            <div style={{fontSize:11,color:t.textMuted}}>{fmt(col.count)} دفعة</div>
-            <div style={{display:"flex",gap:10,marginTop:10,paddingTop:10,borderTop:`1px solid ${t.border}`}}>
-              <span style={{fontSize:11,color:t.textMuted}}>نقداً: <strong style={{color:t.text}}>{fmt(col.cash)}</strong></span>
-              <span style={{fontSize:11,color:t.textMuted}}>شام كاش: <strong style={{color:t.text}}>{fmt(col.shamCash)}</strong></span>
-            </div>
+        {/* 4 KPI cards — fields are at response root, not inside "collected" */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+          <div style={{background:t.bgSurface,borderRadius:12,border:`1px solid ${t.borderCard}`,padding:"14px 16px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:t.textMuted,marginBottom:5}}>إجمالي اليوم</div>
+            <div style={{fontSize:22,fontWeight:800,color:t.text,fontVariantNumeric:"tabular-nums"}}>{fmt(data?.total)}</div>
+            <div style={{fontSize:11,color:t.textMuted,marginTop:3}}>{fmt(data?.count)} دفعة</div>
           </div>
-
-          {/* School Share */}
-          <div style={{background:"#f0fdf4",borderRadius:14,border:"1px solid #bbf7d0",padding:"20px 20px 16px"}}>
-            <div style={{fontSize:11,fontWeight:600,color:"#15803d",marginBottom:8,letterSpacing:"0.03em"}}>
-              حصة المدرسة
-              <span style={{fontWeight:400,marginRight:4,opacity:0.8}}>— الدخل الحقيقي</span>
-            </div>
-            <div style={{fontSize:28,fontWeight:800,color:"#15803d",lineHeight:1,marginBottom:6,fontVariantNumeric:"tabular-nums"}}>
-              {fmt(col.schoolShare)}
-            </div>
-            <div style={{fontSize:11,color:"#16a34a"}}>هذا فقط هو دخل المدرسة الفعلي</div>
+          <div style={{background:"#f0fdf4",borderRadius:12,border:"1px solid #bbf7d0",padding:"14px 16px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#15803d",marginBottom:5}}>حصة المدرسة — الدخل الحقيقي</div>
+            <div style={{fontSize:22,fontWeight:800,color:"#15803d",fontVariantNumeric:"tabular-nums"}}>{fmt(data?.schoolShare)}</div>
+            <div style={{fontSize:11,color:"#16a34a",marginTop:3}}>فعلاً في جيب المدرسة</div>
           </div>
-
-          {/* Gov Share */}
-          <div style={{background:"#fffbeb",borderRadius:14,border:"1px solid #fde68a",padding:"20px 20px 16px"}}>
-            <div style={{fontSize:11,fontWeight:600,color:"#92400e",marginBottom:8,letterSpacing:"0.03em"}}>
-              حصة الحكومة
-              <span style={{fontWeight:400,marginRight:4,opacity:0.8}}>— أمانة لا دخل</span>
+          <div style={{background:"#fffbeb",borderRadius:12,border:"1px solid #fde68a",padding:"14px 16px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#92400e",marginBottom:5}}>حصة الحكومة — أمانة</div>
+            <div style={{fontSize:22,fontWeight:800,color:"#b45309",fontVariantNumeric:"tabular-nums"}}>{fmt(data?.governmentShare)}</div>
+            <div style={{fontSize:11,color:"#d97706",marginTop:3}}>ستُسلَّم لاحقاً</div>
+          </div>
+          <div style={{background:t.bgSurface,borderRadius:12,border:`1px solid ${t.borderCard}`,padding:"14px 16px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:t.textMuted,marginBottom:6}}>طريقة الدفع</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+              <MethodBadge m="CASH"/>
+              <span style={{fontSize:12,fontWeight:700,color:t.text,fontVariantNumeric:"tabular-nums"}}>{fmt(data?.cash)}</span>
             </div>
-            <div style={{fontSize:28,fontWeight:800,color:"#b45309",lineHeight:1,marginBottom:6,fontVariantNumeric:"tabular-nums"}}>
-              {fmt(col.governmentShare)}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <MethodBadge m="SHAM_CASH"/>
+              <span style={{fontSize:12,fontWeight:700,color:t.text,fontVariantNumeric:"tabular-nums"}}>{fmt(data?.shamCash)}</span>
             </div>
-            <div style={{fontSize:11,color:"#d97706"}}>محصَّلة للحكومة · تُسلَّم لاحقاً</div>
           </div>
         </div>
 
-        {/* ── Warning callout ── */}
-        <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"11px 14px",borderRadius:10,background:"#fffbeb",border:"1px solid #fde68a"}}>
-          <span style={{fontSize:16,flexShrink:0,lineHeight:1.4}}>⚠️</span>
-          <span style={{fontSize:12,color:"#92400e",lineHeight:1.7}}>
-            الإجمالي ليس دخل المدرسة. الدخل هو{" "}
-            <strong>حصة المدرسة وحدها</strong>؛ الباقي محصَّل باسم الحكومة تحتفظ به المدرسة حتى تسليمه.
-            الحصص محسوبة مسبقاً على كل دفعة — لا تتغير بتغيير إعدادات النسبة الحالية.
-          </span>
-        </div>
-
-        {/* ── Breakdown table ── */}
-        <div>
-          <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:10}}>جدول ملخص البنود</div>
-          <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
-            {/* Header */}
-            <div style={{display:"grid",gridTemplateColumns:"2fr 70px 1fr 1fr 1fr",background:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
-              {["البند","العدد","الإجمالي","المدرسة","الحكومة"].map(h=>(
-                <div key={h} style={thSt}>{h}</div>
-              ))}
-            </div>
-            {/* Service + Reexam rows */}
-            {breakdownRows.map((row,i)=>(
-              <div key={i} style={{display:"grid",gridTemplateColumns:"2fr 70px 1fr 1fr 1fr",borderBottom:`1px solid ${t.border}`,background:t.bgSurface,alignItems:"center"}}>
-                <div style={{...tdN(true),paddingRight:14}}>{row.label}</div>
-                <div style={tdN(false,t.textSec)}>{fmt(row.count)}</div>
-                <div style={tdN(true)}>{fmtSy(row.total)}</div>
-                <div style={{...tdN(true,"#15803d")}}>{fmtSy(row.school)}</div>
-                <div style={tdN(false,"#b45309")}>{fmtSy(row.gov)}</div>
-              </div>
-            ))}
-            {/* Cash method summary rows */}
-            {cashRows.length>0&&(
-              <>
-                <div style={{gridColumn:"1/-1",padding:"6px 12px",background:t.bgElevated,display:"grid",gridTemplateColumns:"2fr 70px 1fr 1fr 1fr",borderTop:`1px solid ${t.border}`}}>
-                  <div style={{fontSize:10,fontWeight:700,color:t.textMuted,gridColumn:"1/-1"}}>تفصيل طريقة الدفع</div>
-                </div>
-                {cashRows.map((row,i)=>(
-                  <div key={`cash-${i}`} style={{display:"grid",gridTemplateColumns:"2fr 70px 1fr 1fr 1fr",borderTop:`1px dashed ${t.border}`,background:t.bgSurface,alignItems:"center"}}>
-                    <div style={{...tdN(false,t.textSec),paddingRight:14}}>{row.label}</div>
-                    <div style={tdN(false,t.textMuted)}>—</div>
-                    <div style={tdN(true)}>{fmtSy(row.amount)}</div>
-                    <div style={tdN(false,t.textMuted)}>—</div>
-                    <div style={tdN(false,t.textMuted)}>—</div>
-                  </div>
-                ))}
-              </>
-            )}
+        {/* Empty state */}
+        {!payments.length?(
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,padding:"52px 24px",background:t.bgSurface,borderRadius:14,border:`1px dashed ${t.border}`}}>
+            <span style={{fontSize:40,lineHeight:1}}>📭</span>
+            <div style={{fontSize:14,fontWeight:700,color:t.text}}>لا توجد دفعات في هذا اليوم</div>
+            <div style={{fontSize:12,color:t.textMuted}}>لم يُسجَّل أي مقبوض بتاريخ {applied}</div>
           </div>
-        </div>
-
-        {/* ── Daily aggregate table ── */}
-        {byDay.length>0&&(
-          <div>
-            <div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:10}}>حسب اليوم</div>
-            <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 70px 1fr 1fr 1fr",background:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
-                {["اليوم","دفعة","الإجمالي","المدرسة","الحكومة"].map(h=>(
-                  <div key={h} style={thSt}>{h}</div>
-                ))}
-              </div>
-              {byDay.map((row,i)=>(
-                <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 70px 1fr 1fr 1fr",borderBottom:i<byDay.length-1?`1px solid ${t.border}`:"none",background:t.bgSurface,alignItems:"center"}}>
-                  <div style={tdN(false,t.textSec)}>{fmtDay(row.date)}</div>
-                  <div style={tdN(false,t.textMuted)}>{fmt(row.count)}</div>
-                  <div style={tdN(true)}>{fmtSy(row.total)}</div>
-                  <div style={tdN(true,"#15803d")}>{fmtSy(row.schoolShare)}</div>
-                  <div style={tdN(false,"#b45309")}>{fmtSy(row.governmentShare)}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {!data&&(
-          <div style={{textAlign:"center",padding:32,color:t.textMuted,fontSize:13}}>لا توجد بيانات في هذه الفترة</div>
-        )}
-
-      </>)}
-
-      {/* ══════════ SINGLE-DAY DETAIL ══════════ */}
-      <div style={{borderTop:`2px solid ${t.border}`,paddingTop:20}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,flexWrap:"wrap"}}>
-          <span style={{fontSize:13,fontWeight:700,color:t.text}}>دفعات يوم واحد</span>
-          <div style={{display:"flex",alignItems:"center",gap:7,marginRight:"auto"}}>
-            <span style={{fontSize:12,color:t.textMuted}}>اليوم</span>
-            <input type="date" value={detDate} onChange={e=>setDetDate(e.target.value)} style={inp}/>
-            <button onClick={applyDetail} disabled={detBusy} style={acBtn(detBusy)}>
-              {detBusy?"...":"عرض"}
-            </button>
-          </div>
-        </div>
-
-        {detLoading?(
-          <div style={{textAlign:"center",padding:28,color:t.textMuted,fontSize:13}}>جارٍ التحميل...</div>
-        ):detError?(
-          <div style={{textAlign:"center",padding:28,color:"#c74848",fontSize:13}}>{detError}</div>
-        ):!payments.length?(
-          <div style={{textAlign:"center",padding:28,color:t.textMuted,fontSize:13}}>لا توجد دفعات في هذا اليوم</div>
         ):(
-          <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
-            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",background:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
-              {["الطالب","النوع","الطريقة","المبلغ","حصة المدرسة"].map(h=>(
+          <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflowX:"auto"}}>
+            {/* Header */}
+            <div style={{display:"grid",gridTemplateColumns:COLS,minWidth:920}}>
+              {["#","الطالب","النوع","طريقة الدفع","وقت القبض","المبلغ","حصة المدرسة","حصة الحكومة","الشهادة"].map(h=>(
                 <div key={h} style={thSt}>{h}</div>
               ))}
             </div>
+            {/* Rows */}
             {payments.map((p,i)=>(
-              <div key={p.paymentId??i} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",borderBottom:i<payments.length-1?`1px solid ${t.border}`:"none",background:t.bgSurface,alignItems:"center"}}>
-                <div style={{padding:"10px 12px"}}>
-                  <div style={{fontSize:13,fontWeight:600,color:t.text}}>{p.studentName||"—"}</div>
-                  <div style={{fontSize:10,color:t.textMuted,marginTop:2,direction:"ltr",textAlign:"right"}}>#{p.paymentId}</div>
+              <div key={p.paymentId??i}
+                style={{display:"grid",gridTemplateColumns:COLS,minWidth:920,borderTop:`1px solid ${t.border}`,background:i%2===0?t.bgSurface:t.bgElevated,alignItems:"center"}}>
+                {/* # */}
+                <div style={{padding:"10px 8px",textAlign:"center",fontSize:11,color:t.textMuted,fontWeight:600}}>
+                  {p.paymentId??i+1}
                 </div>
-                <div style={tdN(false,t.textSec)}>{KIND_LABEL[p.kind]||p.kind||"—"}</div>
-                <div style={tdN(false,t.textSec)}>{METHOD_LABEL[p.paymentMethod]||p.paymentMethod||"—"}</div>
-                <div style={tdN(true)}>{fmtSy(p.amount)}</div>
-                <div style={tdN(true,"#15803d")}>{fmtSy(p.schoolShare)}</div>
+                {/* Student */}
+                <div style={{padding:"10px 12px",fontSize:13,fontWeight:600,color:t.text}}>
+                  {p.studentName||"—"}
+                </div>
+                {/* Kind badge */}
+                <div style={{padding:"10px 12px"}}>
+                  <KindBadge k={p.kind}/>
+                </div>
+                {/* Method badge */}
+                <div style={{padding:"10px 12px"}}>
+                  <MethodBadge m={p.paymentMethod}/>
+                </div>
+                {/* Received at */}
+                <div style={{padding:"10px 12px",fontSize:11,color:t.textMuted,fontVariantNumeric:"tabular-nums",direction:"ltr",textAlign:"left"}}>
+                  {p.receivedAt?new Date(p.receivedAt).toLocaleTimeString("ar-SY",{hour:"2-digit",minute:"2-digit",hour12:false}):"—"}
+                </div>
+                {/* Amount */}
+                <div style={{padding:"10px 12px",fontSize:13,fontWeight:700,color:t.text,textAlign:"right",fontVariantNumeric:"tabular-nums"}}>
+                  {fmtSy(p.amount)}
+                </div>
+                {/* School share */}
+                <div style={{padding:"10px 12px",fontSize:13,fontWeight:700,color:"#15803d",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>
+                  {fmtSy(p.schoolShare)}
+                </div>
+                {/* Gov share */}
+                <div style={{padding:"10px 12px",fontSize:13,color:"#b45309",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>
+                  {fmtSy(p.governmentShare)}
+                </div>
+                {/* Certificate */}
+                <div style={{padding:"10px 8px",textAlign:"center"}}>
+                  {p.certificateId!=null?(
+                    onViewCertificate?(
+                      <button
+                        onClick={()=>onViewCertificate(p.certificateId)}
+                        title="فتح بيانات الشهادة"
+                        style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:8,border:`1px solid ${t.accent}`,background:"transparent",color:t.accent,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                        onMouseEnter={e=>e.currentTarget.style.background=t.accentLight}
+                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                        🔗 #{p.certificateId}
+                      </button>
+                    ):(
+                      <span style={{padding:"3px 8px",borderRadius:7,background:t.accentLight,color:t.accentText,fontSize:11,fontWeight:700}}>
+                        #{p.certificateId}
+                      </span>
+                    )
+                  ):(
+                    <span style={{fontSize:11,color:t.textMuted}}>—</span>
+                  )}
+                </div>
               </div>
             ))}
-            {/* Day total footer */}
-            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",background:t.bgElevated,borderTop:`2px solid ${t.border}`}}>
-              <div style={{padding:"9px 12px",fontSize:12,fontWeight:700,color:t.textSec}}>إجمالي اليوم</div>
-              <div style={{padding:"9px 12px"}}/>
-              <div style={{padding:"9px 12px"}}/>
-              <div style={{padding:"9px 12px",fontSize:13,fontWeight:700,color:t.text,textAlign:"right"}}>
-                {fmtSy(payments.reduce((s,p)=>s+Number(p.amount||0),0))}
+            {/* Footer totals row */}
+            <div style={{display:"grid",gridTemplateColumns:COLS,minWidth:920,borderTop:`2px solid ${t.border}`,background:t.bgElevated}}>
+              <div style={{gridColumn:"1/6",padding:"10px 12px",fontSize:12,fontWeight:700,color:t.textSec,textAlign:"right"}}>
+                الإجمالي — {payments.length} دفعة
               </div>
-              <div style={{padding:"9px 12px",fontSize:13,fontWeight:700,color:"#15803d",textAlign:"right"}}>
-                {fmtSy(payments.reduce((s,p)=>s+Number(p.schoolShare||0),0))}
-              </div>
+              <div style={{padding:"10px 12px",fontSize:13,fontWeight:800,color:t.text,textAlign:"right",fontVariantNumeric:"tabular-nums"}}>{fmtSy(totAmt)}</div>
+              <div style={{padding:"10px 12px",fontSize:13,fontWeight:800,color:"#15803d",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>{fmtSy(totSch)}</div>
+              <div style={{padding:"10px 12px",fontSize:13,fontWeight:800,color:"#b45309",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>{fmtSy(totGov)}</div>
+              <div/>
             </div>
           </div>
         )}
-      </div>
+      </>)}
+    </div>
+  );
+}
 
+// ─── REVENUE SUB-TAB 3: Outstanding Government Remittance ────────────────────
+function RevOutstandingTab({t, onRemitSuccess}){
+  const fmtSy=v=>v!=null?`${Number(v).toLocaleString("en")} ل.س`:"—";
+  const {hasPermission}=useAuth();
+  const canRemit=hasPermission("certificates.remit-government");
+  const {show:toast,el:toastEl}=useCertToast();
+
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState(null);
+  const [data,setData]=useState(null);
+  const [sessions,setSessions]=useState([]);
+  const [selected,setSelected]=useState(new Set());
+  const [submitting,setSubmitting]=useState(false);
+
+  const load=async()=>{
+    setLoading(true);setError(null);setSelected(new Set());
+    try{
+      const r=await certificatesService.getGovernmentOutstanding();
+      const body=r.data?.data??r.data;
+      setData(body);
+      setSessions(Array.isArray(body?.courses)?body.courses:[]);
+    }catch(e){setError(e.response?.data?.message||"تعذّر تحميل البيانات");}
+    finally{setLoading(false);}
+  };
+  useEffect(()=>{load();},[]);// eslint-disable-line react-hooks/set-state-in-effect
+
+  const toggleAll=()=>setSelected(s=>s.size===sessions.length?new Set():new Set(sessions.map(x=>x.courseId??x.id)));
+  const toggle=id=>setSelected(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n;});
+
+  const handleSubmit=async()=>{
+    if(!selected.size||submitting||!canRemit)return;
+    setSubmitting(true);
+    try{
+      await certificatesService.recordGovernmentRemittance({courseIds:[...selected]});
+      toast(`تم تسجيل تسليم ${selected.size} دورة بنجاح`,"ok");
+      await load();
+      onRemitSuccess?.();
+    }catch(e){
+      const status=e.response?.status;
+      const msg=status===403?"ليس لديك صلاحية تسجيل التسليم الحكومي":e.response?.data?.message||"حدث خطأ أثناء التسجيل";
+      toast(msg,"err");
+    }
+    finally{setSubmitting(false);}
+  };
+
+  const selTotal=sessions.filter(s=>selected.has(s.courseId??s.id)).reduce((sum,s)=>sum+Number(s.governmentShare||0),0);
+  const thSt={fontSize:11,fontWeight:700,color:t.textMuted,padding:"9px 12px",textAlign:"right",borderBottom:`1px solid ${t.border}`,background:t.bgElevated};
+
+  return(
+    <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:14}}>
+      {loading?(
+        <div style={{textAlign:"center",padding:48,color:t.textMuted,fontSize:13}}>جارٍ التحميل...</div>
+      ):error?(
+        <div style={{textAlign:"center",padding:40,color:"#c74848",fontSize:13}}>
+          {error}<br/>
+          <button onClick={load} style={{marginTop:8,padding:"5px 14px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>إعادة المحاولة</button>
+        </div>
+      ):(<>
+        {toastEl}
+        {/* Summary cards */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={{background:"#fffbeb",borderRadius:14,border:"1px solid #fde68a",padding:"18px 20px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#92400e",marginBottom:6}}>إجمالي المتبقي للحكومة</div>
+            <div style={{fontSize:28,fontWeight:800,color:"#b45309",fontVariantNumeric:"tabular-nums"}}>{fmtSy(data?.outstanding)}</div>
+          </div>
+          <div style={{background:t.bgSurface,borderRadius:14,border:`1px solid ${t.borderCard}`,padding:"18px 20px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:t.textMuted,marginBottom:6}}>الدورات المعلقة</div>
+            <div style={{fontSize:28,fontWeight:800,color:t.text,fontVariantNumeric:"tabular-nums"}}>{sessions.length} <span style={{fontSize:14,fontWeight:500}}>دورة</span></div>
+          </div>
+        </div>
+
+        {!sessions.length?(
+          <div style={{textAlign:"center",padding:32,color:t.textMuted,fontSize:13}}>لا توجد دورات معلقة — كل المستحقات مسلَّمة ✓</div>
+        ):(
+          <>
+            <div style={{border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden"}}>
+              <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1.2fr"}}>
+                <div style={{...thSt,textAlign:"center"}}>
+                  <input type="checkbox" checked={selected.size===sessions.length&&sessions.length>0} onChange={toggleAll} style={{cursor:"pointer"}}/>
+                </div>
+                {["رقم الدورة","حصة الحكومة"].map(h=><div key={h} style={thSt}>{h}</div>)}
+              </div>
+              {sessions.map((s,i)=>{
+                const id=s.courseId??s.id;
+                const checked=selected.has(id);
+                return(
+                  <div key={id??i} onClick={()=>toggle(id)} style={{display:"grid",gridTemplateColumns:"40px 1fr 1.2fr",borderTop:`1px solid ${t.border}`,background:checked?t.accentLight:"transparent",cursor:"pointer",transition:"background 0.1s"}}>
+                    <div style={{padding:"11px 12px",textAlign:"center"}}><input type="checkbox" checked={checked} onChange={()=>toggle(id)} onClick={e=>e.stopPropagation()} style={{cursor:"pointer"}}/></div>
+                    <div style={{padding:"11px 12px",fontSize:13,color:t.text,fontWeight:600}}>دورة #{id}</div>
+                    <div style={{padding:"11px 12px",fontSize:13,fontWeight:700,color:"#b45309"}}>{fmtSy(s.governmentShare)}</div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Action footer */}
+            <div style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderRadius:10,background:t.bgSurface,border:`1px solid ${t.borderCard}`}}>
+              <span style={{fontSize:13,color:t.textSec}}>المحدَّد: <strong style={{color:t.text}}>{selected.size} دورة</strong></span>
+              {selected.size>0&&<span style={{fontSize:12,color:"#b45309"}}>({fmtSy(selTotal)})</span>}
+              {canRemit?(
+                <button onClick={handleSubmit} disabled={!selected.size||submitting}
+                  style={{marginRight:"auto",padding:"10px 20px",borderRadius:10,border:"none",background:(!selected.size||submitting)?"#e5e7eb":"#b45309",color:"#fff",fontSize:13,fontWeight:700,cursor:(!selected.size||submitting)?"not-allowed":"pointer",fontFamily:"inherit",opacity:(!selected.size||submitting)?0.6:1,transition:"all 0.15s"}}>
+                  {submitting?"جارٍ التسجيل...":"تسجيل تسليم المحدَّد"}
+                </button>
+              ):(
+                <span style={{marginRight:"auto",fontSize:11,color:t.textMuted,padding:"10px 16px",borderRadius:10,background:t.bgElevated,border:`1px solid ${t.border}`}}>لا تملك صلاحية التسليم</span>
+              )}
+            </div>
+          </>
+        )}
+      </>)}
+    </div>
+  );
+}
+
+// ─── REVENUE SUB-TAB 4: Remittance History ───────────────────────────────────
+function RevHistoryTab({t, historyRev}){
+  const fmtSy=v=>v!=null?`${Number(v).toLocaleString("en")} ل.س`:"—";
+  const {hasPermission}=useAuth();
+  const canRemit=hasPermission("certificates.remit-government");
+  const {show:toast,el:toastEl}=useCertToast();
+
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState(null);
+  const [history,setHistory]=useState([]);
+  const [expanded,setExpanded]=useState(new Set());
+  const [selected,setSelected]=useState({});
+  const [submitting,setSubmitting]=useState(null);
+  const [confirmPending,setConfirmPending]=useState(null); // {remId, ids, selTotal}
+
+  const load=async()=>{
+    setLoading(true);setError(null);
+    try{
+      const r=await certificatesService.getGovernmentHistory();
+      const body=r.data?.data??r.data;
+      setHistory(Array.isArray(body)?body:Array.isArray(body?.history)?body.history:[]);
+    }catch(e){setError(e.response?.data?.message||"تعذّر تحميل السجل");}
+    finally{setLoading(false);}
+  };
+  useEffect(()=>{load();},[historyRev]);// eslint-disable-line react-hooks/set-state-in-effect,react-hooks/exhaustive-deps
+
+  const toggleExpand=id=>setExpanded(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n;});
+  const toggleCourse=(remId,cid)=>setSelected(p=>{const s=new Set(p[remId]||[]);s.has(cid)?s.delete(cid):s.add(cid);return{...p,[remId]:s};});
+
+  const openConfirm=(remId,courses)=>{
+    const ids=[...(selected[remId]||[])];
+    if(!ids.length||submitting||!canRemit)return;
+    const selTotal=courses.filter(c=>ids.includes(c.courseId??c.id)).reduce((s,c)=>s+Number(c.governmentShare||0),0);
+    setConfirmPending({remId,ids,selTotal});
+  };
+
+  const handleRollback=async()=>{
+    if(!confirmPending)return;
+    const {remId,ids}=confirmPending;
+    setConfirmPending(null);
+    setSubmitting(remId);
+    try{
+      await certificatesService.rollbackGovernmentRemittance({courseIds:ids});
+      toast(`تم التراجع عن تسليم ${ids.length} دورة`,"ok");
+      await load();
+    }catch(e){
+      const status=e.response?.status;
+      const msg=status===403?"ليس لديك صلاحية التراجع عن التسليم":e.response?.data?.message||"حدث خطأ أثناء التراجع";
+      toast(msg,"err");
+    }
+    finally{setSubmitting(null);}
+  };
+
+  const thSt={fontSize:11,fontWeight:700,color:t.textMuted,padding:"8px 12px",textAlign:"right",borderBottom:`1px solid ${t.border}`,background:t.bgElevated};
+
+  return(
+    <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:12}}>
+      {/* Confirmation modal */}
+      {confirmPending&&(
+        <div onClick={()=>setConfirmPending(null)} style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.4)",backdropFilter:"blur(2px)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:t.bgSurface,borderRadius:16,padding:"26px 28px 20px",width:320,boxShadow:"0 20px 48px rgba(0,0,0,0.22)",border:`1px solid ${t.borderCard}`,textAlign:"center"}}>
+            <div style={{fontSize:32,marginBottom:10}}>⚠️</div>
+            <div style={{fontSize:15,fontWeight:700,color:t.text,marginBottom:6}}>تأكيد التراجع</div>
+            <div style={{fontSize:13,color:t.textMuted,marginBottom:6}}>سيتم التراجع عن تسليم <strong style={{color:t.text}}>{confirmPending.ids.length} دورة</strong></div>
+            <div style={{fontSize:12,color:"#b45309",marginBottom:20}}>({fmtSy(confirmPending.selTotal)})</div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={handleRollback} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:"#c74848",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>تأكيد التراجع</button>
+              <button onClick={()=>setConfirmPending(null)} style={{flex:1,padding:"10px",borderRadius:10,cursor:"pointer",background:t.bgElevated,color:t.textSec,fontSize:14,fontWeight:600,border:`1px solid ${t.border}`,fontFamily:"inherit"}}>إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {loading?(
+        <div style={{textAlign:"center",padding:48,color:t.textMuted,fontSize:13}}>جارٍ التحميل...</div>
+      ):error?(
+        <div style={{textAlign:"center",padding:40,color:"#c74848",fontSize:13}}>
+          {error}<br/>
+          <button onClick={load} style={{marginTop:8,padding:"5px 14px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>إعادة المحاولة</button>
+        </div>
+      ):!history.length?(
+        <div style={{textAlign:"center",padding:48,color:t.textMuted,fontSize:13}}>لا يوجد سجل تسليم حتى الآن</div>
+      ):(<>
+        {toastEl}
+        {history.map((item,idx)=>{
+          const remId=item.remittanceId??item.id??idx;
+          const courses=Array.isArray(item.sessions)?item.sessions:Array.isArray(item.courses)?item.courses:[];
+          const isExpanded=expanded.has(remId);
+          const selSet=selected[remId]||new Set();
+          const selCount=selSet.size;
+          const selTotal=courses.filter(c=>selSet.has(c.courseId??c.id)).reduce((s,c)=>s+Number(c.governmentShare||0),0);
+          const paidAt=item.paidAt||item.remittedAt;
+          return(
+            <div key={remId} style={{border:`1px solid ${t.border}`,borderRadius:12,overflow:"hidden",background:t.bgSurface}}>
+              <div onClick={()=>toggleExpand(remId)} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",cursor:"pointer"}}
+                onMouseEnter={e=>e.currentTarget.style.background=t.bgElevated}
+                onMouseLeave={e=>e.currentTarget.style.background=t.bgSurface}>
+                <span style={{fontSize:12,color:t.textMuted}}>{isExpanded?"▼":"▶"}</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:700,color:t.text}}>تسليم #{remId} — {courses.length} دورة</div>
+                  {paidAt&&<div style={{fontSize:11,color:t.textMuted,marginTop:2}}>{new Date(paidAt).toLocaleString("ar-SY",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>}
+                </div>
+                <div style={{fontSize:15,fontWeight:800,color:"#b45309",fontVariantNumeric:"tabular-nums"}}>{fmtSy(item.totalAmount??item.amount)}</div>
+              </div>
+              {isExpanded&&(
+                <>
+                  <div style={{borderTop:`1px solid ${t.border}`}}>
+                    <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1.2fr"}}>
+                      <div style={{...thSt,textAlign:"center"}}>
+                        <input type="checkbox" checked={selCount===courses.length&&courses.length>0}
+                          onChange={()=>setSelected(p=>({...p,[remId]:selCount===courses.length?new Set():new Set(courses.map(c=>c.courseId??c.id))}))}
+                          style={{cursor:"pointer"}}/>
+                      </div>
+                      {["رقم الدورة","حصة الحكومة"].map(h=><div key={h} style={thSt}>{h}</div>)}
+                    </div>
+                    {courses.map((c,ci)=>{
+                      const cid=c.courseId??c.id;
+                      const checked=selSet.has(cid);
+                      return(
+                        <div key={cid??ci} onClick={()=>toggleCourse(remId,cid)} style={{display:"grid",gridTemplateColumns:"40px 1fr 1.2fr",borderTop:`1px solid ${t.border}`,background:checked?t.accentLight:"transparent",cursor:"pointer"}}>
+                          <div style={{padding:"9px 12px",textAlign:"center"}}><input type="checkbox" checked={checked} onChange={()=>toggleCourse(remId,cid)} onClick={e=>e.stopPropagation()} style={{cursor:"pointer"}}/></div>
+                          <div style={{padding:"9px 12px",fontSize:13,color:t.text,fontWeight:600}}>دورة #{cid}</div>
+                          <div style={{padding:"9px 12px",fontSize:13,fontWeight:700,color:"#b45309"}}>{fmtSy(c.governmentShare)}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:t.bgElevated}}>
+                    <span style={{fontSize:12,color:t.textSec}}>المحدَّد: <strong style={{color:t.text}}>{selCount} دورة</strong></span>
+                    {selCount>0&&<span style={{fontSize:11,color:"#b45309"}}>({fmtSy(selTotal)})</span>}
+                    {canRemit?(
+                      <button onClick={()=>openConfirm(remId,courses)} disabled={!selCount||submitting===remId}
+                        style={{marginRight:"auto",padding:"8px 18px",borderRadius:9,border:"none",background:(!selCount||submitting===remId)?"#e5e7eb":"#c74848",color:"#fff",fontSize:12,fontWeight:700,cursor:(!selCount||submitting===remId)?"not-allowed":"pointer",fontFamily:"inherit",opacity:(!selCount||submitting===remId)?0.6:1}}>
+                        {submitting===remId?"جارٍ التراجع...":"تراجع عن تسليم المحدَّد"}
+                      </button>
+                    ):(
+                      <span style={{marginRight:"auto",fontSize:11,color:t.textMuted,padding:"8px 14px",borderRadius:9,background:t.bgSurface,border:`1px solid ${t.border}`}}>لا تملك صلاحية التراجع</span>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </>)}
+    </div>
+  );
+}
+
+// ─── REVENUE PARENT: 4-sub-tab navigator ─────────────────────────────────────
+function CertRevenueTab({t,onViewCertificate}){
+  const [revTab,setRevTab]=useState("summary");
+  const [historyRev,setHistoryRev]=useState(0);
+  const REV_TABS=[
+    {id:"summary",     label:"ملخص الفترة"},
+    {id:"daily",       label:"تفصيل يوم"},
+    {id:"outstanding", label:"المتبقي للحكومة"},
+    {id:"history",     label:"سجل التسليم"},
+  ];
+  return(
+    <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div style={{display:"flex",gap:0,padding:"10px 16px 0",borderBottom:`1px solid ${t.border}`,background:t.bgSurface,flexShrink:0,overflowX:"auto"}}>
+        {REV_TABS.map(tb=>(
+          <button key={tb.id} onClick={()=>setRevTab(tb.id)} style={{padding:"8px 16px",border:"none",borderBottom:revTab===tb.id?`2px solid ${t.accent}`:"2px solid transparent",marginBottom:-1,cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:revTab===tb.id?700:500,color:revTab===tb.id?t.accentText:t.textMuted,background:"transparent",whiteSpace:"nowrap",transition:"color 0.15s"}}>
+            {tb.label}
+          </button>
+        ))}
+      </div>
+      <div style={{flex:1,overflowY:"auto"}}>
+        {revTab==="summary"     &&<RevSummaryTab     t={t}/>}
+        {revTab==="daily"       &&<RevDailyTab       t={t} onViewCertificate={onViewCertificate}/>}
+        {revTab==="outstanding" &&<RevOutstandingTab t={t} onRemitSuccess={()=>setHistoryRev(r=>r+1)}/>}
+        {revTab==="history"     &&<RevHistoryTab     t={t} historyRev={historyRev}/>}
+      </div>
     </div>
   );
 }
@@ -4715,7 +5063,7 @@ function SectionCertificate({t}){
         {tab==="pool"    &&<CertPoolTab    t={t} onOpenCourse={goToCourse} onOpenCert={goToCert}/>}
         {tab==="courses" &&<CertCoursesTab t={t} pendingCourseId={pendingCourseId} onPendingConsumed={()=>setPendingCourseId(null)} onOpenCert={goToCert}/>}
         {tab==="search"  &&<CertSearchTab  t={t} pendingCertId={pendingCertId}  onPendingConsumed={()=>setPendingCertId(null)}/>}
-        {tab==="revenue" &&<CertRevenueTab t={t}/>}
+        {tab==="revenue" &&<CertRevenueTab t={t} onViewCertificate={goToCert}/>}
       </div>
     </div>
   );

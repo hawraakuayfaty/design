@@ -43,6 +43,7 @@ export const P = {
   CERTIFICATES_READ: "certificates.read",
   CERTIFICATES_CREATE: "certificates.create",
   CERTIFICATES_UPDATE: "certificates.update",
+  CERTIFICATES_REMIT_GOVERNMENT: "certificates.remit-government",
 
   TRANSPORT_READ: "transport.read",
 
