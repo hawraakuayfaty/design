@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { todayStr, firstOfMonthStr, currentYearMonth } from "./utils/dateUtils";
 import { generalExpensesService, employeesService, employeeAccountingService } from "./api";
 import { FiTrash2 } from "react-icons/fi";
-import { LuEye, LuEyeOff } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuPencil, LuBan, LuLockOpen, LuBanknote, LuFileText } from "react-icons/lu";
 
 const T = {
   light: {
@@ -488,8 +488,6 @@ function PgGeneralExpenses({ t }) {
 
 function Badge({s,t}){const m={"نشط":t.completed,"غير نشط":t.expired,"مدير":t.admin,"موظف إداري":t.confirmed,"محاسب":t.pending,"مدرب":{bg:"#FFF7ED",text:"#C2410C",dot:"#F97316"},"موقوف":t.cancelled,"فعّال":t.completed};const c=m[s]||t.expired;return <span style={{display:"inline-flex",alignItems:"center",gap:5,background:c.bg,color:c.text,padding:"2px 9px",borderRadius:20,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>{s}</span>;}
 
-const ROLE_LABEL_MAP={MANAGER:"مدير",RECEPTIONIST:"موظف إداري",ACCOUNTANT:"محاسب"};
-const ROLE_COLORS={"مدير":"#6B21A8","موظف إداري":"#1D4ED8","محاسب":"#92400E"};
 const STATUS_LABEL={ACTIVE:"نشط",BLOCKED:"موقوف",ARCHIVED:"مؤرشف"};
 const EMP_EXP_TYPES=[{v:"SALARY",lbl:"راتب شهري"},{v:"BONUS",lbl:"مكافأة"},{v:"OTHER",lbl:"سلفة / مصروف آخر"}];
 const EMP_EXP_LABEL={SALARY:"راتب شهري",BONUS:"مكافأة",OTHER:"سلفة / مصروف آخر"};
@@ -499,6 +497,7 @@ const _eYM=currentYearMonth;
 const _eFom=firstOfMonthStr;
 const fmtM=n=>(n!=null&&n!=="")?(Number(n).toLocaleString("en")):"—";
 const empFldSt=(t,err)=>({width:"100%",padding:"9px 12px",borderRadius:9,border:`1.5px solid ${err?"#c74848":t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none"});
+const empActionBtnStyle=(bg,color,border)=>({display:"inline-flex",alignItems:"center",gap:4,padding:"4px 11px",borderRadius:8,background:bg,color,border:border||"none",fontSize:12,fontWeight:600,fontFamily:"inherit",cursor:"pointer",whiteSpace:"nowrap"});
 
 function AddEmployeeModal({t,onClose,onSuccess}){
   const [form,setForm]=useState({name:"",phone:"",password:"",role:"",monthlySalary:"",hireDate:""});
@@ -587,12 +586,106 @@ function EmployeeStatementModal({t,employee,onClose}){
   );
 }
 
+function EditEmployeeModal({t,employee,onClose,onSuccess}){
+  const empId=employee.employeeId;
+  const empName=employee.user?.name||employee.name||"الموظف";
+  const [form,setForm]=useState({
+    monthlySalary: employee.monthlySalary!=null?String(employee.monthlySalary):"",
+    hireDate: employee.hireDate||"",
+    resignDate: employee.resignDate||"",
+  });
+  const [errors,setErrors]=useState({});
+  const [submitting,setSubmitting]=useState(false);
+  const [serverError,setServerError]=useState("");
+  const set=(k,v)=>{setForm(p=>({...p,[k]:v}));setErrors(p=>({...p,[k]:undefined}));};
+  const validate=()=>{const e={};if(form.monthlySalary!==""&&(isNaN(Number(form.monthlySalary))||Number(form.monthlySalary)<=0))e.monthlySalary="يجب أن يكون رقماً أكبر من صفر";return e;};
+  const handleSubmit=async(ev)=>{
+    ev.preventDefault();setServerError("");
+    const v=validate();setErrors(v);if(Object.keys(v).length)return;
+    const payload={};
+    if(form.monthlySalary!=="")payload.monthlySalary=Number(form.monthlySalary);
+    if(form.hireDate)payload.hireDate=form.hireDate;
+    if(form.resignDate)payload.resignDate=form.resignDate;
+    setSubmitting(true);
+    try{
+      await employeesService.update(empId,payload);
+      onSuccess();
+    }catch(err){
+      const msg=err.response?.data?.message||err.message||"حدث خطأ أثناء تعديل بيانات الموظف";
+      setServerError(Array.isArray(msg)?msg.join("، "):msg);
+    }finally{
+      setSubmitting(false);
+    }
+  };
+  return(
+    <Modal title={`تعديل بيانات — ${empName}`} onClose={()=>{if(!submitting)onClose();}} t={t} width={420}>
+      {serverError&&<div style={{background:"rgba(199,72,72,0.1)",border:"1px solid rgba(199,72,72,0.3)",borderRadius:9,padding:"9px 14px",marginBottom:12,fontSize:13,color:"#c74848"}}>{serverError}</div>}
+      <form onSubmit={handleSubmit}>
+        <div style={{marginBottom:12}}>
+          <label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>الراتب الشهري</label>
+          <input type="number" min="1" value={form.monthlySalary} onChange={e=>set("monthlySalary",e.target.value)} placeholder="100000" dir="ltr" style={{...empFldSt(t,errors.monthlySalary),textAlign:"left"}}/>
+          {errors.monthlySalary&&<div style={{fontSize:11,color:"#c74848",marginTop:3}}>{errors.monthlySalary}</div>}
+        </div>
+        <div style={{marginBottom:12}}>
+          <label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>تاريخ التعيين</label>
+          <input type="date" value={form.hireDate} onChange={e=>set("hireDate",e.target.value)} style={empFldSt(t,false)}/>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:4}}>تاريخ الاستقالة (اختياري)</label>
+          <input type="date" value={form.resignDate} onChange={e=>set("resignDate",e.target.value)} style={empFldSt(t,false)}/>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button type="submit" disabled={submitting} style={{flex:1,padding:"11px",borderRadius:10,border:"none",cursor:submitting?"not-allowed":"pointer",background:submitting?t.textMuted:t.grad,color:"#fff",fontSize:14,fontWeight:700,fontFamily:"inherit"}}>{submitting?"جارٍ الحفظ...":"حفظ التعديلات"}</button>
+          <Btn label="إلغاء" onClick={()=>{if(!submitting)onClose();}} t={t} v="ghost"/>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function ArchiveEmployeeConfirm({t,employee,onClose,onSuccess}){
+  const empId=employee.employeeId;
+  const empName=employee.user?.name||employee.name||"الموظف";
+  const isArchived=(employee.user?.accountStatus||employee.accountStatus)==="ARCHIVED";
+  const [submitting,setSubmitting]=useState(false);
+  const [error,setError]=useState("");
+  const handleConfirm=async()=>{
+    setError("");setSubmitting(true);
+    try{
+      await employeesService.archive(empId,!isArchived);
+      onSuccess();
+    }catch(err){
+      const msg=err.response?.data?.message||err.message||`حدث خطأ أثناء ${isArchived?"إلغاء أرشفة":"أرشفة"} الموظف`;
+      setError(Array.isArray(msg)?msg.join("، "):msg);
+    }finally{
+      setSubmitting(false);
+    }
+  };
+  return(
+    <Modal title={isArchived?"إلغاء أرشفة الموظف":"أرشفة الموظف"} onClose={()=>{if(!submitting)onClose();}} t={t} width={400}>
+      <div style={{padding:"10px 12px",borderRadius:9,background:t.cancelled.bg,marginBottom:14,fontSize:13,color:t.cancelled.text}}>
+        {isArchived
+          ? `هل أنت متأكد من إلغاء أرشفة الموظف ${empName}؟ سيعود الحساب نشطاً.`
+          : `هل أنت متأكد من أرشفة الموظف ${empName}؟ لن يستطيع الدخول إلى النظام.`}
+      </div>
+      {error&&<div style={{background:"rgba(199,72,72,0.1)",border:"1px solid rgba(199,72,72,0.3)",borderRadius:9,padding:"9px 14px",marginBottom:14,fontSize:13,color:"#c74848"}}>{error}</div>}
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={handleConfirm} disabled={submitting} style={{flex:1,padding:"11px",borderRadius:10,border:"none",cursor:submitting?"not-allowed":"pointer",background:submitting?t.textMuted:"#c74848",color:"#fff",fontSize:14,fontWeight:700,fontFamily:"inherit"}}>{submitting?"جارٍ التنفيذ...":(isArchived?"تأكيد إلغاء الأرشفة":"تأكيد الأرشفة")}</button>
+        <Btn label="إلغاء" onClick={()=>{if(!submitting)onClose();}} t={t} v="ghost"/>
+      </div>
+    </Modal>
+  );
+}
+
 function PgEmployees({t}){
   const [employees,setEmployees]=useState([]);
   const [loading,setLoading]=useState(true);
   const [addModal,setAddModal]=useState(false);
   const [issueModal,setIssueModal]=useState(null);
   const [statementModal,setStatementModal]=useState(null);
+  const [editEmployee,setEditEmployee]=useState(null);
+  const [archiveTarget,setArchiveTarget]=useState(null);
+  const [roleUpdating,setRoleUpdating]=useState(null);
   const [summary,setSummary]=useState(null);
   const [sumLoading,setSumLoading]=useState(true);
   const [toast,setToast]=useState(null);
@@ -600,8 +693,22 @@ function PgEmployees({t}){
   const showToast=(msg,err=false)=>{setToast({msg,err});setTimeout(()=>setToast(null),3500);};
   useEffect(()=>{let cancelled=false;(async()=>{setLoading(true);try{const response=await employeesService.getAll();const body=response.data?.data||response.data;if(!cancelled)setEmployees(Array.isArray(body)?body:[]);}catch{if(!cancelled)setEmployees([]);}finally{if(!cancelled)setLoading(false);}})();return()=>{cancelled=true;};},[empRefresh]);
   useEffect(()=>{let cancelled=false;(async()=>{setSumLoading(true);try{const res=await employeeAccountingService.getSummary({from:_eFom(),to:_eToday()});const body=res.data?.data??res.data;if(!cancelled)setSummary(body);}catch{/* silent */}finally{if(!cancelled)setSumLoading(false);}})();return()=>{cancelled=true;};},[empRefresh]);
-  const mapRoles=(emp)=>{const role=emp.role||"";if(!role)return[];const label=ROLE_LABEL_MAP[role.toUpperCase()]||role;return[label];};
   const mapStatus=(emp)=>{const s=emp.user?.accountStatus||emp.accountStatus||"ACTIVE";return STATUS_LABEL[s.toUpperCase()]||s;};
+  const isArchived=(emp)=>(emp.user?.accountStatus||emp.accountStatus)==="ARCHIVED";
+  const handleRoleChange=async(emp,newRole)=>{
+    if(!newRole||newRole===emp.role||roleUpdating)return;
+    setRoleUpdating(emp.employeeId);
+    try{
+      await employeesService.updateRole(emp.employeeId,newRole);
+      showToast("تم تغيير دور الموظف بنجاح");
+      setEmpRefresh(k=>k+1);
+    }catch(err){
+      const msg=err.response?.data?.message||err.message||"حدث خطأ أثناء تغيير الدور";
+      showToast(Array.isArray(msg)?msg.join("، "):msg,true);
+    }finally{
+      setRoleUpdating(null);
+    }
+  };
   const sumTypes=summary?.byType||{};
   return(
     <div style={{padding:"20px 24px",overflowY:"auto",flex:1,position:"relative"}}>
@@ -621,16 +728,18 @@ function PgEmployees({t}){
         </div>
       )}
       {loading?(<div style={{padding:40,textAlign:"center",color:t.textMuted,fontSize:14}}>جارٍ تحميل بيانات الموظفين...</div>):employees.length===0?(<div style={{padding:40,textAlign:"center",color:t.textMuted,fontSize:14}}>لا يوجد موظفون مسجلون بعد</div>):(
-        <div style={{borderRadius:11,border:`1px solid ${t.border}`,overflow:"hidden"}}>
+        <div style={{borderRadius:11,border:`1px solid ${t.border}`,overflowX:"auto",overflowY:"hidden"}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-            <thead><tr style={{background:t.bgElevated}}>{["الاسم","رقم الهاتف","الدور","الحالة","الراتب","تاريخ التعيين","الإجراءات"].map((h,i)=>(<th key={i} style={{padding:"10px 14px",textAlign:"right",color:t.textMuted,fontWeight:600,fontSize:11,borderBottom:`1px solid ${t.border}`}}>{h}</th>))}</tr></thead>
-            <tbody>{employees.map((emp,i)=>{const roleLabels=mapRoles(emp);const status=mapStatus(emp);return(<tr key={emp.id||i} style={{background:i%2===0?t.bgSurface:t.bgElevated,borderBottom:`1px solid ${t.border}`}}><td style={{padding:"11px 14px",fontWeight:600,color:t.text}}>{emp.user?.name||emp.name||"—"}</td><td style={{padding:"11px 14px",color:t.textSec,fontSize:12,direction:"ltr",textAlign:"right"}}>{emp.user?.phone||emp.phone||"—"}</td><td style={{padding:"11px 14px"}}><div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{roleLabels.map(r=>(<span key={r} style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:600,background:`${ROLE_COLORS[r]||"#747A70"}18`,color:ROLE_COLORS[r]||"#747A70"}}>{r}</span>))}</div></td><td style={{padding:"11px 14px"}}><Badge s={status} t={t}/></td><td style={{padding:"11px 14px",color:t.textSec,fontSize:12}}>{emp.monthlySalary?`${Number(emp.monthlySalary).toLocaleString("en")} ل.س`:"—"}</td><td style={{padding:"11px 14px",color:t.textMuted,fontSize:12}}>{emp.hireDate||"—"}</td><td style={{padding:"8px 14px"}}><div style={{display:"flex",gap:6}}><Btn label="صرف دفعة" onClick={()=>setIssueModal(emp)} t={t} sz="sm" v="primary"/><Btn label="كشف الحساب" onClick={()=>setStatementModal(emp)} t={t} sz="sm" v="secondary"/></div></td></tr>);})}</tbody>
+            <thead><tr style={{background:t.bgElevated}}>{["الاسم","رقم الهاتف","الدور","الحالة","الراتب","تاريخ التعيين","الإجراءات"].map((h,i)=>(<th key={i} style={{padding:"10px 14px",textAlign:"right",color:t.textMuted,fontWeight:600,fontSize:11,borderBottom:`1px solid ${t.border}`,whiteSpace:"nowrap",...(i===6&&{minWidth:320,textAlign:"center"})}}>{h}</th>))}</tr></thead>
+            <tbody>{employees.map((emp,i)=>{const status=mapStatus(emp);const archived=isArchived(emp);return(<tr key={emp.employeeId??emp.id??i} style={{background:i%2===0?t.bgSurface:t.bgElevated,borderBottom:`1px solid ${t.border}`}}><td style={{padding:"11px 14px",fontWeight:600,color:t.text}}>{emp.user?.name||emp.name||"—"}</td><td style={{padding:"11px 14px",color:t.textSec,fontSize:12,direction:"ltr",textAlign:"right"}}>{emp.user?.phone||emp.phone||"—"}</td><td style={{padding:"11px 14px"}}><select value={emp.role||""} disabled={roleUpdating===emp.employeeId} onChange={e=>handleRoleChange(emp,e.target.value)} style={{padding:"5px 8px",borderRadius:7,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:11,fontFamily:"inherit",cursor:roleUpdating===emp.employeeId?"not-allowed":"pointer"}}><option value="RECEPTIONIST">موظف إداري</option><option value="ACCOUNTANT">محاسب</option></select></td><td style={{padding:"11px 14px"}}><Badge s={status} t={t}/></td><td style={{padding:"11px 14px",color:t.textSec,fontSize:12}}>{emp.monthlySalary?`${Number(emp.monthlySalary).toLocaleString("en")} ل.س`:"—"}</td><td style={{padding:"11px 14px",color:t.textMuted,fontSize:12}}>{emp.hireDate||"—"}</td><td style={{padding:"8px 14px"}}><div style={{display:"flex",flexWrap:"nowrap",alignItems:"center",justifyContent:"center",gap:6}}><button onClick={()=>setIssueModal(emp)} style={empActionBtnStyle(t.grad,"#fff")}><LuBanknote size={12}/>صرف دفعة</button><button onClick={()=>setStatementModal(emp)} style={empActionBtnStyle(t.accentLight,t.accentText)}><LuFileText size={12}/>كشف الحساب</button><button onClick={()=>setEditEmployee(emp)} style={empActionBtnStyle(t.accentLight,t.accentText)}><LuPencil size={12}/>تعديل</button><button onClick={()=>setArchiveTarget(emp)} style={empActionBtnStyle(archived?t.confirmed.bg:"#FEF2F2",archived?t.confirmed.text:"#DC2626",archived?"none":"1px solid #FECACA")}>{archived?<LuLockOpen size={12}/>:<LuBan size={12}/>}{archived?"إلغاء الأرشفة":"أرشفة"}</button></div></td></tr>);})}</tbody>
           </table>
         </div>
       )}
       {addModal&&<AddEmployeeModal t={t} onClose={()=>setAddModal(false)} onSuccess={()=>{setAddModal(false);setEmpRefresh(k=>k+1);}}/>}
       {issueModal&&<IssueExpenseModal t={t} employee={issueModal} onClose={()=>setIssueModal(null)} onSuccess={()=>{setIssueModal(null);setEmpRefresh(k=>k+1);showToast("تم إصدار الفاتورة بنجاح");}}/>}
       {statementModal&&<EmployeeStatementModal t={t} employee={statementModal} onClose={()=>setStatementModal(null)}/>}
+      {editEmployee&&<EditEmployeeModal t={t} employee={editEmployee} onClose={()=>setEditEmployee(null)} onSuccess={()=>{setEditEmployee(null);setEmpRefresh(k=>k+1);showToast("تم تعديل بيانات الموظف بنجاح");}}/>}
+      {archiveTarget&&<ArchiveEmployeeConfirm t={t} employee={archiveTarget} onClose={()=>setArchiveTarget(null)} onSuccess={()=>{const wasArchived=isArchived(archiveTarget);setArchiveTarget(null);setEmpRefresh(k=>k+1);showToast(wasArchived?"تم إلغاء أرشفة الموظف بنجاح":"تم أرشفة الموظف بنجاح");}}/>}
     </div>
   );
 }

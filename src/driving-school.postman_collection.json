@@ -419,7 +419,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODIzOTUwMzYsImV4cCI6MTc4MjM5NTkzNn0.lAzWa9a-M0xcVpwVV_zSuzRo2-RGPv0Lq7akH-WA4dg",
+                  "value": "{{token}}",
                   "type": "string"
                 }
               ]
@@ -433,28 +433,35 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:3000/api/v1/students?search=الب",
-              "protocol": "http",
+              "raw": "{{url}}/students?page=2&limit=20",
               "host": [
-                "localhost"
+                "{{url}}"
               ],
-              "port": "3000",
               "path": [
-                "api",
-                "v1",
                 "students"
               ],
               "query": [
                 {
                   "key": "search",
                   "value": "الب",
-                  "description": "seach by name"
+                  "description": "seach by name",
+                  "disabled": true
                 },
                 {
                   "key": "status",
                   "value": "PASSED",
                   "description": "PASSED , FAILED , IN_TRAINING , CERTIFICATE_SEEKER",
                   "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "2",
+                  "type": "text"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "type": "text"
                 }
               ]
             }
@@ -490,6 +497,64 @@
               "path": [
                 "students",
                 "10"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "student booking form reception",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/students/1/bookings?bookingStatus=COMPLETED&page=1&limit=10",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "students",
+                "1",
+                "bookings"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "الب",
+                  "description": "seach by name",
+                  "disabled": true
+                },
+                {
+                  "key": "bookingStatus",
+                  "value": "COMPLETED",
+                  "description": "PENDING_PAYMENT, BOOKED, COMPLETED, NO_SHOW, CANCELLED, EXPIRED"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "type": "text"
+                }
               ]
             }
           },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Component } from "react";
 import { todayStr, firstOfMonthStr } from "./utils/dateUtils";
 import qeyadahLogo from "./assets/qeyadah-logo.jpg";
 import AdminPro from "./AdminPro";
@@ -27,7 +27,7 @@ import { FaChartLine } from "react-icons/fa6";
 import { FaChartColumn } from "react-icons/fa6";
 import { FaBellConcierge } from "react-icons/fa6";
 
-import { LuX, LuEye, LuEyeOff, LuPencil, LuBan, LuLockOpen } from "react-icons/lu";
+import { LuX, LuEye, LuEyeOff, LuPencil, LuBan, LuLockOpen, LuCalendarDays } from "react-icons/lu";
 
 import { MdAdminPanelSettings } from "react-icons/md";
 import { PiMedalFill } from "react-icons/pi";
@@ -1022,6 +1022,27 @@ const STUDENT_FILTER_OPTIONS = [
   { value: "CERTIFICATE_SEEKER", label: "طلب شهادة" },
 ];
 
+// certificateStatus (GET /students) — null يعني لم يتقدّم لطلب شهادة أبداً
+const CERTIFICATE_STATUS_MAP = {
+  WAITING_FOR_TRAINING_SCHEDULE: "بانتظار جدولة تدريب",
+  IN_GOVERNMENT_TRAINING: "ضمن دورة تدريب",
+  WAITING_FOR_THEORETICAL_EXAM: "بانتظار الامتحان النظري",
+  WAITING_FOR_PRACTICAL_EXAM: "بانتظار الامتحان العملي",
+  COMPLETED: "نال الرخصة",
+  FAILED: "راسب بالشهادة",
+  CANCELLED: "طلب ملغى",
+};
+
+// تواريخ خام "YYYY-MM-DD" (lastCompletedBookingDate) — تُبنى محلياً بدل new Date(iso)
+// لتفادي انزياح يوم كامل عند مستخدمين غرب UTC (لا يوجد توقيت مرفق بها أصلاً)
+function formatDateOnly(dateStr) {
+  if (!dateStr) return "—";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr));
+  if (!m) return String(dateStr);
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return new Intl.DateTimeFormat("ar", { day: "numeric", month: "long", year: "numeric", numberingSystem: "latn" }).format(d);
+}
+
 function AddStudentModal({ t, onClose, onSuccess }) {
   const [form, setForm] = useState({ name: "", phone: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -1322,6 +1343,176 @@ function BlockStudentConfirm({ t, student, onClose, onSuccess }) {
   );
 }
 
+// GET /students قد يرجّع مصفوفة مباشرة، أو { data: [...] }، أو { data: { data: [...], meta } } (شكل مُصفَّح) —
+// نطبّع الشكل دائماً لمصفوفة لتفادي "students.map is not a function" أياً كان شكل غلاف الاستجابة.
+function extractStudentList(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.data)) return raw.data;
+  if (Array.isArray(raw?.data?.data)) return raw.data.data;
+  return [];
+}
+
+const STUDENT_TABLE_HEADERS = ["الاسم الكامل", "رقم الهاتف", "الحالة", "حالة الحساب", "الدروس المكتملة", "آخر درس مكتمل", "حالة الشهادة", "إجراءات"];
+const STUDENT_TABLE_ALIGN = ["right", "right", "center", "center", "center", "right", "center", "center"];
+
+// نمط موحّد لأزرار عمود الإجراءات بجدول الطلاب — نفس القياسات لثلاثتها (Flex Row صغير الحجم)
+function studentActionBtnStyle(bg, color, border) {
+  return {
+    display: "inline-flex", alignItems: "center", gap: 4,
+    padding: "5px 11px", borderRadius: 7,
+    background: bg, color, border: border || "none",
+    fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+    whiteSpace: "nowrap",
+  };
+}
+
+const STUDENT_BOOKING_STATUS_OPTIONS = [
+  { value: "", label: "كل الحالات" },
+  { value: "PENDING_PAYMENT", label: "بانتظار الدفع" },
+  { value: "BOOKED", label: "مؤكد" },
+  { value: "COMPLETED", label: "مكتمل" },
+  { value: "NO_SHOW", label: "غائب" },
+  { value: "CANCELLED", label: "ملغى" },
+  { value: "EXPIRED", label: "منتهي الصلاحية" },
+];
+
+// GET /students/:studentId/bookings — ملاحظة: studentId هون، مش user id (نفس تحذير القائمة الرئيسية)
+function StudentBookingsModal({ t, student, onClose }) {
+  const studentId = student.studentId ?? student.id;
+  const studentName = student.user?.name || student.name || "الطالب";
+
+  const [bookings, setBookings] = useState([]);
+  const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
+  const [page, setPage] = useState(1);
+  const [bookingStatus, setBookingStatus] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [payNotice, setPayNotice] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const params = { page, limit: 20 };
+        if (bookingStatus) params.bookingStatus = bookingStatus;
+        const { data } = await studentsService.getBookings(studentId, params);
+        const body = data?.data ?? data;
+        if (!cancelled) {
+          setBookings(Array.isArray(body?.data) ? body.data : []);
+          setMeta(body?.meta || { total: 0, page: 1, limit: 20, totalPages: 0 });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setBookings([]);
+          const msg = err.response?.data?.message;
+          setError(Array.isArray(msg) ? msg.join("، ") : msg || "تعذر تحميل حجوزات الطالب");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [studentId, page, bookingStatus]);
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.5)", display: "flex",
+      alignItems: "center", justifyContent: "center", padding: 16,
+    }} onClick={onClose}>
+      <div onClick={(ev) => ev.stopPropagation()} style={{
+        background: t.bgPage, borderRadius: 20, width: "100%", maxWidth: 920,
+        border: `1px solid ${t.borderCard}`, boxShadow: "0 24px 48px rgba(0,0,0,0.25)",
+        padding: "26px 24px 30px", maxHeight: "90vh", overflowY: "auto",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: t.text }}>حجوزات الطالب</h3>
+            <p style={{ margin: "4px 0 0", fontSize: 13, color: t.textSec }}>{studentName}</p>
+          </div>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
+          }}><LuX /></button>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <select value={bookingStatus} onChange={(e) => { setBookingStatus(e.target.value); setPage(1); }} style={{
+            padding: "8px 12px", borderRadius: 7, border: `0.5px solid ${t.border}`,
+            background: t.bgElevated, color: t.text, fontSize: 12,
+          }}>
+            {STUDENT_BOOKING_STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {payNotice && (
+          <div style={{
+            background: t.accentLight, border: `0.5px solid ${t.accentText}40`,
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+            display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: t.accentText }}>{payNotice}</span>
+            <button onClick={() => setPayNotice("")} style={{ background: "none", border: "none", cursor: "pointer", color: t.accentText, lineHeight: 1 }}><LuX size={14} /></button>
+          </div>
+        )}
+
+        {error && (
+          <div style={{
+            background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)",
+            borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#c74848",
+          }}>{error}</div>
+        )}
+
+        {loading ? (
+          <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>جارٍ التحميل...</div>
+        ) : bookings.length === 0 ? (
+          <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>لا توجد حجوزات لهذا الطالب</div>
+        ) : (
+          <>
+            <Table
+              t={t}
+              headers={["المدرب", "التاريخ", "الوقت", "النوع", "المركبة", "حالة الحجز", "حالة الدفع", "المتبقي"]}
+              rows={bookings.map((b) => [
+                b.instructorName || "—",
+                formatDateOnly(b.date),
+                `${b.startTime || "—"} — ${b.endTime || "—"}`,
+                DASHBOARD_TRAINING_TYPE_MAP[b.trainingType] || b.trainingType || "—",
+                lessonVehicleLabel(b),
+                metaBadge(DASHBOARD_STATUS_META, b.bookingStatus, t),
+                metaBadge(DASHBOARD_PAYMENT_STATUS_META, b.paymentStatus, t),
+                b.remainingAmount != null ? (
+                  <button onClick={() => setPayNotice(`يتم تحصيل المبلغ المتبقي (${Number(b.remainingAmount).toLocaleString("en")} ل.س) من شاشة الاستقبال`)} style={{
+                    padding: "5px 12px", borderRadius: 7, background: t.pending.bg, color: t.pending.text,
+                    border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
+                  }}>تحصيل الباقي — {Number(b.remainingAmount).toLocaleString("en")} ل.س</button>
+                ) : "—",
+              ])}
+              minColWidths={[140, 130, 110, 100, 140, 120, 140, 170]}
+            />
+            {meta.totalPages > 1 && (
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 14 }}>
+                <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} style={{
+                  padding: "5px 12px", borderRadius: 7, border: `1px solid ${t.border}`, background: t.bgElevated,
+                  color: page <= 1 ? t.textMuted : t.text, fontSize: 12, cursor: page <= 1 ? "not-allowed" : "pointer",
+                }}>السابق</button>
+                <span style={{ fontSize: 12, color: t.textMuted }}>{page} / {meta.totalPages}</span>
+                <button disabled={page >= meta.totalPages} onClick={() => setPage((p) => p + 1)} style={{
+                  padding: "5px 12px", borderRadius: 7, border: `1px solid ${t.border}`, background: t.bgElevated,
+                  color: page >= meta.totalPages ? t.textMuted : t.text, fontSize: 12, cursor: page >= meta.totalPages ? "not-allowed" : "pointer",
+                }}>التالي</button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PageStudents({ t }) {
   const { hasPermission } = useAuth();
   const canCreate = hasPermission(P.STUDENTS_CREATE);
@@ -1333,6 +1524,7 @@ function PageStudents({ t }) {
   const [showModal, setShowModal] = useState(false);
   const [editStudent, setEditStudent] = useState(null);
   const [blockTarget, setBlockTarget] = useState(null);
+  const [bookingsStudent, setBookingsStudent] = useState(null);
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -1341,7 +1533,7 @@ function PageStudents({ t }) {
       if (search.trim()) params.search = search.trim();
       if (statusFilter) params.status = statusFilter;
       const { data } = await studentsService.getAll(params);
-      setStudents(Array.isArray(data) ? data : data.data || []);
+      setStudents(extractStudentList(data));
     } catch {
       setStudents([]);
     } finally {
@@ -1358,7 +1550,7 @@ function PageStudents({ t }) {
         if (search.trim()) params.search = search.trim();
         if (statusFilter) params.status = statusFilter;
         const { data } = await studentsService.getAll(params);
-        if (!cancelled) setStudents(Array.isArray(data) ? data : data.data || []);
+        if (!cancelled) setStudents(extractStudentList(data));
       } catch {
         if (!cancelled) setStudents([]);
       } finally {
@@ -1419,60 +1611,69 @@ function PageStudents({ t }) {
           لا توجد نتائج
         </div>
       ) : (
-        <div style={{ borderRadius: 10, border: `0.5px solid ${t.border}`, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, tableLayout: "fixed" }}>
-            <colgroup>
-              <col style={{ width: "30%" }} />
-              <col style={{ width: "20%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "34%" }} />
-            </colgroup>
+        <div style={{ width: "100%", overflowX: "auto", overflowY: "hidden", borderRadius: 10, border: `0.5px solid ${t.border}` }}>
+          <table style={{ width: "100%", minWidth: 1050, borderCollapse: "collapse", fontSize: 14, tableLayout: "auto" }}>
             <thead>
               <tr style={{ background: t.bgElevated }}>
-                {["الاسم الكامل", "رقم الهاتف", "الحالة", "إجراءات"].map((h, i) => (
+                {STUDENT_TABLE_HEADERS.map((h, i) => (
                   <th key={i} style={{
-                    padding: "13px 18px", textAlign: i === 3 ? "center" : "right",
+                    padding: "12px 10px", textAlign: STUDENT_TABLE_ALIGN[i],
                     color: t.textMuted, fontWeight: 700,
                     fontSize: 12, borderBottom: `0.5px solid ${t.border}`,
                     whiteSpace: "nowrap",
+                    ...(i === 7 ? { minWidth: 280 } : {}),
                   }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {students.map((s, ri) => (
+              {(Array.isArray(students) ? students : []).map((s, ri) => {
+                const blocked = isBlocked(s);
+                return (
                 <tr key={s.studentId ?? s.id ?? ri} style={{
                   background: ri % 2 === 0 ? t.bgSurface : t.bgPage,
                   borderBottom: `0.5px solid ${t.border}`,
                 }}>
-                  <td style={{ padding: "13px 18px", color: t.text, fontSize: 14, fontWeight: 600, verticalAlign: "middle" }}>{s.user?.name || s.name || "—"}</td>
-                  <td style={{ padding: "13px 18px", color: t.textSec, fontSize: 13, verticalAlign: "middle" }} dir="ltr">{s.user?.phone || s.phone || "—"}</td>
-                  <td style={{ padding: "13px 18px", verticalAlign: "middle" }}><Badge status={STUDENT_STATUS_MAP[s.studentStatus] || s.studentStatus || "—"} t={t} /></td>
-                  <td style={{ padding: "10px 18px", verticalAlign: "middle" }}>
-                    {canUpdate ? (
-                      <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-                        <button onClick={() => setEditStudent(s)} style={{
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                          padding: "6px 14px", borderRadius: 8, background: t.accentLight,
-                          color: t.accentText, border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                        }}><LuPencil size={13} /> تعديل المعلومات</button>
-                        <button onClick={() => setBlockTarget(s)} style={{
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                          padding: "6px 14px", borderRadius: 8,
-                          background: isBlocked(s) ? t.confirmed.bg : t.cancelled.bg,
-                          color: isBlocked(s) ? t.confirmed.text : t.cancelled.text,
-                          border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                        }}>
-                          {isBlocked(s) ? <LuLockOpen size={13} /> : <LuBan size={13} />}
-                          {isBlocked(s) ? "إلغاء الحظر" : "حظر"}
-                        </button>
-                      </div>
-                    ) : (
-                      <div style={{ textAlign: "center", color: t.textMuted, fontSize: 12 }}>—</div>
-                    )}
+                  <td style={{ padding: "12px 10px", color: t.text, fontSize: 14, fontWeight: 600, verticalAlign: "middle", whiteSpace: "nowrap" }}>{s.user?.name || s.name || "—"}</td>
+                  <td style={{ padding: "12px 10px", color: t.textSec, fontSize: 13, verticalAlign: "middle", whiteSpace: "nowrap" }} dir="ltr">{s.user?.phone || s.phone || "—"}</td>
+                  <td style={{ padding: "12px 10px", verticalAlign: "middle", textAlign: "center", whiteSpace: "nowrap" }}><Badge status={STUDENT_STATUS_MAP[s.studentStatus] || s.studentStatus || "—"} t={t} /></td>
+                  <td style={{ padding: "12px 10px", verticalAlign: "middle", textAlign: "center", whiteSpace: "nowrap" }}>
+                    <Badge status={blocked ? "محظور" : "نشط"} t={t} color={blocked ? t.cancelled : t.confirmed} />
+                  </td>
+                  <td style={{ padding: "12px 10px", verticalAlign: "middle", textAlign: "center", whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{(s.completedBookingsCount ?? 0).toLocaleString("en")}</span>
+                  </td>
+                  <td style={{ padding: "12px 10px", color: t.textMuted, fontSize: 13, verticalAlign: "middle", whiteSpace: "nowrap" }}>{formatDateOnly(s.lastCompletedBookingDate)}</td>
+                  <td style={{ padding: "12px 10px", verticalAlign: "middle", textAlign: "center", whiteSpace: "nowrap" }}>
+                    {s.certificateStatus
+                      ? <Badge status={CERTIFICATE_STATUS_MAP[s.certificateStatus] || s.certificateStatus} t={t} />
+                      : <span style={{ color: t.textMuted, fontSize: 13 }}>لم يتقدّم</span>}
+                  </td>
+                  <td style={{ padding: "12px 10px", verticalAlign: "middle", whiteSpace: "nowrap" }}>
+                    <div style={{ display: "flex", flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", flexWrap: "nowrap", whiteSpace: "nowrap" }}>
+                      <button onClick={() => setBookingsStudent(s)} style={studentActionBtnStyle(t.bgElevated, t.text, `1px solid ${t.border}`)}>
+                        <LuCalendarDays size={12} /> الحجوزات
+                      </button>
+                      {canUpdate && (
+                        <>
+                          <button onClick={() => setEditStudent(s)} style={studentActionBtnStyle(t.accentLight, t.accentText)}>
+                            <LuPencil size={12} /> تعديل
+                          </button>
+                          <button onClick={() => setBlockTarget(s)} style={studentActionBtnStyle(
+                            blocked ? t.confirmed.bg : "#FEF2F2",
+                            blocked ? t.confirmed.text : "#DC2626",
+                            blocked ? "none" : "1px solid #FECACA"
+                          )}>
+                            {blocked ? <LuLockOpen size={12} /> : <LuBan size={12} />}
+                            {blocked ? "إلغاء الحظر" : "حظر"}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -1511,6 +1712,14 @@ function PageStudents({ t }) {
           student={blockTarget}
           onClose={() => setBlockTarget(null)}
           onSuccess={() => { setBlockTarget(null); fetchStudents(); }}
+        />
+      )}
+
+      {bookingsStudent && (
+        <StudentBookingsModal
+          t={t}
+          student={bookingsStudent}
+          onClose={() => setBookingsStudent(null)}
         />
       )}
     </div>
@@ -4335,6 +4544,44 @@ function PlaceholderPage({ title, t }) {
 // ═══════════════════════════════════════════════
 // MAIN APP SHELL
 // ═══════════════════════════════════════════════
+
+// يمنع انهيار كامل الواجهة (شاشة بيضاء) عند خطأ Render داخل صفحة واحدة —
+// يعرض بدلاً منه رسالة الخطأ الفعلية (نص + stack بالـ console) بدل شاشة فارغة صامتة.
+// key={activePage} بمكان الاستخدام يصفّر حالة الخطأ تلقائياً عند تبديل الصفحة.
+class PageErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  componentDidCatch(error, info) {
+    console.error("[PageErrorBoundary] فشل عرض الصفحة:", error, info?.componentStack);
+  }
+  render() {
+    if (this.state.error) {
+      const t = this.props.t || {};
+      const errColor = t.cancelled?.text || "#c74848";
+      const errBg = t.cancelled?.bg || "rgba(199,72,72,0.08)";
+      return (
+        <div style={{
+          margin: 20, padding: "28px 24px", borderRadius: 14,
+          background: errBg, border: `1px solid ${errColor}40`,
+          color: errColor, textAlign: "center",
+        }}>
+          <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 10 }}>تعذّر عرض هذه الصفحة</div>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, direction: "ltr", fontFamily: "monospace" }}>
+            {this.state.error.message}
+          </div>
+          <div style={{ fontSize: 12, opacity: 0.75 }}>افتح أدوات المطوّر (Console) بالمتصفح لمعرفة تفاصيل الخطأ الكاملة</div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App({
   embeddedMode,
   activePage: externalPage,
@@ -4380,7 +4627,11 @@ export default function App({
 
   // In embedded mode, render only the page content (layout is handled by MainLayout)
   if (embeddedMode) {
-    return pageComponents[activePage] || <PlaceholderPage title={activePage} t={t} />;
+    return (
+      <PageErrorBoundary key={activePage} t={t}>
+        {pageComponents[activePage] || <PlaceholderPage title={activePage} t={t} />}
+      </PageErrorBoundary>
+    );
   }
 
   // Standalone mode (legacy fallback)
@@ -4696,9 +4947,11 @@ export default function App({
 
         {/* PAGE CONTENT */}
         <div className="hide-scrollbar app-page">
-          {pageComponents[activePage] || (
-            <PlaceholderPage title={activePage} t={t} />
-          )}
+          <PageErrorBoundary key={activePage} t={t}>
+            {pageComponents[activePage] || (
+              <PlaceholderPage title={activePage} t={t} />
+            )}
+          </PageErrorBoundary>
         </div>
       </div>
     </div>
