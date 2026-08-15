@@ -114,7 +114,7 @@ function Badge({s,t}){
   return <span style={{display:"inline-flex",alignItems:"center",gap:5,background:c.bg,color:c.text,padding:"2px 9px",borderRadius:20,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>{s}</span>;
 }
 function Card({children,t,p=16,mb=10,style={}}){return <div style={{background:t.bgSurface,borderRadius:12,border:`1px solid ${t.borderCard}`,padding:p,marginBottom:mb,boxShadow:t.shadow,...style}}>{children}</div>;}
-function Modal({title,onClose,children,t,width=500}){return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(2px)"}} onClick={onClose}><div onClick={e=>e.stopPropagation()} style={{background:t.bgSurface,borderRadius:16,width,maxWidth:"calc(100vw-40px)",maxHeight:"85vh",overflow:"hidden",boxShadow:t.shadowLg,display:"flex",flexDirection:"column"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px",borderBottom:`1px solid ${t.border}`}}><div style={{fontSize:16,fontWeight:700,color:t.text}}>{title}</div><button onClick={onClose} style={{width:28,height:28,borderRadius:7,border:"none",background:t.bgElevated,cursor:"pointer",fontSize:16,color:t.textMuted}}>✕</button></div><div style={{padding:"18px 20px",overflowY:"auto"}}>{children}</div></div></div>;}
+function Modal({title,onClose,children,t,width=500,bodyStyle={}}){return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(2px)"}} onClick={onClose}><div onClick={e=>e.stopPropagation()} style={{background:t.bgSurface,borderRadius:16,width,maxWidth:"calc(100vw-40px)",maxHeight:"85vh",overflow:"hidden",boxShadow:t.shadowLg,display:"flex",flexDirection:"column"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px",borderBottom:`1px solid ${t.border}`}}><div style={{fontSize:16,fontWeight:700,color:t.text}}>{title}</div><button onClick={onClose} style={{width:28,height:28,borderRadius:7,border:"none",background:t.bgElevated,cursor:"pointer",fontSize:16,color:t.textMuted}}>✕</button></div><div style={{padding:"18px 20px",overflowY:"auto",...bodyStyle}}>{children}</div></div></div>;}
 function Btn({label,onClick,v="primary",sz="md",t,style={},disabled=false}){
   const base={padding:sz==="sm"?"4px 12px":"9px 18px",borderRadius:8,border:"none",cursor:disabled?"not-allowed":"pointer",fontFamily:"inherit",fontSize:sz==="sm"?12:14,fontWeight:600,transition:"all 0.15s",opacity:disabled?0.5:1};
 
@@ -180,6 +180,7 @@ function SectionStudents({t}){
   const canCreateStudent = hasPermission(P.STUDENTS_CREATE);
   const canCreateBooking = hasPermission(P.BOOKINGS_CREATE);
   const canCompleteBooking = hasPermission(P.BOOKINGS_COMPLETE);
+  const canCancelBooking = hasPermission(P.BOOKINGS_CANCEL);
   const sId   = (s) => s?.studentId ?? s?.id;
   const sName = (s) => s?.user?.name  || s?.name  || "—";
   const sPhone= (s) => s?.user?.phone || s?.phone || "—";
@@ -204,6 +205,10 @@ function SectionStudents({t}){
   const [loadingBk,     setLoadingBk]     = useState(false);
   const [bFilt,         setBFilt]         = useState("");
   const [statusBusyId,  setStatusBusyId]  = useState(null);
+  const [actionToast,   setActionToast]   = useState(null);
+  const [cancelBkModal, setCancelBkModal] = useState(null);
+  const [cancelBkToast, setCancelBkToast] = useState(null);
+  const [payRemModal,   setPayRemModal]   = useState(null);
 
   // ── Create booking modal ──
   const [bookingModal,  setBookingModal]  = useState(false);
@@ -224,7 +229,7 @@ function SectionStudents({t}){
       if (fSt) params.status = fSt;
       const res = await studentsService.getAll(params);
       const body = res.data?.data ?? res.data;
-      const arr  = Array.isArray(body) ? body : (body?.items || body?.students || body?.data || []);
+      const arr  = Array.isArray(body?.data) ? body.data : (Array.isArray(body) ? body : []);
       setStudents(arr);
       if (keepSel) setSel(prev => (prev && arr.some(s => String(sId(s)) === String(sId(prev)))) ? prev : (arr[0] || null));
       else setSel(arr[0] || null);
@@ -232,7 +237,7 @@ function SectionStudents({t}){
     finally  { setLoadingList(false); }
   };
 
-  useEffect(() => { let c=false; (async()=>{ setLoadingList(true); try { const params={}; if(search.trim())params.search=search.trim(); if(fSt)params.status=fSt; const res=await studentsService.getAll(params); const body=res.data?.data??res.data; const arr=Array.isArray(body)?body:(body?.items||body?.students||body?.data||[]); if(!c){setStudents(arr);setSel(prev=>(prev&&arr.some(s=>String(sId(s))===String(sId(prev))))?prev:(arr[0]||null));} } catch{if(!c){setStudents([]);setSel(null);}} finally{if(!c)setLoadingList(false);} })(); return()=>{c=true;}; }, [search, fSt]);
+  useEffect(() => { let c=false; (async()=>{ setLoadingList(true); try { const params={}; if(search.trim())params.search=search.trim(); if(fSt)params.status=fSt; const res=await studentsService.getAll(params); const body=res.data?.data??res.data; const arr=Array.isArray(body?.data)?body.data:(Array.isArray(body)?body:[]); if(!c){setStudents(arr);setSel(prev=>(prev&&arr.some(s=>String(sId(s))===String(sId(prev))))?prev:(arr[0]||null));} } catch{if(!c){setStudents([]);setSel(null);}} finally{if(!c)setLoadingList(false);} })(); return()=>{c=true;}; }, [search, fSt]);
 
   // ── Fetch full student detail ──
   useEffect(() => {
@@ -250,64 +255,19 @@ function SectionStudents({t}){
     return () => { c = true; };
   }, [sel]);
 
-  // ── Fetch student bookings ──
-  const extractBkArr = (rd) => {
-    if (!rd) return [];
-    if (Array.isArray(rd)) return rd;
-    if (Array.isArray(rd?.data)) return rd.data;
-    if (Array.isArray(rd?.data?.data)) return rd.data.data;
-    const inner = rd?.data ?? rd;
-    if (inner && typeof inner === "object") {
-      for (const k of ["items", "bookings", "results", "rows"]) {
-        if (Array.isArray(inner[k])) return inner[k];
-      }
-    }
-    return [];
-  };
-
+  // ── Fetch student bookings via GET /students/:studentId/bookings ──
   const fetchStudentBookings = async (cancelled = { v: false }) => {
     if (!sel) { setBookings([]); return; }
     setLoadingBk(true);
     try {
-      const selName = sName(sel);
-      console.log("👉 Fetching bookings for student:", selName, "| sel object:", sel);
-
-      // limit max is 50 per API validation; sanitize bookingStatus to underscore format
-      const params = { limit: 50 };
-      if (selName && selName !== "—") params.search = selName.trim();
-      if (bFilt) params.bookingStatus = bFilt.replace(/\s+/g, "_");
-
-      console.log("👉 Request params:", params);
-      const res = await bookingsService.getAll(params);
-      console.log("👉 Raw API response:", res);
-      console.log("👉 res.data:", res.data);
-
-      let list = extractBkArr(res.data);
-      console.log("👉 Extracted array length:", list.length, "| items:", list);
-
-      // Soft name filter as safety net (API search already narrows, this guards edge cases)
-      if (selName && selName !== "—") {
-        const nameLower = selName.trim().toLowerCase();
-        const byName = list.filter(b => (b.studentName || "").trim().toLowerCase().includes(nameLower));
-        if (byName.length > 0) list = byName;
-      }
-
-      // Fallback: if still empty, fetch all (limit 50) and soft-match by first name token
-      if (list.length === 0 && selName && selName !== "—") {
-        console.warn("⚠️ Name search returned 0 — running fallback full-list fetch...");
-        const fbParams = { limit: 50 };
-        if (bFilt) fbParams.bookingStatus = bFilt.replace(/\s+/g, "_");
-        const allRes = await bookingsService.getAll(fbParams);
-        console.log("👉 Fallback response:", allRes.data);
-        const allList = extractBkArr(allRes.data);
-        const firstName = selName.trim().split(/\s+/)[0].toLowerCase();
-        list = allList.filter(b => (b.studentName || "").trim().toLowerCase().includes(firstName));
-        console.log("👉 Fallback matched", list.length, "bookings by first name token:", firstName);
-      }
-
+      const studentId = sel.studentId ?? sel.id;
+      const params = {};
+      if (bFilt) params.bookingStatus = bFilt;
+      const res = await studentsService.getBookings(studentId, params);
+      const body = res.data?.data ?? res.data;
+      const list = Array.isArray(body?.data) ? body.data : [];
       if (!cancelled.v) setBookings(list);
     } catch (err) {
-      console.error("❌ fetchStudentBookings error:", err);
       if (!cancelled.v) setBookings([]);
     } finally {
       if (!cancelled.v) setLoadingBk(false);
@@ -322,13 +282,27 @@ function SectionStudents({t}){
     return () => { guard.v = true; };
   }, [sel, bFilt]);
 
+  const showActionToast = (msg, isErr = false) => {
+    setActionToast({ msg, isErr });
+    setTimeout(() => setActionToast(null), isErr ? 4500 : 3000);
+  };
+
   // ── Update booking status ──
   const handleUpdateStatus = async (bookingId, status) => {
     setStatusBusyId(bookingId);
-    try { await bookingsService.updateStatus(bookingId, status); await fetchBookings(); }
-    catch { /* silent */ }
-    finally { setStatusBusyId(null); }
+    try {
+      await bookingsService.updateStatus(bookingId, status);
+      await fetchBookings();
+    } catch (err) {
+      const msg = err?.response?.data?.message || "حدث خطأ أثناء تحديث الحجز";
+      showActionToast(msg, true);
+    } finally {
+      setStatusBusyId(null);
+    }
   };
+
+  // ── Collect remainder payment — open modal (same as SectionBookings) ──
+  const handlePayRemainder = (b) => setPayRemModal({ ...b, student: sName(sel) });
 
   // ── Create student ──
   const handleCreateStudent = async () => {
@@ -345,11 +319,16 @@ function SectionStudents({t}){
   const mappedBookings = (Array.isArray(bookings) ? bookings : []).map(b => ({
     id: b.id,
     dateTime: formatBookingDate(b),
-    inst:      b.instructorName || b.instructor?.name || "—",
-    type:      TRAINING_MAP[b.trainingType]   || b.trainingType   || "—",
-    status:    BOOKING_STATUS_MAP[b.bookingStatus] || b.bookingStatus || "—",
-    pay:       PAYMENT_STATUS_MAP[b.paymentStatus] || b.paymentStatus || "—",
-    rawStatus: b.bookingStatus,
+    inst:           b.instructorName || b.instructor?.name || "—",
+    type:           TRAINING_MAP[b.trainingType] || b.trainingType || "—",
+    status:         BOOKING_STATUS_MAP[b.bookingStatus] || b.bookingStatus || "—",
+    pay:            PAYMENT_STATUS_MAP[b.paymentStatus] || b.paymentStatus || "—",
+    rawStatus:       b.bookingStatus,
+    rawPayment:      b.paymentStatus,
+    canPayRemainder: b.canPayRemainder ?? false,
+    vehicleSource:   b.vehicleSource,
+    vehiclePlate:    b.vehiclePlate,
+    remainingAmount: b.remainingAmount,
   }));
   const shownBookings = mappedBookings;
 
@@ -389,7 +368,12 @@ function SectionStudents({t}){
                 <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#778a3b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#fff", fontWeight: 700, flexShrink: 0 }}>{sName(s).charAt(0)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sName(s)}</div>
-                  <div style={{ fontSize: 11, color: t.textMuted, marginTop: 1, direction: "ltr", textAlign: "right" }}>{sPhone(s)}</div>
+                  <div style={{ fontSize: 11, color: t.textMuted, marginTop: 1, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                    <span dir="ltr">{sPhone(s)}</span>
+                    {s.completedBookingsCount != null && <span style={{ color: t.accent, fontWeight: 600 }}>{s.completedBookingsCount} درس</span>}
+                    {s.certificateStatus && <span style={{ color: t.textMuted }}>·</span>}
+                    {s.certificateStatus && <span style={{ color: t.accentText, fontWeight: 600 }}>{CERT_STATUS_MAP[s.certificateStatus]?.label || s.certificateStatus}</span>}
+                  </div>
                 </div>
                 <Badge s={sStatus(s)} t={t} />
               </div>
@@ -421,7 +405,7 @@ function SectionStudents({t}){
           </div>
 
           <div style={{ display: "flex", borderBottom: `1px solid ${t.border}`, background: t.bgSurface, padding: "0 22px", flexShrink: 0 }}>
-            {[["bookings","الحجوزات"],["info","البيانات"],["docs","الوثائق"]].map(([id,label]) => (
+            {[["bookings","الحجوزات"],["info","البيانات"]].map(([id,label]) => (
               <button key={id} onClick={() => setDTab(id)} style={{ padding: "11px 15px", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: dTab===id?700:400, background: "transparent", color: dTab===id?t.accent:t.textSec, borderBottom: `2px solid ${dTab===id?t.accent:"transparent"}`, marginBottom: -1 }}>{label}</button>
             ))}
           </div>
@@ -450,6 +434,12 @@ function SectionStudents({t}){
                           <span style={{ fontWeight: 600 }}>{b.inst}</span>
                           <span style={{ color: t.border }}>|</span>
                           <span style={{ fontWeight: 600, color: t.accent }}>{b.type}</span>
+                          {b.vehicleSource === "SCHOOL_CAR" && b.vehiclePlate && (
+                            <><span style={{ color: t.border }}>|</span><span style={{ fontSize: 11, color: t.textMuted }} dir="ltr">{b.vehiclePlate}</span></>
+                          )}
+                          {b.vehicleSource === "STUDENT_CAR" && (
+                            <><span style={{ color: t.border }}>|</span><span style={{ fontSize: 11, color: t.textMuted }}>سيارة الطالب</span></>
+                          )}
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 5, alignItems: "center", flexShrink: 0 }}>
@@ -457,12 +447,24 @@ function SectionStudents({t}){
                         <Badge s={b.status} t={t} />
                       </div>
                     </div>
-                    {canCompleteBooking && b.rawStatus === "BOOKED" && (
-                      <div style={{ display: "flex", gap: 7, marginTop: 9 }}>
-                        <Btn label="✓ إكمال الجلسة" onClick={() => handleUpdateStatus(b.id, "COMPLETED")} t={t} sz="sm" disabled={statusBusyId === b.id} />
-                        <Btn label="لم يحضر"         onClick={() => handleUpdateStatus(b.id, "NO_SHOW")}   t={t} sz="sm" v="danger" disabled={statusBusyId === b.id} />
-                      </div>
-                    )}
+                    <div style={{ display: "flex", gap: 7, marginTop: 9, flexWrap: "wrap" }}>
+                      {canCompleteBooking && b.rawStatus === "BOOKED" && (<>
+                        <Btn
+                          label={statusBusyId === b.id ? "جارٍ..." : "✓ إكمال الجلسة"}
+                          onClick={() => handleUpdateStatus(b.id, "COMPLETED")}
+                          t={t} sz="sm"
+                          disabled={statusBusyId === b.id || b.rawPayment !== "FULLY_PAID"}
+                          title={b.rawPayment !== "FULLY_PAID" ? "حصّل المبلغ المتبقي أولاً" : undefined}
+                        />
+                        <Btn label="لم يحضر" onClick={() => handleUpdateStatus(b.id, "NO_SHOW")} t={t} sz="sm" v="danger" disabled={statusBusyId === b.id} />
+                      </>)}
+                      {(b.canPayRemainder || b.remainingAmount != null) && (
+                        <Btn label={`تحصيل الباقي${b.remainingAmount != null ? ` — ${Number(b.remainingAmount).toLocaleString("en")} ل.س` : ""}`} onClick={() => handlePayRemainder(b)} t={t} sz="sm" v="secondary" disabled={statusBusyId === b.id} />
+                      )}
+                      {canCancelBooking && (b.rawStatus === "BOOKED" || b.rawStatus === "PENDING_PAYMENT") && (
+                        <Btn label="إلغاء الحجز" onClick={() => setCancelBkModal({ ...b, student: sName(sel) })} t={t} sz="sm" v="danger" disabled={statusBusyId === b.id} />
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -483,23 +485,15 @@ function SectionStudents({t}){
                     {d?.nationalId  && <InfoRow k="رقم الهوية"       v={String(d.nationalId)}                                          t={t} />}
                     {d?.createdAt   && <InfoRow k="تاريخ التسجيل"   v={new Date(d.createdAt).toLocaleDateString("ar-SY")}            t={t} />}
                     {d?.balance != null && <InfoRow k="الرصيد"        v={`${Number(d.balance).toLocaleString("en")} ل.س`}          t={t} />}
+                    {sel.completedBookingsCount != null && <InfoRow k="الدروس المكتملة" v={`${sel.completedBookingsCount} درس`} t={t} />}
+                    {sel.lastCompletedBookingDate && <InfoRow k="آخر درس مكتمل" v={sel.lastCompletedBookingDate} t={t} />}
+                    {sel.certificateStatus && <InfoRow k="حالة الشهادة" v={CERT_STATUS_MAP[sel.certificateStatus]?.label || sel.certificateStatus} t={t} />}
+                    {sel.accountStatus === "BLOCKED" && <InfoRow k="الحساب" v="محظور" t={t} />}
                   </>
                 )}
               </Card>
             )}
 
-            {dTab === "docs" && (
-              <Card t={t} p={16}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 12 }}>وثائق الشهادة الحكومية</div>
-                {["صورة شخصية حديثة","صورة الهوية (أمامي)","صورة الهوية (خلفي)"].map((doc, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${t.border}` }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: t.text }}>{doc}</span>
-                    <span style={{ fontSize: 11, color: t.textMuted }}>تُسلَّم للمركز — لا تُخزَّن</span>
-                  </div>
-                ))}
-                <div style={{ marginTop: 10, padding: "9px 12px", borderRadius: 8, background: t.accentLight, fontSize: 11, color: t.accentText }}>الوثائق تُسلَّم للمركز الحكومي مباشرةً — يكفي تأكيدها هنا</div>
-              </Card>
-            )}
 
           </div>
         </div>
@@ -514,6 +508,52 @@ function SectionStudents({t}){
           onClose={() => setBookingModal(false)}
           onSuccess={() => { setBookingModal(false); fetchBookings(); }}
         />
+      )}
+
+      {/* ── Action toast (complete / no-show / pay-remainder feedback) ── */}
+      {actionToast && (
+        <div style={{
+          position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
+          background: actionToast.isErr ? t.cancelled.bg : t.completed.bg,
+          color: actionToast.isErr ? t.cancelled.text : t.completed.text,
+          border: `1px solid ${actionToast.isErr ? t.cancelled.dot : t.completed.dot}40`,
+          padding: "11px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+          zIndex: 2000, whiteSpace: "nowrap", boxShadow: t.shadowMd,
+        }}>{actionToast.msg}</div>
+      )}
+
+      {/* ── Pay remainder modal ── */}
+      {payRemModal && (
+        <PayRemainingModal
+          booking={payRemModal}
+          t={t}
+          onClose={() => setPayRemModal(null)}
+          onSuccess={() => { setPayRemModal(null); fetchBookings(); }}
+        />
+      )}
+
+      {/* ── Cancel booking modal ── */}
+      {cancelBkModal && (
+        <CancelBookingModal
+          booking={cancelBkModal}
+          t={t}
+          onClose={() => setCancelBkModal(null)}
+          onSuccess={(msg) => {
+            setCancelBkModal(null);
+            setCancelBkToast(msg);
+            setTimeout(() => setCancelBkToast(null), 4000);
+            fetchBookings();
+          }}
+        />
+      )}
+      {cancelBkToast && (
+        <div style={{
+          position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
+          background: t.cancelled.bg, color: t.cancelled.text,
+          border: `1px solid ${t.cancelled.dot}40`,
+          padding: "11px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+          zIndex: 2000, whiteSpace: "nowrap", boxShadow: t.shadowMd,
+        }}>{cancelBkToast}</div>
       )}
 
       {/* ── Create student modal ── */}
@@ -1380,7 +1420,9 @@ const BOOKING_STATUS_FILTER = [
   { value: "", label: "الكل" }, { value: "BOOKED", label: "مؤكد" },
   { value: "PENDING_PAYMENT", label: "بانتظار العربون" }, { value: "COMPLETED", label: "مكتمل" },
   { value: "CANCELLED", label: "ملغي" }, { value: "NO_SHOW", label: "لم يحضر" },
+  { value: "EXPIRED", label: "منتهي" },
 ];
+
 
 function formatBookingDate(b) {
   if (b.dayName && b.date && b.startTime) {
@@ -1456,6 +1498,9 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
 
+  // Step 2 pricing (from available-slots response)
+  const [pricing, setPricing] = useState(null);
+
   // Step 3 state
   const [credit, setCredit] = useState(null);
   const [checkingCredit, setCheckingCredit] = useState(false);
@@ -1469,26 +1514,27 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
   useEffect(() => {
     if (lockedStudent) return;
     let cancelled = false;
-    (async () => {
+    const delay = studentQuery.trim() ? 300 : 0; // immediate on open, debounced on type
+    const timer = setTimeout(async () => {
+      setLoadingStudents(true);
       try {
-        const sRes = await studentsService.getAll();
-        const sRaw = sRes.data?.data || sRes.data;
-        if (!cancelled) setStudents(Array.isArray(sRaw) ? sRaw : []);
+        const params = { limit: 20 };
+        if (studentQuery.trim()) params.search = studentQuery.trim();
+        const sRes = await studentsService.getAll(params);
+        const body = sRes.data?.data ?? sRes.data;
+        const list = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [];
+        if (!cancelled) setStudents(list);
       } catch { /* empty */ }
       finally { if (!cancelled) setLoadingStudents(false); }
-    })();
-    return () => { cancelled = true; };
-  }, [lockedStudent]);
+    }, delay);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [studentQuery, lockedStudent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getSid = (s) => s.studentId ?? s.id;
   const sName = (s) => s.user?.name || s.name || "";
   const sPhone = (s) => s.user?.phone || s.phone || "";
 
-  const filteredStudents = students.filter(s => {
-    if (!studentQuery.trim()) return true;
-    const q = studentQuery.trim().toLowerCase();
-    return sName(s).toLowerCase().includes(q) || sPhone(s).includes(q);
-  });
+  const filteredStudents = students; // server already filters by search param
 
   const selectStudent = (s) => {
     const rid = getSid(s);
@@ -1538,8 +1584,9 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
       const params = { trainingType, vehicleSource };
       if (genderFilter) params.instructorGender = genderFilter;
       const res = await bookingsService.getAvailableSlots(params);
-      const body = res.data?.data || res.data;
-      setSlots(Array.isArray(body) ? body : body?.slots || body?.instructors || []);
+      const body = res.data?.data ?? res.data;
+      setPricing(body?.pricing || null);
+      setSlots(Array.isArray(body?.instructors) ? body.instructors : Array.isArray(body) ? body : []);
       setStep(2);
     } catch (err) {
       const msg = err.response?.data?.message || err.response?.data?.data?.message || err.message;
@@ -1574,11 +1621,9 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
   // ── Step 3 submit ──
   const handleSubmit = async () => {
     setServerError(""); setSuccessMsg("");
-    if (!hasCredit) {
-      if (!collectedAmount || isNaN(Number(collectedAmount)) || Number(collectedAmount) <= 0) {
-        setErrors({ collectedAmount: "مبلغ العربون مطلوب" });
-        return;
-      }
+    if (!hasCredit && !pricing?.depositAmount) {
+      setServerError("لم يتم تحميل بيانات التسعير — ارجع وأعد المحاولة");
+      return;
     }
     setErrors({});
     const payload = {
@@ -1589,7 +1634,7 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
       trainingType,
       vehicleSource,
     };
-    if (!hasCredit) payload.collectedAmount = Number(collectedAmount);
+    if (!hasCredit) payload.collectedAmount = Number(pricing.depositAmount);
 
     setSubmitting(true);
     try {
@@ -1603,13 +1648,24 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
       setTimeout(() => onSuccess(), 800);
     } catch (err) {
       const status = err.response?.status;
-      const data = err.response?.data?.data || err.response?.data;
-      const raw = data?.message || err.response?.data?.message || err.message;
-      const msg = Array.isArray(raw) ? raw.join("، ") : raw;
-      if (status === 409) setServerError(msg || "هذا الوقت محجوز مسبقاً للمدرب أو الطالب");
-      else if (status === 404) setServerError(msg || "الطالب أو المدرب غير موجود");
-      else if (status === 400) setServerError(msg || "بيانات الحجز غير صالحة");
-      else setServerError(msg || "حدث خطأ أثناء إنشاء الحجز");
+      const data   = err.response?.data?.data || err.response?.data;
+      const raw    = data?.message || err.response?.data?.message || err.message;
+      const msg    = Array.isArray(raw) ? raw.join("، ") : (raw || "");
+      if (status === 409) {
+        // Backend returns English; detect student-time-conflict vs. instructor-time-conflict
+        const isStudentConflict = /student.*time|same\s+time|exact\s+time/i.test(msg);
+        setServerError(
+          isStudentConflict
+            ? "الطالب لديه حجز آخر في هذا الوقت بالضبط — يرجى اختيار موعد مختلف"
+            : "هذا الموعد محجوز مسبقاً — المدرب أو الطالب غير متاح في هذه الساعة، يرجى اختيار وقت آخر"
+        );
+      } else if (status === 404) {
+        setServerError(msg || "الطالب أو المدرب غير موجود");
+      } else if (status === 400) {
+        setServerError(msg || "بيانات الحجز غير صالحة");
+      } else {
+        setServerError(msg || "حدث خطأ أثناء إنشاء الحجز");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -1647,15 +1703,21 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
   const labelStyle = { fontSize: 11, fontWeight: 600, color: t.textSec, display: "block", marginBottom: 6 };
 
   return (
-    <Modal title="حجز جلسة جديدة" onClose={onClose} t={t} width={560}>
-      <StepIndicator step={step} t={t} />
+    <Modal title="حجز جلسة جديدة" onClose={onClose} t={t} width={560} bodyStyle={{ padding: 0, overflowY: "hidden", display: "flex", flexDirection: "column", flex: 1 }}>
 
-      {successMsg && (
-        <div style={{ background: "rgba(80,90,50,0.12)", border: "1px solid rgba(80,90,50,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#505a32", fontWeight: 600 }}>{successMsg}</div>
-      )}
-      {serverError && (
-        <div style={{ background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#c74848" }}>{serverError}</div>
-      )}
+      {/* ── FIXED TOP: Stepper + alerts ── */}
+      <div style={{ flexShrink: 0, padding: "14px 20px 10px", borderBottom: `1px solid ${t.border}` }}>
+        <StepIndicator step={step} t={t} />
+        {successMsg && (
+          <div style={{ background: "rgba(80,90,50,0.12)", border: "1px solid rgba(80,90,50,0.3)", borderRadius: 10, padding: "10px 14px", marginTop: 10, fontSize: 13, color: "#505a32", fontWeight: 600 }}>{successMsg}</div>
+        )}
+        {serverError && (
+          <div style={{ background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)", borderRadius: 10, padding: "10px 14px", marginTop: 10, fontSize: 13, color: "#c74848" }}>{serverError}</div>
+        )}
+      </div>
+
+      {/* ── SCROLLABLE MIDDLE ── */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px" }}>
 
       {/* ════════ STEP 1: التفاصيل ════════ */}
       {step === 1 && (
@@ -1736,29 +1798,39 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
           </div>
 
           {/* Instructor gender */}
-          <div style={{ marginBottom: 18 }}>
+          <div style={{ marginBottom: 4 }}>
             <label style={labelStyle}>جنس المدرب (اختياري)</label>
             <div style={{ display: "flex", gap: 8 }}>
               <button type="button" onClick={() => setGenderFilter("MALE")} style={chip(genderFilter === "MALE", false)}>ذكر</button>
               <button type="button" onClick={() => setGenderFilter("FEMALE")} style={chip(genderFilter === "FEMALE", false)}>أنثى</button>
             </div>
           </div>
-
-          <button type="button" disabled={loadingSlots} onClick={handleShowSlots} style={{
-            width: "100%", padding: "12px", borderRadius: 10, border: "none", fontFamily: "inherit",
-            cursor: loadingSlots ? "not-allowed" : "pointer",
-            background: loadingSlots ? t.textMuted : "#778a3b", color: "#fff", fontSize: 14, fontWeight: 700,
-          }}>{loadingSlots ? "جارٍ تحميل الأوقات..." : "عرض الأوقات المتاحة"}</button>
         </div>
       )}
 
       {/* ════════ STEP 2: الموعد ════════ */}
       {step === 2 && (
         <div>
+          {/* Pricing banner — always shown so receptionist sees rates before picking a slot */}
+          {pricing && (
+            <div style={{ background: t.accentLight, border: `1px solid ${t.accent}30`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, display: "flex", gap: 18, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 12, color: t.accentText }}>
+                💰 سعر الدرس: <strong>{Number(pricing.lessonPrice).toLocaleString("en")} ل.س</strong>
+              </span>
+              <span style={{ fontSize: 12, color: t.accentText }}>
+                العربون: <strong>{Number(pricing.depositAmount).toLocaleString("en")} ل.س ({pricing.depositPercentage}%)</strong>
+              </span>
+              {pricing.lessonDurationMinutes && (
+                <span style={{ fontSize: 12, color: t.accentText }}>
+                  المدة: <strong>{pricing.lessonDurationMinutes} دقيقة</strong>
+                </span>
+              )}
+            </div>
+          )}
           {slots.length === 0 ? (
             <div style={{ padding: 30, textAlign: "center", color: t.textMuted, fontSize: 14 }}>لا توجد أوقات متاحة بهذه المعايير</div>
           ) : (
-            <div style={{ maxHeight: 380, overflowY: "auto", paddingLeft: 4 }}>
+            <div style={{ paddingLeft: 4 }}>
               {slots.map((item, idx) => {
                 const instId = item.instructor?.id;
                 const instName = item.instructor?.name || "مدرب";
@@ -1815,15 +1887,6 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            <button type="button" disabled={checkingCredit} onClick={handleCheckCredit} style={{
-              flex: 1, padding: "12px", borderRadius: 10, border: "none", fontFamily: "inherit",
-              cursor: (!selectedTime || checkingCredit) ? "not-allowed" : "pointer",
-              background: (!selectedTime || checkingCredit) ? t.textMuted : "#778a3b", color: "#fff", fontSize: 14, fontWeight: 700,
-              opacity: !selectedTime ? 0.6 : 1,
-            }}>{checkingCredit ? "جارٍ التحقق..." : "التحقق من العربون"}</button>
-            <Btn label="رجوع" onClick={() => { setStep(1); setServerError(""); }} t={t} v="ghost" />
-          </div>
         </div>
       )}
 
@@ -1839,6 +1902,8 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
             <InfoRow k="الوقت" v={selectedTime} t={t} />
             <InfoRow k="نوع التدريب" v={TRAINING_MAP[trainingType] || trainingType} t={t} />
             <InfoRow k="المركبة" v={vehicleSource === "STUDENT_CAR" ? "سيارة الطالب" : "سيارة المدرسة"} t={t} />
+            {pricing && <InfoRow k="سعر الدرس" v={`${Number(pricing.lessonPrice).toLocaleString("en")} ل.س`} t={t} />}
+            {pricing && <InfoRow k="العربون المطلوب" v={`${Number(pricing.depositAmount).toLocaleString("en")} ل.س (${pricing.depositPercentage}%)`} t={t} />}
           </div>
 
           {/* Credit / Amount */}
@@ -1848,23 +1913,54 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
             </div>
           ) : (
             <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>مبلغ العربون المحصل</label>
-              <input type="number" value={collectedAmount} onChange={e => { setCollectedAmount(e.target.value); setErrors(p => ({ ...p, collectedAmount: undefined })); }}
-                placeholder="2000" dir="ltr" style={{ ...fieldStyle("collectedAmount"), textAlign: "left" }} />
-              {errMsg("collectedAmount")}
+              <label style={labelStyle}>مبلغ العربون المحصَّل</label>
+              <input
+                type="text"
+                value={pricing ? `${Number(pricing.depositAmount).toLocaleString("en")} ل.س` : "—"}
+                readOnly
+                dir="ltr"
+                style={{ ...fieldStyle("collectedAmount"), textAlign: "left", cursor: "not-allowed", color: t.textSec, background: t.bgPage }}
+              />
+              <div style={{ fontSize: 11, color: t.textMuted, marginTop: 4 }}>المبلغ محدد تلقائياً بقيمة العربون ولا يمكن تغييره</div>
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 8 }}>
+        </div>
+      )}
+
+      </div>
+
+      {/* ── FIXED BOTTOM FOOTER ── */}
+      <div style={{ flexShrink: 0, padding: "12px 20px", borderTop: `1px solid ${t.border}`, display: "flex", gap: 8, background: t.bgSurface }}>
+        {step === 1 && (
+          <button type="button" disabled={loadingSlots} onClick={handleShowSlots} style={{
+            flex: 1, padding: "12px", borderRadius: 10, border: "none", fontFamily: "inherit",
+            cursor: loadingSlots ? "not-allowed" : "pointer",
+            background: loadingSlots ? t.textMuted : "#778a3b", color: "#fff", fontSize: 14, fontWeight: 700,
+          }}>{loadingSlots ? "جارٍ تحميل الأوقات..." : "عرض الأوقات المتاحة"}</button>
+        )}
+        {step === 2 && (
+          <>
+            <button type="button" disabled={checkingCredit} onClick={handleCheckCredit} style={{
+              flex: 1, padding: "12px", borderRadius: 10, border: "none", fontFamily: "inherit",
+              cursor: (!selectedTime || checkingCredit) ? "not-allowed" : "pointer",
+              background: (!selectedTime || checkingCredit) ? t.textMuted : "#778a3b", color: "#fff", fontSize: 14, fontWeight: 700,
+              opacity: !selectedTime ? 0.6 : 1,
+            }}>{checkingCredit ? "جارٍ التحقق..." : "التحقق من العربون"}</button>
+            <Btn label="رجوع" onClick={() => { setStep(1); setServerError(""); }} t={t} v="ghost" />
+          </>
+        )}
+        {step === 3 && (
+          <>
             <button type="button" disabled={submitting} onClick={handleSubmit} style={{
               flex: 1, padding: "12px", borderRadius: 10, border: "none", fontFamily: "inherit",
               cursor: submitting ? "not-allowed" : "pointer",
               background: submitting ? t.textMuted : "#778a3b", color: "#fff", fontSize: 14, fontWeight: 700,
             }}>{submitting ? "جارٍ الإنشاء..." : "إنشاء الحجز"}</button>
             <Btn label="رجوع" onClick={() => { setStep(2); setServerError(""); setSuccessMsg(""); }} t={t} v="ghost" />
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </Modal>
   );
 }
@@ -1887,9 +1983,16 @@ function PayRemainingModal({ booking, t, onClose, onSuccess }) {
     return () => { cancelled = true; };
   }, [booking.id]);
 
-  // charges is an array from GET /reception/bookings/:id
+  // Priority 1: value already shown on the button (list API) — always correct
+  const listRemaining = booking.remainingAmount != null ? Number(booking.remainingAmount) : null;
+
+  // Priority 2: explicit field from the detail endpoint
+  const detailRemaining = detail?.booking?.remainingAmount != null
+    ? Number(detail.booking.remainingAmount)
+    : null;
+
+  // Priority 3: derive from charges only as a last resort
   const chargesArr = Array.isArray(detail?.charges) ? detail.charges : [];
-  // Sum unpaid portions across all charges (amountDue - sum of payments)
   const chargesRemaining = chargesArr.length > 0
     ? chargesArr.reduce((sum, c) => {
         const due  = parseFloat(c.amountDue  ?? c.remainingAmount ?? 0);
@@ -1899,10 +2002,9 @@ function PayRemainingModal({ booking, t, onClose, onSuccess }) {
     : null;
 
   const remaining =
+    listRemaining ??
+    detailRemaining ??
     (chargesRemaining != null && chargesRemaining > 0 ? chargesRemaining : null) ??
-    detail?.booking?.remainingAmount ??
-    booking.raw?.remainingAmount ??
-    booking.remainingAmount ??
     null;
 
   const totalAmt =
@@ -2087,9 +2189,12 @@ function SectionBookings({ t }) {
   const canComplete = hasPermission(P.BOOKINGS_COMPLETE);
   const canPay = hasPermission(P.PAYMENTS_CREATE);
   const [bookings, setBookings] = useState([]);
+  const [meta, setMeta] = useState(null);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [createModal, setCreateModal] = useState(false);
   const [invModal, setInvModal] = useState(null);
   const [nsModal, setNsModal] = useState(null);
@@ -2099,37 +2204,28 @@ function SectionBookings({ t }) {
   const [cancelModal, setCancelModal] = useState(null);
   const [cancelToast, setCancelToast] = useState(null);
   const [nsBusy, setNsBusy] = useState(false);
+  const [completeBusyId, setCompleteBusyId] = useState(null);
+  const [completeToast, setCompleteToast] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  const extractBookings = (responseData) => {
-    console.log("[Bookings] Raw response.data:", responseData);
-    if (!responseData) return [];
-    const body = responseData?.data ?? responseData;
-    if (Array.isArray(body)) return body;
-    if (body && typeof body === "object") {
-      for (const key of ["items", "bookings", "results", "rows", "data"]) {
-        if (Array.isArray(body[key])) return body[key];
-      }
-      const nested = body.data;
-      if (nested && typeof nested === "object" && !Array.isArray(nested)) {
-        for (const key of ["items", "bookings", "results", "rows"]) {
-          if (Array.isArray(nested[key])) return nested[key];
-        }
-      }
-    }
-    return [];
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350);
+    return () => clearTimeout(timer);
+  }, [search]); // eslint-disable-line react-hooks/set-state-in-effect
 
   const fetchBookings = async () => {
     setLoading(true);
     try {
-      const params = { page: 1, limit: 50 };
+      const params = { page, limit: 20 };
       if (tab) params.bookingStatus = tab;
-      if (search.trim()) params.search = search.trim();
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       const res = await bookingsService.getAll(params);
-      setBookings(extractBookings(res.data));
+      const body = res.data?.data ?? res.data;
+      setBookings(Array.isArray(body?.data) ? body.data : []);
+      setMeta(body?.meta || null);
     } catch {
       setBookings([]);
+      setMeta(null);
     } finally {
       setLoading(false);
     }
@@ -2140,19 +2236,23 @@ function SectionBookings({ t }) {
     (async () => {
       setLoading(true);
       try {
-        const params = { page: 1, limit: 50 };
+        const params = { page, limit: 20 };
         if (tab) params.bookingStatus = tab;
-        if (search.trim()) params.search = search.trim();
+        if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
         const res = await bookingsService.getAll(params);
-        if (!cancelled) setBookings(extractBookings(res.data));
+        const body = res.data?.data ?? res.data;
+        if (!cancelled) {
+          setBookings(Array.isArray(body?.data) ? body.data : []);
+          setMeta(body?.meta || null);
+        }
       } catch {
-        if (!cancelled) setBookings([]);
+        if (!cancelled) { setBookings([]); setMeta(null); }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [tab, search]);
+  }, [tab, debouncedSearch, page]); // eslint-disable-line react-hooks/set-state-in-effect,react-hooks/exhaustive-deps
 
   const handlePayRemainder = (b) => setPayModal(b);
 
@@ -2162,6 +2262,21 @@ function SectionBookings({ t }) {
     try { await bookingsService.updateStatus(nsModal.id, "NO_SHOW"); setNsModal(null); await fetchBookings(); }
     catch { /* silent */ }
     finally { setNsBusy(false); }
+  };
+
+  const handleComplete = async (bookingId) => {
+    setCompleteBusyId(bookingId);
+    try {
+      await bookingsService.updateStatus(bookingId, "COMPLETED");
+      setCompleteToast("✓ تم إكمال الجلسة بنجاح");
+      setTimeout(() => setCompleteToast(null), 3500);
+      await fetchBookings();
+    } catch (err) {
+      setCompleteToast(`✗ ${err?.response?.data?.message || "حدث خطأ أثناء إكمال الجلسة"}`);
+      setTimeout(() => setCompleteToast(null), 4000);
+    } finally {
+      setCompleteBusyId(null);
+    }
   };
 
   const openDetail = async (b) => {
@@ -2194,36 +2309,15 @@ function SectionBookings({ t }) {
       type,
       status,
       pay,
-      rawStatus: b.bookingStatus,
-      rawPayment: b.paymentStatus,
+      rawStatus:       b.bookingStatus,
+      rawPayment:      b.paymentStatus,
+      canPayRemainder: b.canPayRemainder ?? false,
       remainingAmount: b.remainingAmount ?? null,
-      canPayRemainder: b.canPayRemainder ?? null,
       raw: b,
     };
   };
 
   const mapped = (Array.isArray(bookings) ? bookings : []).map(mapBooking);
-
-  const sorted = (() => {
-    const now = new Date();
-    return [...mapped].sort((a, b) => {
-      const rawA = a.raw || {};
-      const rawB = b.raw || {};
-      const dtA = rawA.date && rawA.startTime
-        ? new Date(`${rawA.date.split("T")[0]}T${rawA.startTime}`)
-        : new Date(0);
-      const dtB = rawB.date && rawB.startTime
-        ? new Date(`${rawB.date.split("T")[0]}T${rawB.startTime}`)
-        : new Date(0);
-
-      const isPastA = dtA < now;
-      const isPastB = dtB < now;
-
-      if (isPastA !== isPastB) return isPastA ? 1 : -1;  // future first
-      if (!isPastA) return dtA - dtB;                    // upcoming: nearest first
-      return dtB - dtA;                                  // past: most recent first
-    });
-  })();
 
   const dotColor = (s) => {
     if (s === "مكتمل") return t.completed.dot;
@@ -2244,7 +2338,7 @@ function SectionBookings({ t }) {
       }}>
         <div style={{ display: "flex", gap: 3, marginBottom: 10, background: t.bgElevated, borderRadius: 9, padding: 3, overflowX: "auto" }}>
           {BOOKING_STATUS_FILTER.map((f) => (
-            <button key={f.value} onClick={() => setTab(f.value)} style={{
+            <button key={f.value} onClick={() => { setTab(f.value); setPage(1); }} style={{
               padding: "7px 12px", borderRadius: 7, border: "none", cursor: "pointer",
               fontFamily: "inherit", fontSize: 11, fontWeight: tab === f.value ? 700 : 400,
               whiteSpace: "nowrap", background: tab === f.value ? t.bgSurface : "transparent",
@@ -2262,10 +2356,10 @@ function SectionBookings({ t }) {
       <div style={{ overflowY: "auto", flex: 1, padding: "14px 22px" }}>
       {loading ? (
         <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>جارٍ تحميل الحجوزات...</div>
-      ) : sorted.length === 0 ? (
+      ) : mapped.length === 0 ? (
         <div style={{ padding: 40, textAlign: "center", color: t.textMuted, fontSize: 14 }}>لا توجد حجوزات</div>
       ) : (
-        sorted.map((b) => (
+        mapped.map((b) => (
           <div key={b.id} style={{
             background: t.bgSurface, borderRadius: 11, border: `1px solid ${t.borderCard}`,
             padding: "13px 16px", marginBottom: 7, boxShadow: t.shadow,
@@ -2295,18 +2389,21 @@ function SectionBookings({ t }) {
                 <Badge s={b.status} t={t} />
               </div>
               <div style={{ display: "flex", gap: 5, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                {canPay && (
-                  b.canPayRemainder === true ||
-                  Number(b.remainingAmount) > 0 ||
-                  (b.rawStatus === "BOOKED" && b.rawPayment === "DEPOSIT_PAID")
-                ) && (
-                  <Btn label="دفع المتبقي" onClick={() => handlePayRemainder(b)} t={t} sz="sm" style={{ background: "#6b723a", color: "#fff" }} />
+                {canPay && (b.canPayRemainder || b.remainingAmount !== null) && (
+                  <Btn label={`دفع المتبقي${b.remainingAmount !== null ? ` — ${b.remainingAmount} ل.س` : ""}`} onClick={() => handlePayRemainder(b)} t={t} sz="sm" style={{ background: "#6b723a", color: "#fff" }} />
                 )}
-                {canComplete && b.rawStatus === "BOOKED" && (
-                  <Btn label="لم يحضر" onClick={() => setNsModal(b)} t={t} sz="sm" v="danger" />
-                )}
+                {canComplete && b.rawStatus === "BOOKED" && (<>
+                  <Btn
+                    label={completeBusyId === b.id ? "جارٍ..." : "✓ إكمال الجلسة"}
+                    onClick={() => handleComplete(b.id)}
+                    t={t} sz="sm"
+                    disabled={completeBusyId === b.id || b.rawPayment !== "FULLY_PAID"}
+                    title={b.rawPayment !== "FULLY_PAID" ? "حصّل المبلغ المتبقي أولاً" : undefined}
+                  />
+                  <Btn label="لم يحضر" onClick={() => setNsModal(b)} t={t} sz="sm" v="danger" disabled={completeBusyId === b.id} />
+                </>)}
                 {canCancel && (b.rawStatus === "BOOKED" || b.rawStatus === "PENDING_PAYMENT") && (
-                  <Btn label="إلغاء الحجز" onClick={(e) => { e.stopPropagation(); setCancelModal(b); }} t={t} sz="sm" v="danger" />
+                  <Btn label="إلغاء الحجز" onClick={(e) => { e.stopPropagation(); setCancelModal(b); }} t={t} sz="sm" v="danger" disabled={completeBusyId === b.id} />
                 )}
                 <Btn label="تفاصيل" onClick={(e) => { e.stopPropagation(); openDetail(b); }} t={t} sz="sm" v="ghost" />
               </div>
@@ -2315,6 +2412,41 @@ function SectionBookings({ t }) {
         ))
       )}
       </div>{/* /scrollable list */}
+
+      {/* Pagination */}
+      {meta && meta.totalPages > 1 && (
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          padding: "10px 22px", borderTop: `1px solid ${t.border}`, background: t.bgPage, flexShrink: 0,
+        }}>
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            style={{
+              padding: "5px 14px", borderRadius: 7, border: `1px solid ${t.border}`,
+              background: t.bgSurface, color: page <= 1 ? t.textMuted : t.text,
+              cursor: page <= 1 ? "default" : "pointer", fontFamily: "inherit", fontSize: 12,
+            }}
+          >السابق</button>
+          <span style={{ fontSize: 12, color: t.textSec, minWidth: 80, textAlign: "center" }}>
+            {page} / {meta.totalPages}
+          </span>
+          <button
+            onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+            disabled={page >= meta.totalPages}
+            style={{
+              padding: "5px 14px", borderRadius: 7, border: `1px solid ${t.border}`,
+              background: t.bgSurface, color: page >= meta.totalPages ? t.textMuted : t.text,
+              cursor: page >= meta.totalPages ? "default" : "pointer", fontFamily: "inherit", fontSize: 12,
+            }}
+          >التالي</button>
+          {meta.total != null && (
+            <span style={{ fontSize: 11, color: t.textMuted, marginRight: 4 }}>
+              ({meta.total} حجز)
+            </span>
+          )}
+        </div>
+      )}
 
       {createModal && (
         <CreateBookingModal t={t} onClose={() => setCreateModal(false)} onSuccess={() => { setCreateModal(false); fetchBookings(); }} />
@@ -2341,6 +2473,16 @@ function SectionBookings({ t }) {
           padding: "11px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600,
           zIndex: 2000, whiteSpace: "nowrap", boxShadow: t.shadowMd,
         }}>{payToast}</div>
+      )}
+      {completeToast && (
+        <div style={{
+          position: "fixed", bottom: 68, left: "50%", transform: "translateX(-50%)",
+          background: completeToast.startsWith("✗") ? t.cancelled.bg : t.completed.bg,
+          color: completeToast.startsWith("✗") ? t.cancelled.text : t.completed.text,
+          border: `1px solid ${completeToast.startsWith("✗") ? t.cancelled.dot : t.completed.dot}40`,
+          padding: "11px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+          zIndex: 2001, whiteSpace: "nowrap", boxShadow: t.shadowMd,
+        }}>{completeToast}</div>
       )}
       {cancelModal && (
         <CancelBookingModal
@@ -2399,6 +2541,7 @@ function SectionBookings({ t }) {
         const type = TRAINING_MAP[bk.trainingType] || bk.trainingType || detailModal.type || "—";
         const payLabel = PAYMENT_STATUS_MAP[bk.paymentStatus] || bk.paymentStatus || detailModal.pay || "—";
         const statusLabel = BOOKING_STATUS_MAP[bk.bookingStatus] || bk.bookingStatus || detailModal.status || "—";
+        const detailCharges = Array.isArray(api?.charges) ? api.charges : [];
 
         // Deposit amount shown next to "العربون مدفوع"
         const depositAmt = (() => {
@@ -2425,7 +2568,6 @@ function SectionBookings({ t }) {
           : payLabel;
         const dateStr = bk.dayName && bk.date ? `${bk.dayName} ${bk.date}` : (bk.date || "—");
         const timeStr = bk.startTime && bk.endTime ? `من ${bk.startTime} إلى ${bk.endTime}` : (bk.startTime || "—");
-        const detailCharges = Array.isArray(api?.charges) ? api.charges : [];
         const chargesRem = detailCharges.length > 0
           ? detailCharges.reduce((sum, c) => {
               const due  = parseFloat(c.amountDue ?? c.remainingAmount ?? 0);
