@@ -170,6 +170,40 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
+  // On a restored session (page reload), re-fetch permissions from the server instead of
+  // trusting the localStorage snapshot taken at login time — an admin may have changed this
+  // user's role permissions since then via the Roles & Permissions screen. Runs once per app
+  // load; a fresh login already carries current permissions in its own response, so this is
+  // skipped when there's no stored token yet.
+  useEffect(() => {
+    if (!localStorage.getItem("token")) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await authService.getMyPermissions();
+        const body = res.data?.data ?? res.data;
+        const freshPermissions = Array.isArray(body)
+          ? body
+          : Array.isArray(body?.permissions)
+            ? body.permissions
+            : null;
+        if (!cancelled && freshPermissions) {
+          setUser((prev) => {
+            if (!prev) return prev;
+            const updated = { ...prev, permissions: freshPermissions };
+            localStorage.setItem("user", JSON.stringify(updated));
+            return updated;
+          });
+        }
+      } catch {
+        // Offline or the endpoint failed — keep the cached permissions rather than blocking the app.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{

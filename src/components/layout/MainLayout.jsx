@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import { tokens } from "../../constants/theme";
 import { P } from "../../constants/roles";
+import { PAGE_PERMISSIONS } from "../../constants/pageAccess";
 import qeyadahLogo from "../../assets/qeyadah-logo.jpg";
 
 import { CiSettings } from "react-icons/ci";
@@ -15,6 +16,9 @@ import { FaChartLine, FaChartColumn, FaBellConcierge } from "react-icons/fa6";
 import { MdAdminPanelSettings } from "react-icons/md";
 import { FiLogOut } from "react-icons/fi";
 
+// Permission for each item comes from the shared PAGE_PERMISSIONS map (constants/pageAccess.js)
+// via item.page — that's the single source of truth also used by AdminDashboard_3.jsx's page
+// guard, so the sidebar and the guard can never drift apart.
 const navItems = [
   { id: "dashboard", label: "لوحة التحكم", icon: "⊞", page: "Dashboard" },
   {
@@ -22,56 +26,48 @@ const navItems = [
     label: "إدارة الأدمن الاحترافية",
     icon: <MdAdminPanelSettings />,
     page: "AdminProPage",
-    permission: P.EMPLOYEES_READ,
   },
   {
     id: "Receptionist",
     label: "شاشة الاستقبال والمتابعة",
     icon: <FaBellConcierge />,
     page: "ReceptionistPage",
-    permission: P.BOOKINGS_READ,
   },
   {
     id: "accounting",
     label: "المحاسبة التشغيلية",
     icon: <FaChartColumn />,
     page: "Accounting",
-    permission: P.PAYMENTS_READ,
   },
   {
     id: "AccountantPro",
     label: "لوحة الحسابات المتقدمة",
     icon: <FaChartLine />,
     page: "AccountantProPage",
-    permission: P.PAYMENTS_READ,
   },
   {
     id: "students",
     label: "إدارة الطلاب",
     icon: <PiStudent />,
     page: "Students",
-    permission: P.STUDENTS_READ,
   },
   {
     id: "instructors",
     label: "إدارة المدربين",
     icon: <FaUserTie />,
     page: "Instructors",
-    permission: P.INSTRUCTORS_READ,
   },
   {
     id: "vehicles",
     label: "إدارة المركبات",
     icon: <FaCar />,
     page: "Vehicles",
-    permission: P.VEHICLES_READ,
   },
   {
     id: "transport",
     label: "خدمة النقل",
     icon: <TbBus />,
     page: "Transport",
-    permission: P.TRANSPORT_READ,
   },
   {
     id: "reports",
@@ -84,14 +80,12 @@ const navItems = [
     label: "المستخدمون",
     icon: <PiUsersThin />,
     page: "Users",
-    permission: P.USERS_READ,
   },
   {
     id: "settings",
     label: "إعدادات النظام",
     icon: <CiSettings />,
     page: "Settings",
-    permission: P.SETTINGS_READ,
   },
 ];
 
@@ -141,8 +135,9 @@ export default function MainLayout({
   };
 
   const visibleNav = navItems.filter((item) => {
-    if (!item.permission) return true;
-    return hasPermission(item.permission);
+    const requiredPermission = PAGE_PERMISSIONS[item.page];
+    if (!requiredPermission) return true;
+    return hasPermission(requiredPermission);
   });
 
   const displayLabel = (item) => {

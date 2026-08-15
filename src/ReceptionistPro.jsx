@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { useAuth } from "./contexts/useAuth";
 import { todayStr } from "./utils/dateUtils";
 import { TbBus } from "react-icons/tb";
 import { IoIosCalendar } from "react-icons/io";
@@ -9,6 +8,8 @@ import {  PiUsersThin } from "react-icons/pi";
 import { FaUserTie } from "react-icons/fa";
 import { FaCar } from "react-icons/fa";
 import { bookingsService, studentsService, instructorsService, certificatesService } from "./api";
+import { useAuth } from "./contexts/useAuth";
+import { P } from "./constants/roles";
 
 
 const T = {
@@ -175,6 +176,10 @@ const STUDENT_STATUS_FILTER = [
 ];
 
 function SectionStudents({t}){
+  const { hasPermission } = useAuth();
+  const canCreateStudent = hasPermission(P.STUDENTS_CREATE);
+  const canCreateBooking = hasPermission(P.BOOKINGS_CREATE);
+  const canCompleteBooking = hasPermission(P.BOOKINGS_COMPLETE);
   const sId   = (s) => s?.studentId ?? s?.id;
   const sName = (s) => s?.user?.name  || s?.name  || "—";
   const sPhone= (s) => s?.user?.phone || s?.phone || "—";
@@ -391,9 +396,11 @@ function SectionStudents({t}){
             );
           })}
         </div>
-        <div style={{ padding: "10px 12px", borderTop: `1px solid ${t.border}`, background: t.bgElevated }}>
-          <Btn label="+ تسجيل طالب جديد" onClick={() => setNewStudentModal(true)} t={t} sz="sm" style={{ width: "100%" }} />
-        </div>
+        {canCreateStudent && (
+          <div style={{ padding: "10px 12px", borderTop: `1px solid ${t.border}`, background: t.bgElevated }}>
+            <Btn label="+ تسجيل طالب جديد" onClick={() => setNewStudentModal(true)} t={t} sz="sm" style={{ width: "100%" }} />
+          </div>
+        )}
       </div>
 
       {/* ── Right detail panel ── */}
@@ -410,7 +417,7 @@ function SectionStudents({t}){
                 {d?.trainingType && <Badge s={ttLabel(d.trainingType)} t={t} />}
               </div>
             </div>
-            <Btn label="+ حجز جديد" onClick={() => setBookingModal(true)} t={t} sz="sm" />
+            {canCreateBooking && <Btn label="+ حجز جديد" onClick={() => setBookingModal(true)} t={t} sz="sm" />}
           </div>
 
           <div style={{ display: "flex", borderBottom: `1px solid ${t.border}`, background: t.bgSurface, padding: "0 22px", flexShrink: 0 }}>
@@ -450,7 +457,7 @@ function SectionStudents({t}){
                         <Badge s={b.status} t={t} />
                       </div>
                     </div>
-                    {b.rawStatus === "BOOKED" && (
+                    {canCompleteBooking && b.rawStatus === "BOOKED" && (
                       <div style={{ display: "flex", gap: 7, marginTop: 9 }}>
                         <Btn label="✓ إكمال الجلسة" onClick={() => handleUpdateStatus(b.id, "COMPLETED")} t={t} sz="sm" disabled={statusBusyId === b.id} />
                         <Btn label="لم يحضر"         onClick={() => handleUpdateStatus(b.id, "NO_SHOW")}   t={t} sz="sm" v="danger" disabled={statusBusyId === b.id} />
@@ -602,6 +609,10 @@ function formatLeaveRange(l) {
 }
 
 function SectionInstructors({ t }) {
+  const { hasPermission } = useAuth();
+  const canCreateInstructor = hasPermission(P.INSTRUCTORS_CREATE);
+  const canManageLeave = hasPermission(P.INSTRUCTOR_LEAVE_CREATE);
+  const canUpdateSchedule = hasPermission(P.INSTRUCTOR_SCHEDULE_UPDATE);
   // The list/profile "id" field is the instructor's *user* id — routes are keyed by "instructorId".
   const iId = (i) => i?.instructorId;
   const iName = (i) => i?.name || "—";
@@ -915,9 +926,11 @@ function SectionInstructors({ t }) {
             );
           })}
         </div>
-        <div style={{ padding: "10px 12px", borderTop: `1px solid ${t.border}`, background: t.bgElevated }}>
-          <Btn label="+ إضافة مدرب" onClick={() => setAddModal(true)} t={t} sz="sm" style={{ width: "100%" }} />
-        </div>
+        {canCreateInstructor && (
+          <div style={{ padding: "10px 12px", borderTop: `1px solid ${t.border}`, background: t.bgElevated }}>
+            <Btn label="+ إضافة مدرب" onClick={() => setAddModal(true)} t={t} sz="sm" style={{ width: "100%" }} />
+          </div>
+        )}
       </div>
 
       {/* ── Right detail panel ── */}
@@ -933,9 +946,11 @@ function SectionInstructors({ t }) {
                 {iGender(display) && <Badge s={GENDER_MAP[iGender(display)] || iGender(display)} t={t} />}
               </div>
             </div>
-            <div style={{ display: "flex", gap: 7 }}>
-              <Btn label="+ تسجيل إجازة" onClick={() => setLeaveModal({})} t={t} sz="sm" v="secondary" />
-            </div>
+            {canManageLeave && (
+              <div style={{ display: "flex", gap: 7 }}>
+                <Btn label="+ تسجيل إجازة" onClick={() => setLeaveModal({})} t={t} sz="sm" v="secondary" />
+              </div>
+            )}
           </div>
 
           <div style={{ display: "flex", borderBottom: `1px solid ${t.border}`, background: t.bgSurface, padding: "0 22px", flexShrink: 0 }}>
@@ -1020,7 +1035,9 @@ function SectionInstructors({ t }) {
                           <span key={i} style={{ padding: "3px 9px", borderRadius: 20, background: t.accentLight, color: t.accentText, fontSize: 11, fontWeight: 600 }}>{p.startTime}–{p.endTime}</span>
                         )) : <span style={{ fontSize: 12, color: t.textMuted }}>غير متاح</span>}
                       </div>
-                      <Btn label="تعديل" onClick={() => setScheduleModal({ dayOfWeek: day, periods: periods.length ? periods : [{ startTime: "09:00", endTime: "12:00" }] })} t={t} sz="sm" v="ghost" />
+                      {canUpdateSchedule && (
+                        <Btn label="تعديل" onClick={() => setScheduleModal({ dayOfWeek: day, periods: periods.length ? periods : [{ startTime: "09:00", endTime: "12:00" }] })} t={t} sz="sm" v="ghost" />
+                      )}
                     </div>
                   );
                 })}
@@ -1031,7 +1048,7 @@ function SectionInstructors({ t }) {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>الإجازات المسجلة</div>
-                  <Btn label="+ تسجيل إجازة" onClick={() => setLeaveModal({})} t={t} sz="sm" />
+                  {canManageLeave && <Btn label="+ تسجيل إجازة" onClick={() => setLeaveModal({})} t={t} sz="sm" />}
                 </div>
                 {loadingLeaves ? (
                   <div style={{ padding: 30, textAlign: "center", color: t.textMuted, fontSize: 13 }}>جارٍ تحميل الإجازات...</div>
@@ -1044,10 +1061,12 @@ function SectionInstructors({ t }) {
                         <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{formatLeaveRange(l)}</div>
                         {l.reason && <div style={{ fontSize: 12, color: t.textSec, marginTop: 3 }}>{l.reason}</div>}
                       </div>
-                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                        <Btn label="تعديل" onClick={() => setLeaveModal(l)} t={t} sz="sm" v="ghost" disabled={leaveBusyId === l.id} />
-                        <Btn label="حذف" onClick={() => setDeleteLeaveTarget(l)} t={t} sz="sm" v="danger" disabled={leaveBusyId === l.id} />
-                      </div>
+                      {canManageLeave && (
+                        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                          <Btn label="تعديل" onClick={() => setLeaveModal(l)} t={t} sz="sm" v="ghost" disabled={leaveBusyId === l.id} />
+                          <Btn label="حذف" onClick={() => setDeleteLeaveTarget(l)} t={t} sz="sm" v="danger" disabled={leaveBusyId === l.id} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -2062,6 +2081,11 @@ function CancelBookingModal({ booking, t, onClose, onSuccess }) {
 }
 
 function SectionBookings({ t }) {
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission(P.BOOKINGS_CREATE);
+  const canCancel = hasPermission(P.BOOKINGS_CANCEL);
+  const canComplete = hasPermission(P.BOOKINGS_COMPLETE);
+  const canPay = hasPermission(P.PAYMENTS_CREATE);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("");
@@ -2230,7 +2254,7 @@ function SectionBookings({ t }) {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <SearchBar placeholder="بحث باسم الطالب..." t={t} value={search} onChange={setSearch} />
-          <Btn label="+ حجز جديد" onClick={() => setCreateModal(true)} t={t} />
+          {canCreate && <Btn label="+ حجز جديد" onClick={() => setCreateModal(true)} t={t} />}
         </div>
       </div>
 
@@ -2271,17 +2295,17 @@ function SectionBookings({ t }) {
                 <Badge s={b.status} t={t} />
               </div>
               <div style={{ display: "flex", gap: 5, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                {(
+                {canPay && (
                   b.canPayRemainder === true ||
                   Number(b.remainingAmount) > 0 ||
                   (b.rawStatus === "BOOKED" && b.rawPayment === "DEPOSIT_PAID")
                 ) && (
                   <Btn label="دفع المتبقي" onClick={() => handlePayRemainder(b)} t={t} sz="sm" style={{ background: "#6b723a", color: "#fff" }} />
                 )}
-                {b.rawStatus === "BOOKED" && (
+                {canComplete && b.rawStatus === "BOOKED" && (
                   <Btn label="لم يحضر" onClick={() => setNsModal(b)} t={t} sz="sm" v="danger" />
                 )}
-                {(b.rawStatus === "BOOKED" || b.rawStatus === "PENDING_PAYMENT") && (
+                {canCancel && (b.rawStatus === "BOOKED" || b.rawStatus === "PENDING_PAYMENT") && (
                   <Btn label="إلغاء الحجز" onClick={(e) => { e.stopPropagation(); setCancelModal(b); }} t={t} sz="sm" v="danger" />
                 )}
                 <Btn label="تفاصيل" onClick={(e) => { e.stopPropagation(); openDetail(b); }} t={t} sz="sm" v="ghost" />
@@ -3003,6 +3027,9 @@ function useCertToast(){
 
 /* ── Tab 1: Pool ─────────────────────────────────────────────────────── */
 function CertPoolTab({t,onOpenCourse,onOpenCert}){
+  const {hasPermission}=useAuth();
+  const canManageCert=hasPermission(P.CERTIFICATES_UPDATE);
+  const canExportCert=hasPermission(P.CERTIFICATES_EXPORT);
   const [items,setItems]                  =useState([]);
   const [loading,setLoading]              =useState(true);
   const [error,setError]                  =useState(null);
@@ -3138,19 +3165,25 @@ function CertPoolTab({t,onOpenCourse,onOpenCert}){
           </div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
             {/* Export buttons — same API route as course export, no DB write */}
-            <button onClick={()=>doExport("pdf")} disabled={noneSelected||exportBusy}
-              style={{...btnBase,...disabledStyle(noneSelected||exportBusy)}}>
-              {exportBusy?"...":"كشف الحكومة PDF"}
-            </button>
-            <button onClick={()=>doExport("xlsx")} disabled={noneSelected||exportBusy}
-              style={{...btnBase,...disabledStyle(noneSelected||exportBusy)}}>
-              XLSX
-            </button>
+            {canExportCert&&(
+              <>
+                <button onClick={()=>doExport("pdf")} disabled={noneSelected||exportBusy}
+                  style={{...btnBase,...disabledStyle(noneSelected||exportBusy)}}>
+                  {exportBusy?"...":"كشف الحكومة PDF"}
+                </button>
+                <button onClick={()=>doExport("xlsx")} disabled={noneSelected||exportBusy}
+                  style={{...btnBase,...disabledStyle(noneSelected||exportBusy)}}>
+                  XLSX
+                </button>
+              </>
+            )}
             {/* Create course — disabled until at least one selected */}
-            <button onClick={doCreate} disabled={noneSelected||createBusy}
-              style={{padding:"6px 16px",borderRadius:8,border:"none",background:noneSelected||createBusy?t.border:t.accent,color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,...disabledStyle(noneSelected||createBusy)}}>
-              {createBusy?"جاري الإنشاء...":"إنشاء دورة جديدة"}
-            </button>
+            {canManageCert&&(
+              <button onClick={doCreate} disabled={noneSelected||createBusy}
+                style={{padding:"6px 16px",borderRadius:8,border:"none",background:noneSelected||createBusy?t.border:t.accent,color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,...disabledStyle(noneSelected||createBusy)}}>
+                {createBusy?"جاري الإنشاء...":"إنشاء دورة جديدة"}
+              </button>
+            )}
           </div>
         </div>
         {/* allowSmallCourse — permanent inline checkbox, no confirm dialog */}
@@ -3449,6 +3482,9 @@ function ExamResultsView({t, courseId, courseNumber, onBack, onToast, onRefresh,
 
 /* ── Tab 2: Courses ──────────────────────────────────────────────────── */
 function CourseDetailView({t,course:payload,onBack,onToast,toastEl,onRefresh,onOpenCert}){
+  const {hasPermission}=useAuth();
+  const canManageCert=hasPermission(P.CERTIFICATES_UPDATE);
+  const canExportCert=hasPermission(P.CERTIFICATES_EXPORT);
   const c        = payload?.course   ?? payload   ?? {};
   const initSess = Array.isArray(payload?.sessions) ? payload.sessions : [];
   const students = Array.isArray(payload?.students) ? payload.students : [];
@@ -3486,15 +3522,15 @@ function CourseDetailView({t,course:payload,onBack,onToast,toastEl,onRefresh,onO
   const [showExamResults,setShowExamResults]=useState(false);
   const [practicalPhase,setPracticalPhase]=useState(false);
 
-  const canEdit         = c.status==="SUBMITTED_TO_GOV";
+  const canEdit         = c.status==="SUBMITTED_TO_GOV" && canManageCert;
   const allSaved        = savedSessions.length>=3;
   const sess3Form       = sessions.find(s=>s.sessionNumber===3);
   const sess3DateTime   = allSaved&&sess3Form?.date&&sess3Form?.time?new Date(`${sess3Form.date}T${sess3Form.time}:00`):null;
   const sess3Passed     = sess3DateTime?simNow()>sess3DateTime:false;
   const anyResultRecorded = c.status==="CLOSED";
   const examAlreadySet  = c.status==="EXAM_SCHEDULED";
-  const canSetExam      = examAlreadySet ? !anyResultRecorded : (allSaved&&sess3Passed&&!anyResultRecorded);
-  const showResults     = examAlreadySet;
+  const canSetExam      = (examAlreadySet ? !anyResultRecorded : (allSaved&&sess3Passed&&!anyResultRecorded)) && canManageCert;
+  const showResults     = examAlreadySet && canManageCert;
   const resultsTimeLocked=!!c.examScheduledAt&&simNow()<new Date(c.examScheduledAt);
   const inp        = {width:"100%",padding:"8px 10px",borderRadius:9,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
   const btnPrimary = (dis)=>({width:"100%",padding:"9px",borderRadius:9,border:"none",background:dis?t.border:t.accent,color:"#fff",cursor:dis?"not-allowed":"pointer",fontSize:13,fontFamily:"inherit",fontWeight:600,opacity:dis?0.5:1});
@@ -3581,10 +3617,12 @@ function CourseDetailView({t,course:payload,onBack,onToast,toastEl,onRefresh,onO
           <span style={{fontSize:16,fontWeight:800,color:t.text}}>الدورة {c.courseNumber??c.id}</span>
           <CourseBadge s={c.status} t={t}/>
         </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>doExport("pdf")} disabled={exportBusy} style={btnSec(exportBusy)}>كشف الحكومة PDF</button>
-          <button onClick={()=>doExport("xlsx")} disabled={exportBusy} style={btnSec(exportBusy)}>XLSX</button>
-        </div>
+        {canExportCert&&(
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>doExport("pdf")} disabled={exportBusy} style={btnSec(exportBusy)}>كشف الحكومة PDF</button>
+            <button onClick={()=>doExport("xlsx")} disabled={exportBusy} style={btnSec(exportBusy)}>XLSX</button>
+          </div>
+        )}
       </div>
 
       {/* ── Status pipeline ── */}
@@ -3935,6 +3973,8 @@ function CertSection({title,t,children}){
 
 /* ── Tab 3: Search ───────────────────────────────────────────────────── */
 function CertSearchTab({t,pendingCertId,onPendingConsumed}){
+  const {hasPermission}=useAuth();
+  const canManageCert=hasPermission(P.CERTIFICATES_UPDATE);
   const [q,setQ]=useState("");
   const [statusFilter,setStatusFilter]=useState("");
   const [results,setResults]=useState([]);
@@ -4208,7 +4248,7 @@ function CertSearchTab({t,pendingCertId,onPendingConsumed}){
                       <input type="checkbox" checked={!!editForm.transportRequested} onChange={e=>setEditForm({...editForm,transportRequested:e.target.checked})} style={{accentColor:"#778a3b",width:15,height:15}}/>
                       النقل المدرسي مطلوب
                     </label>
-                    <Btn label={editBusy?"جاري الحفظ...":"حفظ التعديل"} onClick={saveEdit} t={t} disabled={editBusy}/>
+                    {canManageCert&&<Btn label={editBusy?"جاري الحفظ...":"حفظ التعديل"} onClick={saveEdit} t={t} disabled={editBusy}/>}
                   </div>
                 )}
               </CertSection>
@@ -4233,7 +4273,7 @@ function CertSearchTab({t,pendingCertId,onPendingConsumed}){
                       <label style={{fontSize:11,fontWeight:600,color:t.textSec,display:"block",marginBottom:3}}>وجه الهوية الخلفي</label>
                       <input ref={docIdBackRef} type="file" accept="image/*" style={{...inp,padding:"5px 8px",cursor:"pointer"}}/>
                     </div>
-                    <Btn label={docsBusy?"جاري الرفع...":"استبدال الصور المختارة"} onClick={uploadDocs} t={t} disabled={docsBusy}/>
+                    {canManageCert&&<Btn label={docsBusy?"جاري الرفع...":"استبدال الصور المختارة"} onClick={uploadDocs} t={t} disabled={docsBusy}/>}
                   </div>
                 )}
               </CertSection>
@@ -4248,13 +4288,15 @@ function CertSearchTab({t,pendingCertId,onPendingConsumed}){
                     {reexamMsg}
                   </div>
                 )}
-                <Btn
-                  label={reexamBusy?"جاري التسجيل...":"تسجيل إعادة نقدية"}
-                  onClick={requestReexam}
-                  t={t}
-                  disabled={reexamBusy||reexamEligible===false}
-                  v="secondary"
-                />
+                {canManageCert&&(
+                  <Btn
+                    label={reexamBusy?"جاري التسجيل...":"تسجيل إعادة نقدية"}
+                    onClick={requestReexam}
+                    t={t}
+                    disabled={reexamBusy||reexamEligible===false}
+                    v="secondary"
+                  />
+                )}
               </CertSection>
 
             </div>
@@ -4290,7 +4332,7 @@ function CertSearchTab({t,pendingCertId,onPendingConsumed}){
                         <option value="FAIL">راسب ✗</option>
                       </select>
                     </div>
-                    <Btn label={resultBusy?"جاري الحفظ...":"حفظ النتيجة"} onClick={saveResult} t={t} disabled={resultBusy}/>
+                    {canManageCert&&<Btn label={resultBusy?"جاري الحفظ...":"حفظ النتيجة"} onClick={saveResult} t={t} disabled={resultBusy}/>}
                   </div>
                 </CertSection>
               )}
