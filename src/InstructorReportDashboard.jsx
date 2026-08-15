@@ -3,6 +3,7 @@ import { instructorsService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
 import { Badge, StatCard, SectionHeader } from "./components/ui";
+import ExpenseDetailsModal from "./components/ExpenseDetailsModal";
 import { LuX, LuEye } from "react-icons/lu";
 import {
   TbArrowRight, TbUser, TbReceipt, TbPlus, TbChevronRight, TbChevronLeft,
@@ -685,6 +686,7 @@ function InstructorDetailReport({ t, instructorId, onBack }) {
   const canPay = hasPermission(P.EXPENSES_PAY);
   const canDeleteExpense = hasPermission(P.EXPENSES_DELETE);
   const canReadExpenses = hasPermission(P.EXPENSES_READ);
+  const [detailsTarget, setDetailsTarget] = useState(null);
   const dark = isDarkTheme(t);
 
   const [profile, setProfile] = useState(null);
@@ -1017,7 +1019,7 @@ function InstructorDetailReport({ t, instructorId, onBack }) {
                           <th style={{ padding: "10px 12px", borderBottom: `0.5px solid ${t.border}` }}>
                             <input type="checkbox" checked={selectedIds.size === dues.length} onChange={toggleSelectAll} />
                           </th>
-                          {["التاريخ", "الوقت", "الطالب", "نوع التدريب", "المركبة", "المبلغ"].map((h) => (
+                          {["التاريخ", "الوقت", "الطالب", "نوع التدريب", "المركبة", "المبلغ", "تفاصيل"].map((h) => (
                             <th key={h} style={{ padding: "10px 12px", textAlign: "right", color: t.textMuted, fontWeight: 600, fontSize: 12, borderBottom: `0.5px solid ${t.border}` }}>{h}</th>
                           ))}
                         </tr>
@@ -1034,6 +1036,13 @@ function InstructorDetailReport({ t, instructorId, onBack }) {
                             <td style={{ padding: "10px 12px", color: t.textSec }}>{INSTRUCTOR_TYPE_MAP[d.trainingType] || d.trainingType || "—"}</td>
                             <td style={{ padding: "10px 12px", color: t.textSec }}>{VEHICLE_SOURCE_LABELS[d.vehicleSource] || d.vehicleSource || "—"}</td>
                             <td style={{ padding: "10px 12px", color: t.text, fontWeight: 700 }}>{formatMoney(d.amount)}</td>
+                            <td style={{ padding: "10px 12px" }}>
+                              <button onClick={() => setDetailsTarget(d.expenseId)} style={{
+                                padding: "4px 10px", borderRadius: 6, background: t.accentLight,
+                                color: t.accentText, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                display: "inline-flex", alignItems: "center", gap: 4,
+                              }}><LuEye size={13} /> تفاصيل</button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1081,7 +1090,7 @@ function InstructorDetailReport({ t, instructorId, onBack }) {
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 640 }}>
                     <thead>
                       <tr style={{ background: t.bgElevated }}>
-                        {["التاريخ والوقت", "النوع", "المبلغ", "عدد الحركات", "طريقة الدفع", "إجراءات"].map((h) => (
+                        {["التاريخ والوقت", "النوع", "المبلغ", "عدد الحركات", "طريقة الدفع", "صرفها", "إجراءات"].map((h) => (
                           <th key={h} style={{ padding: "10px 12px", textAlign: "right", color: t.textMuted, fontWeight: 600, fontSize: 12, borderBottom: `0.5px solid ${t.border}` }}>{h}</th>
                         ))}
                       </tr>
@@ -1106,21 +1115,31 @@ function InstructorDetailReport({ t, instructorId, onBack }) {
                               color: p.paymentMethod === "CASH" ? t.completed.text : t.confirmed.text,
                             }}>{PAYMENT_METHOD_LABELS[p.paymentMethod] || p.paymentMethod}</span>
                           </td>
+                          <td style={{ padding: "10px 12px", color: t.textSec }}>{p.disbursedBy?.name || "—"}</td>
                           <td style={{ padding: "10px 12px" }}>
-                            {p.type === "LESSONS" && canPay && (
-                              <button onClick={() => setReverseTarget(p)} style={{
-                                padding: "4px 10px", borderRadius: 6, background: t.pending.bg,
-                                color: t.pending.text, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
-                                display: "inline-flex", alignItems: "center", gap: 4,
-                              }}><TbArrowBackUp size={13} /> تراجع</button>
-                            )}
-                            {p.type === "BONUS" && canDeleteExpense && (
-                              <button onClick={() => setDeleteBonusTarget(p)} style={{
-                                padding: "4px 10px", borderRadius: 6, background: t.cancelled.bg,
-                                color: t.cancelled.text, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
-                                display: "inline-flex", alignItems: "center", gap: 4,
-                              }}><TbTrash size={13} /> حذف</button>
-                            )}
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                              {p.expenseIds?.[0] != null && (
+                                <button onClick={() => setDetailsTarget(p.expenseIds[0])} style={{
+                                  padding: "4px 10px", borderRadius: 6, background: t.accentLight,
+                                  color: t.accentText, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                  display: "inline-flex", alignItems: "center", gap: 4,
+                                }}><LuEye size={13} /> تفاصيل</button>
+                              )}
+                              {p.type === "LESSONS" && canPay && (
+                                <button onClick={() => setReverseTarget(p)} style={{
+                                  padding: "4px 10px", borderRadius: 6, background: t.pending.bg,
+                                  color: t.pending.text, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                  display: "inline-flex", alignItems: "center", gap: 4,
+                                }}><TbArrowBackUp size={13} /> تراجع</button>
+                              )}
+                              {p.type === "BONUS" && canDeleteExpense && (
+                                <button onClick={() => setDeleteBonusTarget(p)} style={{
+                                  padding: "4px 10px", borderRadius: 6, background: t.cancelled.bg,
+                                  color: t.cancelled.text, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                  display: "inline-flex", alignItems: "center", gap: 4,
+                                }}><TbTrash size={13} /> حذف</button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1198,6 +1217,10 @@ function InstructorDetailReport({ t, instructorId, onBack }) {
             bumpRefresh();
           }}
         />
+      )}
+
+      {detailsTarget != null && (
+        <ExpenseDetailsModal expenseId={detailsTarget} onClose={() => setDetailsTarget(null)} t={t} />
       )}
     </div>
   );

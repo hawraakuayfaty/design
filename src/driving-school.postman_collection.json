@@ -23,7 +23,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"phone\" : \"0999111222\", \r\n    \"password\" :  \"Admin@12345\"\r\n}\r\n// {\r\n//     \"phone\": \"0999111222\", \"password\": \"Admin@12345\",\r\n//     \"fcmToken\": \"fake-fcm-token-123\",\r\n//     \"platform\": \"ANDROID\" // ANDROID IOS WEB\r\n//  }\r\n\r\n\r\n// {\r\n//     \"phone\" : \"0999400002\", \r\n//     \"password\" :  \"Test@12345\"\r\n// }\r\n",
+              "raw": "{\r\n    \"phone\" : \"0999111222\", \r\n    \"password\" :  \"Admin@12345\"\r\n}\r\n// {\r\n//     \"phone\": \"0999111222\", \"password\": \"Admin@12345\",\r\n//     \"fcmToken\": \"fake-fcm-token-123\",\r\n//     \"platform\": \"ANDROID\" // ANDROID IOS WEB\r\n//  }\r\n\r\n\r\n// {\r\n//     \"phone\" : \"0999200001\", \r\n//     \"password\" :  \"Test@12345\"\r\n// }\r\n",
               "options": {
                 "raw": {
                   "language": "json"
@@ -433,7 +433,7 @@
               }
             ],
             "url": {
-              "raw": "{{url}}/students?page=2&limit=20",
+              "raw": "{{url}}/students",
               "host": [
                 "{{url}}"
               ],
@@ -456,12 +456,12 @@
                 {
                   "key": "page",
                   "value": "2",
-                  "type": "text"
+                  "disabled": true
                 },
                 {
                   "key": "limit",
                   "value": "20",
-                  "type": "text"
+                  "disabled": true
                 }
               ]
             }
@@ -1287,7 +1287,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\r\n    \"expenseIds\" : [86,92],\r\n    \"paymentMethod\" : \"CASH\" ,// CASH , SHAM_CASH\r\n    \"note\" : null\r\n}",
+                  "raw": "{\r\n    \"expenseIds\" : [88,92],\r\n    \"paymentMethod\" : \"CASH\" ,// CASH , SHAM_CASH\r\n    \"note\" : null\r\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2259,7 +2259,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODUwMjE2NTksImV4cCI6MTc4NTAyMjU1OX0.lnUQh8ltLvd1J8QzwW3zgubtmQLAikPTkyjNGmJvN5c",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGVzIjpbIk1BTkFHRVIiXSwidG9rZW5WZXJzaW9uIjowLCJpYXQiOjE3ODY2OTg5NjcsImV4cCI6MTc4NjY5OTg2N30.U-1BzouRW-pmd21KNxTcKNBCupMr2INE6PoI8Dj0zzM",
                   "type": "string"
                 }
               ]
@@ -2274,7 +2274,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"name\" :\"ghaeth\" ,\r\n    \"phone\" : \"0987654222\",\r\n    \"password\" : \"0000\",\r\n    \"role\" : \"RECEPTIONIST\", // RECEPTIONIST , ACCOUNTANT\r\n    \"monthlySalary\" : 100 ,  // number\r\n    \"hireDate\" : \"2026-06-20\" // optinal by defult now \r\n}",
+              "raw": "{\r\n    \"name\" :\"tala\" ,\r\n    \"phone\" : \"0987654222\",\r\n    \"password\" : \"0000\",\r\n    \"role\" : \"RECEPTIONIST\", // RECEPTIONIST , ACCOUNTANT\r\n    \"monthlySalary\" : 100 ,  // number\r\n    \"hireDate\" : \"2026-06-20\" // optinal by defult now \r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2282,9 +2282,13 @@
               }
             },
             "url": {
-              "raw": "localhost:3000/api/v1/users/employees",
+              "raw": "http://20.250.144.221:3000/api/v1/users/employees",
+              "protocol": "http",
               "host": [
-                "localhost"
+                "20",
+                "250",
+                "144",
+                "221"
               ],
               "port": "3000",
               "path": [
@@ -6172,10 +6176,71 @@
       "item": []
     },
     {
-      "name": "New Request",
+      "name": "تفاصيل فاتورة",
       "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
         "method": "GET",
-        "header": []
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{url}}/expenses/1",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "expenses",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "رصيد طالب على الجوال",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{url}}/student/bookings/my-credit",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "student",
+            "bookings",
+            "my-credit"
+          ]
+        }
       },
       "response": []
     }

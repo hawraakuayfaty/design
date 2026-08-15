@@ -2,9 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import { employeeAccountingService, employeesService } from "./api";
 import { todayStr, firstOfMonthStr } from "./utils/dateUtils";
 import { StatCard } from "./components/ui";
+import ExpenseDetailsModal from "./components/ExpenseDetailsModal";
+import { useAuth } from "./contexts/useAuth";
+import { P } from "./constants/roles";
 import {
   TbArrowRight, TbUserDollar, TbReportMoney, TbReceipt2, TbCoins, TbGift,
-  TbChevronRight, TbChevronLeft, TbFilter,
+  TbChevronRight, TbChevronLeft, TbFilter, TbEye,
 } from "react-icons/tb";
 
 // ═══════════════════════════════════════════════
@@ -166,6 +169,9 @@ function SkeletonRows({ t, rows = 4, cols = 6 }) {
 // ═══════════════════════════════════════════════
 export default function EmployeeReportDashboard({ t, onBack }) {
   const dark = isDarkTheme(t);
+  const { hasPermission } = useAuth();
+  const canViewDetails = hasPermission(P.EXPENSES_READ);
+  const [detailsTarget, setDetailsTarget] = useState(null);
 
   const [summaryFrom, setSummaryFrom] = useState(firstOfMonthStr());
   const [summaryTo, setSummaryTo] = useState(todayStr());
@@ -438,7 +444,7 @@ export default function EmployeeReportDashboard({ t, onBack }) {
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 760 }}>
                     <thead>
                       <tr style={{ background: t.bgElevated }}>
-                        {["اسم الموظف", "نوع الفاتورة", "المبلغ", "طريقة الدفع", "الشهر", "تاريخ الصرف", "ملاحظات"].map((h) => (
+                        {["اسم الموظف", "نوع الفاتورة", "المبلغ", "طريقة الدفع", "الشهر", "تاريخ الصرف", "صرفها", "ملاحظات", ...(canViewDetails ? ["تفاصيل"] : [])].map((h) => (
                           <th key={h} style={{ padding: "10px 12px", textAlign: "right", color: t.textMuted, fontWeight: 600, fontSize: 12, borderBottom: `0.5px solid ${t.border}` }}>{h}</th>
                         ))}
                       </tr>
@@ -459,7 +465,17 @@ export default function EmployeeReportDashboard({ t, onBack }) {
                           <td style={{ padding: "10px 12px" }}><PaymentMethodBadge method={row.paymentMethod} t={t} /></td>
                           <td style={{ padding: "10px 12px", color: t.textSec }}>{formatMonthLabel(row.month)}</td>
                           <td style={{ padding: "10px 12px", color: t.textSec }}>{formatDateOnly(row.expenseDate)}</td>
+                          <td style={{ padding: "10px 12px", color: t.textSec }}>{row.disbursedBy?.name || "—"}</td>
                           <td style={{ padding: "10px 12px", color: t.textSec }}>{row.note || "—"}</td>
+                          {canViewDetails && (
+                            <td style={{ padding: "10px 12px" }}>
+                              <button onClick={() => setDetailsTarget(row.expenseId)} style={{
+                                padding: "4px 10px", borderRadius: 6, background: t.accentLight,
+                                color: t.accentText, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                display: "inline-flex", alignItems: "center", gap: 4,
+                              }}><TbEye size={13} /> تفاصيل</button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -482,6 +498,10 @@ export default function EmployeeReportDashboard({ t, onBack }) {
           )}
         </div>
       </div>
+
+      {detailsTarget != null && (
+        <ExpenseDetailsModal expenseId={detailsTarget} onClose={() => setDetailsTarget(null)} t={t} />
+      )}
     </div>
   );
 }

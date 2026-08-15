@@ -4,12 +4,13 @@ import { vehiclesService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
 import { Badge, StatCard } from "./components/ui";
+import ExpenseDetailsModal from "./components/ExpenseDetailsModal";
 import { LuX } from "react-icons/lu";
 import {
   TbArrowRight, TbTool, TbGasStation, TbShieldCheck, TbDroplet, TbAlertTriangle,
   TbDotsCircleHorizontal, TbPrinter, TbPlus, TbChevronRight, TbChevronLeft,
   TbFilter, TbReceipt, TbReportMoney, TbCoins, TbWallet, TbCalendarStats,
-  TbCar, TbId, TbClipboardList,
+  TbCar, TbId, TbClipboardList, TbEye,
 } from "react-icons/tb";
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar,
@@ -386,6 +387,8 @@ export default function VehicleReportDashboard({ t, vehicleId, onBack }) {
   const { hasPermission } = useAuth();
   const canAddExpense = hasPermission(P.EXPENSES_CREATE);
   const canDeleteExpense = hasPermission(P.EXPENSES_DELETE);
+  const canViewExpenseDetails = hasPermission(P.EXPENSES_READ);
+  const [detailsTarget, setDetailsTarget] = useState(null);
   const dark = isDarkTheme(t);
 
   const [month, setMonth] = useState(currentMonthStr());
@@ -794,7 +797,7 @@ export default function VehicleReportDashboard({ t, vehicleId, onBack }) {
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 640 }}>
                   <thead>
                     <tr style={{ background: t.bgElevated }}>
-                      {["#", "التاريخ", "البند", "المبلغ", "طريقة الدفع", "ملاحظات", ...(canDeleteExpense ? ["إجراءات"] : [])].map((h) => (
+                      {["#", "التاريخ", "البند", "المبلغ", "طريقة الدفع", "صرفها", "ملاحظات", ...((canDeleteExpense || canViewExpenseDetails) ? ["إجراءات"] : [])].map((h) => (
                         <th key={h} style={{ padding: "10px 12px", textAlign: "right", color: t.textMuted, fontWeight: 600, fontSize: 12, borderBottom: `0.5px solid ${t.border}` }}>{h}</th>
                       ))}
                     </tr>
@@ -822,13 +825,25 @@ export default function VehicleReportDashboard({ t, vehicleId, onBack }) {
                               color: e.paymentMethod === "CASH" ? t.completed.text : t.confirmed.text,
                             }}>{PAYMENT_METHOD_LABELS[e.paymentMethod] || e.paymentMethod}</span>
                           </td>
+                          <td style={{ padding: "10px 12px", color: t.textSec }}>{e.disbursedBy?.name || "—"}</td>
                           <td style={{ padding: "10px 12px", color: t.textSec }}>{e.note || "—"}</td>
-                          {canDeleteExpense && (
+                          {(canDeleteExpense || canViewExpenseDetails) && (
                             <td style={{ padding: "10px 12px" }}>
-                              <button onClick={() => setDeleteTarget(e)} style={{
-                                padding: "4px 10px", borderRadius: 6, background: t.cancelled.bg,
-                                color: t.cancelled.text, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
-                              }}>حذف</button>
+                              <div style={{ display: "flex", gap: 6 }}>
+                                {canViewExpenseDetails && (
+                                  <button onClick={() => setDetailsTarget(e.expenseId)} style={{
+                                    padding: "4px 10px", borderRadius: 6, background: t.accentLight,
+                                    color: t.accentText, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                    display: "inline-flex", alignItems: "center", gap: 4,
+                                  }}><TbEye size={13} /> تفاصيل</button>
+                                )}
+                                {canDeleteExpense && (
+                                  <button onClick={() => setDeleteTarget(e)} style={{
+                                    padding: "4px 10px", borderRadius: 6, background: t.cancelled.bg,
+                                    color: t.cancelled.text, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                  }}>حذف</button>
+                                )}
+                              </div>
                             </td>
                           )}
                         </tr>
@@ -839,10 +854,10 @@ export default function VehicleReportDashboard({ t, vehicleId, onBack }) {
                     <tr style={{ background: t.accentLight }}>
                       <td colSpan={3} style={{ padding: "10px 12px", fontWeight: 800, color: t.accentText, fontSize: 13 }}>الإجمالي</td>
                       <td style={{ padding: "10px 12px", fontWeight: 800, color: t.accentText, fontSize: 13 }}>{formatMoney(expensesTotals.totalAmount)}</td>
-                      <td colSpan={2} style={{ padding: "10px 12px", fontWeight: 700, color: t.accentText, fontSize: 12 }}>
+                      <td colSpan={3} style={{ padding: "10px 12px", fontWeight: 700, color: t.accentText, fontSize: 12 }}>
                         نقداً: {formatMoney(expensesTotals.totalCash)} · شام كاش: {formatMoney(expensesTotals.totalShamCash)}
                       </td>
-                      {canDeleteExpense && <td />}
+                      {(canDeleteExpense || canViewExpenseDetails) && <td />}
                     </tr>
                   </tfoot>
                 </table>
@@ -890,6 +905,10 @@ export default function VehicleReportDashboard({ t, vehicleId, onBack }) {
             setRefreshKey((k) => k + 1);
           }}
         />
+      )}
+
+      {detailsTarget != null && (
+        <ExpenseDetailsModal expenseId={detailsTarget} onClose={() => setDetailsTarget(null)} t={t} />
       )}
     </div>
   );

@@ -3,6 +3,7 @@ import { todayStr, firstOfMonthStr, currentYearMonth } from "./utils/dateUtils";
 import { generalExpensesService, employeesService, employeeAccountingService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
+import ExpenseDetailsModal from "./components/ExpenseDetailsModal";
 import { FiTrash2 } from "react-icons/fi";
 import { LuEye, LuEyeOff, LuPencil, LuBan, LuLockOpen, LuBanknote, LuFileText } from "react-icons/lu";
 
@@ -136,6 +137,9 @@ function ExpTypeBadge({ type }) {
 }
 
 function PgGeneralExpenses({ t }) {
+  const { hasPermission } = useAuth();
+  const canViewDetails = hasPermission(P.EXPENSES_READ);
+  const [detailsTarget, setDetailsTarget] = useState(null);
   const [summary, setSummary]       = useState(null);
   const [sumLoading, setSumLoading] = useState(true);
   const [sumFrom, setSumFrom]       = useState(_fom());
@@ -379,7 +383,7 @@ function PgGeneralExpenses({ t }) {
                   <th style={thSt}>التاريخ</th>
                   <th style={thSt}>ملاحظات</th>
                   <th style={thSt}>أدخلها</th>
-                  <th style={{ ...thSt, textAlign: "center" }}>حذف</th>
+                  <th style={{ ...thSt, textAlign: "center" }}>الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -393,9 +397,16 @@ function PgGeneralExpenses({ t }) {
                     <td style={{ ...tdSt, color: t.textMuted, maxWidth: 180 }}>{row.note || "—"}</td>
                     <td style={{ ...tdSt, color: t.textSec, fontSize: 12 }}>{row.disbursedBy?.name ?? row.enteredBy?.name ?? "—"}</td>
                     <td style={{ ...tdSt, textAlign: "center" }}>
-                      <button onClick={() => setDelTarget(row)} style={{ background: "none", border: "none", cursor: "pointer", color: "#C74848", padding: "4px 6px", borderRadius: 6, display: "flex", alignItems: "center" }}>
-                        <FiTrash2 size={15} />
-                      </button>
+                      <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                        {canViewDetails && (
+                          <button onClick={() => setDetailsTarget(row.expenseId)} style={{ background: "none", border: "none", cursor: "pointer", color: t.accentText, padding: "4px 6px", borderRadius: 6, display: "flex", alignItems: "center" }}>
+                            <LuEye size={15} />
+                          </button>
+                        )}
+                        <button onClick={() => setDelTarget(row)} style={{ background: "none", border: "none", cursor: "pointer", color: "#C74848", padding: "4px 6px", borderRadius: 6, display: "flex", alignItems: "center" }}>
+                          <FiTrash2 size={15} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -486,6 +497,10 @@ function PgGeneralExpenses({ t }) {
           </div>
         </Modal>
       )}
+
+      {detailsTarget != null && (
+        <ExpenseDetailsModal expenseId={detailsTarget} onClose={() => setDetailsTarget(null)} t={t} />
+      )}
     </div>
   );
 }
@@ -558,6 +573,9 @@ function IssueExpenseModal({t,employee,onClose,onSuccess}){
 }
 
 function EmployeeStatementModal({t,employee,onClose}){
+  const {hasPermission}=useAuth();
+  const canViewDetails=hasPermission(P.EXPENSES_READ);
+  const [detailsTarget,setDetailsTarget]=useState(null);
   const empId=employee.employeeId;
   const empName=employee.user?.name||employee.name||"الموظف";
   const [rows,setRows]=useState([]);
@@ -584,10 +602,11 @@ function EmployeeStatementModal({t,employee,onClose}){
       {notice&&<div style={{padding:"8px 14px",borderRadius:8,background:notice.err?"rgba(199,72,72,0.1)":"rgba(63,107,58,0.1)",border:`1px solid ${notice.err?"rgba(199,72,72,0.3)":"rgba(63,107,58,0.3)"}`,fontSize:12,color:notice.err?"#c74848":"#3F6B3A",marginBottom:12}}>{notice.msg}</div>}
       <div style={{display:"flex",gap:16,flexWrap:"wrap",padding:"10px 14px",borderRadius:9,background:t.bgElevated,marginBottom:14}}><span style={{fontSize:13,color:t.text}}><span style={{color:t.textMuted,fontSize:11}}>الموظف: </span><strong>{empInfo?.name||empName}</strong></span>{empInfo?.monthlySalary&&(<span style={{fontSize:13,color:t.text}}><span style={{color:t.textMuted,fontSize:11}}>الراتب الشهري: </span><strong style={{color:t.accent}}>{fmtM(empInfo.monthlySalary)} ل.س</strong></span>)}</div>
       <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}><input type="date" value={fFrom} onChange={e=>{setFFrom(e.target.value);setPg(1);}} style={selSt} title="من تاريخ"/><input type="date" value={fTo} onChange={e=>{setFTo(e.target.value);setPg(1);}} style={selSt} title="إلى تاريخ"/><select value={fType} onChange={e=>{setFType(e.target.value);setPg(1);}} style={selSt}><option value="">كل الأنواع</option>{EMP_EXP_TYPES.map(x=><option key={x.v} value={x.v}>{x.lbl}</option>)}</select>{(fFrom||fTo||fType)&&<Btn label="مسح" onClick={()=>{setFFrom("");setFTo("");setFType("");setPg(1);}} t={t} v="ghost" sz="sm"/>}</div>
-      {loading?(<div style={{textAlign:"center",padding:"28px",color:t.textMuted,fontSize:13}}>جارٍ التحميل...</div>):rows.length===0?(<div style={{textAlign:"center",padding:"28px",color:t.textMuted,fontSize:13}}>لا توجد سجلات بهذه المعايير</div>):(<div style={{overflowX:"auto",borderRadius:9,border:`1px solid ${t.border}`,marginBottom:12}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["#","النوع","المبلغ","طريقة الدفع","الشهر","التاريخ","ملاحظات","حذف"].map((h,i)=>(<th key={i} style={{...thS,...(i===7&&{textAlign:"center"})}}>{h}</th>))}</tr></thead><tbody>{rows.map(row=>(<tr key={row.expenseId} onMouseEnter={e=>e.currentTarget.style.background=t.bgElevated} onMouseLeave={e=>e.currentTarget.style.background=""}><td style={{...tdS,color:t.textMuted,fontSize:10}}>{row.expenseId}</td><td style={tdS}><span style={{padding:"2px 9px",borderRadius:20,fontSize:11,fontWeight:600,background:t.accentLight,color:t.accentText}}>{EMP_EXP_LABEL[row.type]||row.type}</span></td><td style={{...tdS,fontWeight:700,color:t.accent}}>{fmtM(row.amount)} ل.س</td><td style={tdS}>{EMP_PAY_LABEL[row.paymentMethod]||row.paymentMethod||"—"}</td><td style={{...tdS,color:t.textSec}}>{row.month||"—"}</td><td style={{...tdS,color:t.textSec}}>{row.expenseDate||row.paidAt?.split("T")[0]||"—"}</td><td style={{...tdS,color:t.textMuted,maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.note||"—"}</td><td style={{...tdS,textAlign:"center"}}><button onClick={()=>setDelTarget(row)} style={{background:"none",border:"none",cursor:"pointer",color:"#C74848",padding:"3px 5px",borderRadius:6,display:"inline-flex",alignItems:"center"}}><FiTrash2 size={14}/></button></td></tr>))}</tbody></table></div>)}
+      {loading?(<div style={{textAlign:"center",padding:"28px",color:t.textMuted,fontSize:13}}>جارٍ التحميل...</div>):rows.length===0?(<div style={{textAlign:"center",padding:"28px",color:t.textMuted,fontSize:13}}>لا توجد سجلات بهذه المعايير</div>):(<div style={{overflowX:"auto",borderRadius:9,border:`1px solid ${t.border}`,marginBottom:12}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["#","النوع","المبلغ","طريقة الدفع","الشهر","التاريخ","صرفها","ملاحظات","الإجراءات"].map((h,i)=>(<th key={i} style={{...thS,...(i===8&&{textAlign:"center"})}}>{h}</th>))}</tr></thead><tbody>{rows.map(row=>(<tr key={row.expenseId} onMouseEnter={e=>e.currentTarget.style.background=t.bgElevated} onMouseLeave={e=>e.currentTarget.style.background=""}><td style={{...tdS,color:t.textMuted,fontSize:10}}>{row.expenseId}</td><td style={tdS}><span style={{padding:"2px 9px",borderRadius:20,fontSize:11,fontWeight:600,background:t.accentLight,color:t.accentText}}>{EMP_EXP_LABEL[row.type]||row.type}</span></td><td style={{...tdS,fontWeight:700,color:t.accent}}>{fmtM(row.amount)} ل.س</td><td style={tdS}>{EMP_PAY_LABEL[row.paymentMethod]||row.paymentMethod||"—"}</td><td style={{...tdS,color:t.textSec}}>{row.month||"—"}</td><td style={{...tdS,color:t.textSec}}>{row.expenseDate||row.paidAt?.split("T")[0]||"—"}</td><td style={{...tdS,color:t.textSec}}>{row.disbursedBy?.name||"—"}</td><td style={{...tdS,color:t.textMuted,maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.note||"—"}</td><td style={{...tdS,textAlign:"center"}}><div style={{display:"inline-flex",gap:6,alignItems:"center"}}>{canViewDetails&&<button onClick={()=>setDetailsTarget(row.expenseId)} style={{background:"none",border:"none",cursor:"pointer",color:t.accentText,padding:"3px 5px",borderRadius:6,display:"inline-flex",alignItems:"center"}}><LuEye size={14}/></button>}<button onClick={()=>setDelTarget(row)} style={{background:"none",border:"none",cursor:"pointer",color:"#C74848",padding:"3px 5px",borderRadius:6,display:"inline-flex",alignItems:"center"}}><FiTrash2 size={14}/></button></div></td></tr>))}</tbody></table></div>)}
       {totals&&(<div style={{display:"flex",gap:14,flexWrap:"wrap",padding:"9px 14px",borderRadius:9,background:t.bgElevated,marginBottom:12,fontSize:13}}><span style={{fontWeight:700,color:t.text}}>الإجمالي: <span style={{color:t.accent}}>{fmtM(totals.totalAmount)} ل.س</span></span><span style={{color:t.textSec}}>نقداً: <strong>{fmtM(totals.totalCash)}</strong></span><span style={{color:t.textSec}}>شام كاش: <strong>{fmtM(totals.totalShamCash)}</strong></span></div>)}
       {meta&&meta.totalPages>1&&(<div style={{display:"flex",gap:6,alignItems:"center",justifyContent:"center",marginBottom:8}}><button onClick={()=>setPg(p=>Math.max(1,p-1))} disabled={pg===1} style={{padding:"5px 12px",borderRadius:7,border:`1px solid ${t.border}`,background:"transparent",color:pg===1?t.textMuted:t.text,cursor:pg===1?"default":"pointer",fontSize:12,fontFamily:"inherit"}}>السابق</button><span style={{fontSize:12,color:t.textSec}}>صفحة {pg} من {meta.totalPages}</span><button onClick={()=>setPg(p=>Math.min(meta.totalPages,p+1))} disabled={pg===meta.totalPages} style={{padding:"5px 12px",borderRadius:7,border:`1px solid ${t.border}`,background:"transparent",color:pg===meta.totalPages?t.textMuted:t.text,cursor:pg===meta.totalPages?"default":"pointer",fontSize:12,fontFamily:"inherit"}}>التالي</button></div>)}
       {delTarget&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1100}} onClick={()=>{if(!deleting)setDelTarget(null);}}><div onClick={e=>e.stopPropagation()} style={{background:t.bgSurface,borderRadius:14,padding:"24px 20px",maxWidth:340,width:"90%",boxShadow:t.shadowLg}}><div style={{textAlign:"center",marginBottom:4,color:"#C74848",display:"flex",justifyContent:"center"}}><FiTrash2 size={32}/></div><div style={{fontSize:15,fontWeight:700,color:t.text,marginBottom:8,textAlign:"center"}}>تأكيد الحذف</div><div style={{fontSize:13,color:t.textSec,marginBottom:14,textAlign:"center",lineHeight:1.6}}><strong>{EMP_EXP_LABEL[delTarget.type]||delTarget.type}</strong><br/>{fmtM(delTarget.amount)} ل.س{delTarget.note&&<><br/><span style={{fontSize:12,color:t.textMuted}}>{delTarget.note}</span></>}</div><div style={{padding:"8px 12px",borderRadius:8,background:"#FFF1F2",fontSize:11,color:"#9F1239",textAlign:"center",marginBottom:14}}>هذا الإجراء لا يمكن التراجع عنه</div><div style={{display:"flex",gap:8}}><button onClick={handleDelete} disabled={deleting} style={{flex:1,padding:"9px",borderRadius:9,border:"none",cursor:deleting?"not-allowed":"pointer",background:deleting?t.textMuted:"#9F1239",color:"#fff",fontSize:13,fontWeight:700,fontFamily:"inherit"}}>{deleting?"جارٍ الحذف...":"تأكيد الحذف"}</button><Btn label="إلغاء" onClick={()=>{if(!deleting)setDelTarget(null);}} t={t} v="ghost"/></div></div></div>)}
+      {detailsTarget!=null&&<ExpenseDetailsModal expenseId={detailsTarget} onClose={()=>setDetailsTarget(null)} t={t}/>}
     </Modal>
   );
 }
