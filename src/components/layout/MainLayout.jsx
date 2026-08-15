@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import { tokens } from "../../constants/theme";
@@ -121,7 +121,13 @@ export default function MainLayout({
   darkMode = false,
   onDarkModeToggle,
 }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.innerWidth < 1280);
+
+  useEffect(() => {
+    const onResize = () => setSidebarCollapsed(window.innerWidth < 1280);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { user, hasPermission, logout } = useAuth();
   const navigate = useNavigate();
@@ -161,7 +167,7 @@ export default function MainLayout({
       }}
     >
       {/* Sidebar spacer */}
-      <div style={{ width: sidebarWidth, flexShrink: 0 }} />
+      <div style={{ width: sidebarWidth, flexShrink: 0, transition: "width 0.2s ease" }} />
 
       {/* Sidebar */}
       <div
@@ -188,7 +194,9 @@ export default function MainLayout({
             borderBottom: `1px solid ${t.borderCard}`,
             display: "flex",
             alignItems: "center",
+            justifyContent: sidebarCollapsed ? "center" : "flex-start",
             gap: 10,
+            transition: "all 0.2s ease",
           }}
         >
           <div
@@ -249,6 +257,7 @@ export default function MainLayout({
             return (
               <button
                 key={item.id}
+                title={sidebarCollapsed ? displayLabel(item) : undefined}
                 onClick={() => onPageChange(item.page)}
                 style={{
                   width: "100%",
@@ -291,6 +300,7 @@ export default function MainLayout({
         >
           <button
             onClick={() => setShowLogoutConfirm(true)}
+            title={sidebarCollapsed ? "تسجيل الخروج" : undefined}
             style={{
               width: "100%",
               padding: "10px",
@@ -312,6 +322,7 @@ export default function MainLayout({
           </button>
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            title={sidebarCollapsed ? "توسيع الشريط الجانبي" : "تصغير الشريط الجانبي"}
             style={{
               width: "100%",
               padding: "12px",

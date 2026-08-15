@@ -867,13 +867,25 @@ function PageDashboard({ t }) {
               marginBottom: 12,
             }}
           >
-            دفعات معلقة بانتظار الانتهاء
+            المركبات والمدربون
+          </div>
+          <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 8 }}>
+            المركبات
           </div>
           <Table
             t={t}
-            headers={["الطالب", "المبلغ المستحق", "ينتهي في", "الوقت المتبقي"]}
-            rows={pendingRows}
-            minColWidths={[150, 140, 130, 140]}
+            headers={["المركبة", "النوع", "الحالة"]}
+            rows={vehicleRows}
+            minColWidths={[140, 120, 130]}
+          />
+          <div style={{ fontSize: 12, color: t.textMuted, margin: "14px 0 8px" }}>
+            المدربون
+          </div>
+          <Table
+            t={t}
+            headers={["المدرب", "النوع", "الحالة اليوم"]}
+            rows={instructorRows}
+            minColWidths={[140, 160, 230]}
           />
         </div>
         <div
@@ -894,25 +906,13 @@ function PageDashboard({ t }) {
               marginBottom: 12,
             }}
           >
-            المركبات والمدربون
-          </div>
-          <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 8 }}>
-            المركبات
+            دفعات معلقة بانتظار الانتهاء
           </div>
           <Table
             t={t}
-            headers={["المركبة", "النوع", "الحالة"]}
-            rows={vehicleRows}
-            minColWidths={[140, 120, 130]}
-          />
-          <div style={{ fontSize: 12, color: t.textMuted, margin: "14px 0 8px" }}>
-            المدربون
-          </div>
-          <Table
-            t={t}
-            headers={["المدرب", "النوع", "الحالة اليوم"]}
-            rows={instructorRows}
-            minColWidths={[140, 160, 230]}
+            headers={["الطالب", "المبلغ المستحق", "ينتهي في", "الوقت المتبقي"]}
+            rows={pendingRows}
+            minColWidths={[150, 140, 130, 140]}
           />
         </div>
       </div>
