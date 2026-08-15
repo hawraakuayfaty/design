@@ -13,6 +13,7 @@ import GovCertificateReportDashboard from "./GovCertificateReportDashboard";
 import { studentsService, instructorsService, vehiclesService, dashboardService, accountingService, settingsService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
+import { PAGE_PERMISSIONS } from "./constants/pageAccess";
 import { CiSettings } from "react-icons/ci";
 import { PiChartLineDown, PiChartLineUp, PiUsersThin } from "react-icons/pi";
 import { TbReport } from "react-icons/tb";
@@ -2259,6 +2260,7 @@ function PageInstructors({ t }) {
   const { hasPermission } = useAuth();
   const canCreate = hasPermission(P.INSTRUCTORS_CREATE);
   const canUpdate = hasPermission(P.INSTRUCTORS_UPDATE);
+  const canArchive = hasPermission(P.INSTRUCTORS_ARCHIVE);
   const [instructors, setInstructors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -2394,18 +2396,18 @@ function PageInstructors({ t }) {
                         display: "flex", alignItems: "center", gap: 4,
                       }}><LuEye size={13} />البروفايل</button>
                       {canUpdate && (
-                        <>
-                          <button onClick={() => setEditInstructor(ins)} style={{
-                            padding: "4px 10px", borderRadius: 6, background: t.accentLight,
-                            color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                          }}>تعديل المعلومات</button>
-                          <button onClick={() => setArchiveTarget(ins)} style={{
-                            padding: "4px 10px", borderRadius: 6,
-                            background: isArchived(ins) ? t.confirmed.bg : t.cancelled.bg,
-                            color: isArchived(ins) ? t.confirmed.text : t.cancelled.text,
-                            border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                          }}>{isArchived(ins) ? "إلغاء الأرشفة" : "أرشفة"}</button>
-                        </>
+                        <button onClick={() => setEditInstructor(ins)} style={{
+                          padding: "4px 10px", borderRadius: 6, background: t.accentLight,
+                          color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                        }}>تعديل المعلومات</button>
+                      )}
+                      {canArchive && (
+                        <button onClick={() => setArchiveTarget(ins)} style={{
+                          padding: "4px 10px", borderRadius: 6,
+                          background: isArchived(ins) ? t.confirmed.bg : t.cancelled.bg,
+                          color: isArchived(ins) ? t.confirmed.text : t.cancelled.text,
+                          border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                        }}>{isArchived(ins) ? "إلغاء الأرشفة" : "أرشفة"}</button>
                       )}
                     </div>
                   </td>
@@ -3510,6 +3512,9 @@ function PageVehicles({ t }) {
   const { hasPermission } = useAuth();
   const canCreate = hasPermission(P.VEHICLES_CREATE);
   const canUpdate = hasPermission(P.VEHICLES_UPDATE);
+  const canFuel = hasPermission(P.VEHICLES_FUEL);
+  const canMaintenance = hasPermission(P.VEHICLES_MAINTENANCE);
+  const canArchive = hasPermission(P.VEHICLES_ARCHIVE);
 
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -3656,28 +3661,28 @@ function PageVehicles({ t }) {
                         display: "flex", alignItems: "center", gap: 4,
                       }}><LuEye size={13} />تفاصيل</button>
                       {canUpdate && (
-                        <>
-                          <button onClick={() => setEditVehicle(vehicle)} style={{
-                            padding: "4px 10px", borderRadius: 6, background: t.accentLight,
-                            color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                          }}>تعديل</button>
-                          <button onClick={() => setFuelVehicle(vehicle)} style={{
-                            padding: "4px 10px", borderRadius: 6, background: t.accentLight,
-                            color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                          }}>وقود</button>
-                          {vehicle?.status !== "ARCHIVED" && (
-                            <button onClick={() => setMaintenanceVehicle(vehicle)} style={{
-                              padding: "4px 10px", borderRadius: 6, background: t.pending.bg,
-                              color: t.pending.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                            }}>الصيانة</button>
-                          )}
-                          {vehicle?.status !== "ARCHIVED" && (
-                            <button onClick={() => setArchiveTarget(vehicle)} style={{
-                              padding: "4px 10px", borderRadius: 6, background: t.cancelled.bg,
-                              color: t.cancelled.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                            }}>أرشفة</button>
-                          )}
-                        </>
+                        <button onClick={() => setEditVehicle(vehicle)} style={{
+                          padding: "4px 10px", borderRadius: 6, background: t.accentLight,
+                          color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                        }}>تعديل</button>
+                      )}
+                      {canFuel && (
+                        <button onClick={() => setFuelVehicle(vehicle)} style={{
+                          padding: "4px 10px", borderRadius: 6, background: t.accentLight,
+                          color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                        }}>وقود</button>
+                      )}
+                      {canMaintenance && vehicle?.status !== "ARCHIVED" && (
+                        <button onClick={() => setMaintenanceVehicle(vehicle)} style={{
+                          padding: "4px 10px", borderRadius: 6, background: t.pending.bg,
+                          color: t.pending.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                        }}>الصيانة</button>
+                      )}
+                      {canArchive && vehicle?.status !== "ARCHIVED" && (
+                        <button onClick={() => setArchiveTarget(vehicle)} style={{
+                          padding: "4px 10px", borderRadius: 6, background: t.cancelled.bg,
+                          color: t.cancelled.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
+                        }}>أرشفة</button>
                       )}
                     </div>
                   </td>
@@ -4541,6 +4546,30 @@ function PlaceholderPage({ title, t }) {
   );
 }
 
+function AccessDeniedPage({ t }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "90px 20px",
+        textAlign: "center",
+        height: "100%",
+      }}
+    >
+      <div style={{ fontSize: 42, marginBottom: 14 }}>🔒</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: t.text, marginBottom: 8 }}>
+        غير مصرح لك بالوصول لهذه الصفحة
+      </div>
+      <div style={{ fontSize: 13, color: t.textMuted, maxWidth: 380, lineHeight: 1.8 }}>
+        صلاحياتك الحالية لا تشمل عرض هذا القسم. إذا كنت تعتقد أن هذا خطأ، تواصل مع مدير النظام.
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════
 // MAIN APP SHELL
 // ═══════════════════════════════════════════════
@@ -4625,11 +4654,18 @@ export default function App({
     ReceptionistPage: <ReceptionistPro embedded={true} page={receptionistSubPage} darkMode={darkMode} />,
   };
 
-  // In embedded mode, render only the page content (layout is handled by MainLayout)
+  // In embedded mode, render only the page content (layout is handled by MainLayout).
+  // MainLayout's sidebar already hides nav buttons the user can't open, but activePage can in
+  // principle end up on a restricted page some other way (stale state, a direct setActivePage
+  // call, permissions changing mid-session) — this guard is the actual access boundary.
   if (embeddedMode) {
+    const requiredPermission = PAGE_PERMISSIONS[activePage];
+    const isAllowed = !requiredPermission || hasPermission(requiredPermission);
     return (
       <PageErrorBoundary key={activePage} t={t}>
-        {pageComponents[activePage] || <PlaceholderPage title={activePage} t={t} />}
+        {isAllowed
+          ? pageComponents[activePage] || <PlaceholderPage title={activePage} t={t} />
+          : <AccessDeniedPage t={t} />}
       </PageErrorBoundary>
     );
   }

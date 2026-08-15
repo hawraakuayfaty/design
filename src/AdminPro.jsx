@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { IoIosUnlock } from "react-icons/io";
 import { TbReportMoney } from "react-icons/tb";
-import { settingsService } from "./api";
+import { LuShieldCheck, LuChevronDown } from "react-icons/lu";
+import { settingsService, rolesService, employeesService } from "./api";
+import { ROLE_LABELS } from "./constants/roles";
 
 
 
@@ -63,44 +65,520 @@ const T = {
 function Modal({title,onClose,children,t,width=500}){return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(2px)"}} onClick={onClose}><div onClick={e=>e.stopPropagation()} style={{background:t.bgSurface,borderRadius:16,width,maxWidth:"calc(100vw - 40px)",maxHeight:"85vh",overflow:"hidden",boxShadow:t.shadowLg,display:"flex",flexDirection:"column"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px",borderBottom:`1px solid ${t.border}`}}><div style={{fontSize:16,fontWeight:700,color:t.text}}>{title}</div><button onClick={onClose} style={{width:28,height:28,borderRadius:7,border:"none",background:t.bgElevated,cursor:"pointer",fontSize:16,color:t.textMuted}}>✕</button></div><div style={{padding:"18px 20px",overflowY:"auto"}}>{children}</div></div></div>;}
 function Btn({label,onClick,v="primary",sz="md",t,style={}}){const base={padding:sz==="sm"?"4px 11px":"9px 18px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:sz==="sm"?12:14,fontWeight:600};const vs={primary:{background:t.grad,color:"#fff"},secondary:{background:t.accentLight,color:t.accentText,border:`1px solid ${t.accent}30`},danger:{background:"#FFF1F2",color:"#9F1239",border:"1px solid #FECDD3"},ghost:{background:"transparent",color:t.textSec,border:`1px solid ${t.border}`}};return <button onClick={onClick} style={{...base,...vs[v],...style}}>{label}</button>;}
 
-// ─── PERMISSIONS ───
-function PgPermissions({t}){
-  const matrix=[
-    ["الموديول","مدير","موظف إداري","محاسب","مدرب","طالب"],
-    ["لوحة التحكم","✔ كاملة","✔ تشغيلية","✔ مالية","✖","✖"],
-    ["إدارة الطلاب","✔ كامل","✔ كامل","👁 عرض محدود","✖","👤 نفسه فقط"],
-    ["إدارة المدربين","✔ كامل","✔ كامل","👁 عرض","📅 جدوله فقط","✖"],
-    ["إدارة المركبات","✔ كامل","✔ كامل","👁 عرض","✖","✖"],
-    ["الحجز والجدولة","✔ كامل","✔ + حجز جديد","👁 + إكمال الدفع","📅 جدوله","✔ لنفسه"],
-    ["زر لم يحضر (No-Show)","✔","✔ حصراً","✔","✖","✖"],
-    ["زر إكمال الدفع","✔","✔","✔ حصراً","✖","✖"],
-    ["تحقق الدفعات","✔ كامل","💵 نقدي فقط","✔ كامل","✖","📎 رفع إثبات"],
-    ["الفواتير","✔","✔","✔ كامل","✖","✖"],
-    ["مستحقات المدربين","✔","✖","✔ كامل","✖","✖"],
-    ["الإيرادات والمصاريف","✔","✖","✔ كامل","✖","✖"],
-    ["الشهادة الحكومية","✔ كامل","✔ لوجستي","👁 مالي فقط","✖","📋 طلب+وثائق"],
-    ["خدمة النقل","✔ كامل","✔ لوجستي","👁 دفع فقط","✖","🚌 تسجيل"],
-    ["الأسعار","✔ حصراً","✖","✔ عرض + تعديل","✖","✖"],
-    ["الموظفون والصلاحيات","✔ حصراً","✖","✖","✖","✖"],
-  ];
+// ─── ROLES & PERMISSIONS MANAGEMENT ───
+
+function normalizeRole(r){
+  const code=r.title||r.code||r.role||r.name||"";
+  return{
+    id:r.id??r.roleId??code,
+    code,
+    label:r.label||ROLE_LABELS[code]||code,
+    permissionsCount:r.permissionsCount??r.permissionCount??(Array.isArray(r.permissions)?r.permissions.length:0),
+    editable: typeof r.editable==="boolean" ? r.editable : code!=="MANAGER",
+  };
+}
+
+// Normalizes GET /roles/permissions-catalog and GET /roles/:id into a common
+// [{module, moduleLabel, permissions:[{code,label,granted}]}] shape, regardless
+// of whether the backend returns permissions already grouped by module or as
+// a flat list carrying a module/moduleLabel field on each item.
+function normalizeCatalog(raw){
+  let list=raw;
+  if(!Array.isArray(list)){
+    list=raw?.permissionGroups||raw?.modules||raw?.catalog||raw?.permissions||raw?.data||[];
+  }
+  if(!Array.isArray(list))list=[];
+
+  const alreadyGrouped=list.length>0&&Array.isArray(list[0]?.permissions);
+  if(alreadyGrouped){
+    return list.map((g,idx)=>({
+      module:g.module||g.moduleCode||g.moduleLabel||g.title||`module-${idx}`,
+      moduleLabel:g.moduleLabel||g.label||g.title||g.module||"أخرى",
+      permissions:(g.permissions||[]).map(p=>({
+        code:p.code||p.permissionCode||p.key,
+        label:p.label||p.description||p.code,
+        granted:!!p.granted,
+      })),
+    }));
+  }
+
+  const groupsMap=new Map();
+  list.forEach(p=>{
+    const code=p.code||p.permissionCode||p.key;
+    if(!code)return;
+    const moduleKey=p.module||p.moduleCode||p.moduleLabel||"other";
+    const moduleLabel=p.moduleLabel||p.module||"أخرى";
+    if(!groupsMap.has(moduleKey))groupsMap.set(moduleKey,{module:moduleKey,moduleLabel,permissions:[]});
+    groupsMap.get(moduleKey).permissions.push({
+      code,
+      label:p.label||p.description||code,
+      granted:!!p.granted,
+    });
+  });
+  return Array.from(groupsMap.values());
+}
+
+function RoleTabs({roles,activeId,onSelect,t}){
   return(
-    <div style={{padding:"20px 24px",overflowY:"auto",flex:1}}>
-      <div style={{fontSize:20,fontWeight:700,color:t.text,marginBottom:6}}>مصفوفة الصلاحيات</div>
-      <div style={{fontSize:13,color:t.textSec,marginBottom:16}}>نظرة شاملة على صلاحيات كل دور في النظام</div>
-      <div style={{borderRadius:11,border:`1px solid ${t.border}`,overflow:"auto"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:700}}>
-          <tbody>
-            {matrix.map((row,ri)=>(
-              <tr key={ri} style={{background:ri===0?t.bgElevated:ri%2===0?t.bgSurface:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
-                {row.map((cell,ci)=>(
-                  <td key={ci} style={{padding:ri===0?"10px 12px":"9px 12px",fontWeight:ri===0||ci===0?700:400,fontSize:ri===0||ci===0?11:12,color:ri===0?t.textMuted:ci===0?t.text:cell.includes("✔")?t.accent:cell.includes("✖")?"#b91c1c":t.textSec,borderLeft:ci>0?`1px solid ${t.border}`:"none",textAlign:"right"}}>
-                    {cell}
-                  </td>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",borderBottom:`1px solid ${t.border}`,marginBottom:20}}>
+      {roles.map(role=>{
+        const active=role.id===activeId;
+        return(
+          <button
+            key={role.id}
+            onClick={()=>onSelect(role.id)}
+            style={{
+              display:"flex",alignItems:"center",gap:7,
+              padding:"11px 18px",
+              borderRadius:"10px 10px 0 0",
+              border:"none",
+              borderBottom:active?`3px solid ${t.accent}`:"3px solid transparent",
+              background:active?t.bgSurface:"transparent",
+              color:active?t.text:t.textSec,
+              fontWeight:active?700:600,
+              fontSize:13.5,
+              cursor:"pointer",
+              fontFamily:"inherit",
+              transition:"all 0.15s",
+              marginBottom:-1,
+            }}
+          >
+            {!role.editable&&<LuShieldCheck size={13} style={{color:active?t.accentText:t.textMuted,flexShrink:0}}/>}
+            <span>{role.label}</span>
+            <span style={{fontSize:10.5,fontWeight:700,padding:"1px 8px",borderRadius:20,background:active?t.accentLight:t.bgElevated,color:active?t.accentText:t.textMuted}}>{role.permissionsCount}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function RoleTabsSkeleton({t}){
+  return(
+    <div style={{display:"flex",gap:8,borderBottom:`1px solid ${t.border}`,marginBottom:20,paddingBottom:12}}>
+      {[90,110,100,90,80].map((w,i)=>(
+        <div key={i} style={{width:w,height:34,borderRadius:9,background:t.bgElevated,overflow:"hidden",position:"relative"}}>
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(90deg,transparent,${t.border},transparent)`,animation:"rpShimmer 1.4s infinite"}}/>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ModuleCardSkeleton({t}){
+  return(
+    <div style={{background:t.bgSurface,border:`1px solid ${t.borderCard}`,borderRadius:14,overflow:"hidden"}}>
+      <div style={{padding:"12px 16px",background:t.bgElevated,height:40}}/>
+      <div style={{padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
+        {[70,55,62].map((w,i)=>(
+          <div key={i} style={{height:14,borderRadius:5,background:t.bgElevated,width:`${w}%`,overflow:"hidden",position:"relative"}}>
+            <div style={{position:"absolute",inset:0,background:`linear-gradient(90deg,transparent,${t.border},transparent)`,animation:"rpShimmer 1.4s infinite"}}/>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ManagerBanner({t}){
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:10,padding:"13px 16px",borderRadius:12,background:t.accentLight,border:`1px solid ${t.accent}30`,marginBottom:16,color:t.accentText,fontSize:13,fontWeight:600}}>
+      <LuShieldCheck size={18} style={{flexShrink:0}}/>
+      دور المدير يملك كافة الصلاحيات بشكل ثابت ولا يمكن تعديله
+    </div>
+  );
+}
+
+function ModuleCard({group,checked,onToggle,onToggleAll,disabled,t}){
+  const allChecked=group.permissions.length>0&&group.permissions.every(p=>checked.has(p.code));
+  return(
+    <div style={{background:t.bgSurface,border:`1px solid ${t.borderCard}`,borderRadius:14,overflow:"hidden",boxShadow:t.shadow}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 16px",background:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
+        <span style={{fontSize:13.5,fontWeight:700,color:t.text}}>{group.moduleLabel}</span>
+        {!disabled&&(
+          <button onClick={()=>onToggleAll(group,!allChecked)} style={{background:"none",border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,color:t.accentText,fontFamily:"inherit"}}>
+            {allChecked?"إلغاء تحديد الكل":"تحديد الكل"}
+          </button>
+        )}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(210px,1fr))",gap:"3px 14px",padding:"13px 16px"}}>
+        {group.permissions.map(p=>(
+          <label key={p.code} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",fontSize:12.5,color:disabled?t.textMuted:t.text,cursor:disabled?"default":"pointer"}}>
+            <input
+              type="checkbox"
+              checked={checked.has(p.code)}
+              disabled={disabled}
+              onChange={()=>onToggle(p.code)}
+              style={{width:16,height:16,accentColor:t.accent,cursor:disabled?"default":"pointer",flexShrink:0}}
+            />
+            <span>{p.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SaveBar({checked,isDirty,saving,onSave,onReset,t}){
+  return(
+    <div style={{position:"sticky",bottom:0,marginTop:20,padding:"14px 18px",background:t.bgSurface,border:`1px solid ${t.borderCard}`,borderRadius:14,boxShadow:t.shadowLg,display:"flex",alignItems:"center",justifyContent:"space-between",gap:14,flexWrap:"wrap"}}>
+      <div style={{fontSize:12,color:t.textMuted}}>
+        {isDirty&&<span style={{color:"#C98A28",fontWeight:700}}>● لديك تغييرات غير محفوظة — </span>}
+        المحدد حالياً: <strong style={{color:t.accent}}>{checked.size}</strong> صلاحية
+      </div>
+      <div style={{display:"flex",gap:8}}>
+        {isDirty&&<Btn label="تراجع عن التغييرات" onClick={onReset} t={t} v="ghost" sz="sm"/>}
+        <button onClick={onSave} disabled={saving||!isDirty} style={{padding:"9px 22px",borderRadius:10,border:"none",cursor:(saving||!isDirty)?"not-allowed":"pointer",background:(saving||!isDirty)?t.textMuted:t.grad,color:"#fff",fontSize:13,fontWeight:700,fontFamily:"inherit",transition:"background 0.15s"}}>
+          {saving?"جارٍ الحفظ...":"حفظ التغييرات"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RolePermissionsPanel({roleId,roleMeta,t,showToast,onSaved}){
+  const [role,setRole]=useState(null);
+  const [groups,setGroups]=useState(null);
+  const [checked,setChecked]=useState(new Set());
+  const [initialChecked,setInitialChecked]=useState(new Set());
+  const [loading,setLoading]=useState(true);
+  const [loadError,setLoadError]=useState(null);
+  const [saving,setSaving]=useState(false);
+
+  useEffect(()=>{
+    let cancelled=false;
+    (async()=>{
+      setLoading(true);setLoadError(null);
+      try{
+        const res=await rolesService.getById(roleId);
+        const body=res.data?.data??res.data;
+        const normalized=normalizeCatalog(body);
+        const initial=new Set();
+        normalized.forEach(g=>g.permissions.forEach(p=>{if(p.granted)initial.add(p.code);}));
+        if(!cancelled){
+          setRole(body);
+          setGroups(normalized);
+          setChecked(new Set(initial));
+          setInitialChecked(initial);
+        }
+      }catch(err){
+        if(!cancelled)setLoadError(err.response?.data?.message||err.message||"فشل تحميل صلاحيات الدور");
+      }finally{
+        if(!cancelled)setLoading(false);
+      }
+    })();
+    return()=>{cancelled=true;};
+  },[roleId]);
+
+  const isEditable=role?role.editable!==false:(roleMeta?.editable??true);
+
+  const toggle=(code)=>{
+    if(!isEditable)return;
+    setChecked(prev=>{
+      const next=new Set(prev);
+      if(next.has(code))next.delete(code);else next.add(code);
+      return next;
+    });
+  };
+
+  const toggleAll=(group,value)=>{
+    if(!isEditable)return;
+    setChecked(prev=>{
+      const next=new Set(prev);
+      group.permissions.forEach(p=>{if(value)next.add(p.code);else next.delete(p.code);});
+      return next;
+    });
+  };
+
+  const resetChecked=()=>setChecked(new Set(initialChecked));
+
+  const isDirty=useMemo(()=>{
+    if(checked.size!==initialChecked.size)return true;
+    for(const c of checked)if(!initialChecked.has(c))return true;
+    return false;
+  },[checked,initialChecked]);
+
+  const handleSave=async()=>{
+    if(saving||!isDirty||!isEditable)return;
+    setSaving(true);
+    try{
+      await rolesService.updatePermissions(roleId,Array.from(checked));
+      setInitialChecked(new Set(checked));
+      showToast("تم تحديث صلاحيات الدور بنجاح");
+      onSaved(checked.size);
+    }catch(err){
+      const msg=err.response?.data?.message||err.message||"حدث خطأ أثناء حفظ الصلاحيات";
+      showToast(Array.isArray(msg)?msg.join("، "):msg,true);
+    }finally{
+      setSaving(false);
+    }
+  };
+
+  if(loading)return(
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:14}}>
+      {[0,1,2,3].map(i=><ModuleCardSkeleton key={i} t={t}/>)}
+    </div>
+  );
+
+  if(loadError)return(
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:40,gap:10}}>
+      <div style={{fontSize:13,color:"#c74848",fontWeight:600}}>{loadError}</div>
+    </div>
+  );
+
+  return(
+    <div>
+      {!isEditable&&<ManagerBanner t={t}/>}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:14}}>
+        {groups.map(g=>(
+          <ModuleCard key={g.module} group={g} checked={checked} onToggle={toggle} onToggleAll={toggleAll} disabled={!isEditable} t={t}/>
+        ))}
+      </div>
+      {isEditable&&<SaveBar checked={checked} isDirty={isDirty} saving={saving} onSave={handleSave} onReset={resetChecked} t={t}/>}
+    </div>
+  );
+}
+
+function CatalogInlineSection({t}){
+  const [open,setOpen]=useState(false);
+  const [groups,setGroups]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState(null);
+
+  const toggleOpen=()=>{
+    const next=!open;
+    setOpen(next);
+    if(next&&!groups&&!loading){
+      setLoading(true);setError(null);
+      rolesService.getCatalog()
+        .then(res=>{
+          const body=res.data?.data??res.data;
+          setGroups(normalizeCatalog(body));
+        })
+        .catch(err=>{
+          setError(err.response?.data?.message||err.message||"فشل تحميل كتالوج الصلاحيات");
+        })
+        .finally(()=>setLoading(false));
+    }
+  };
+
+  return(
+    <div style={{marginBottom:24,border:`1px solid ${t.borderCard}`,borderRadius:14,overflow:"hidden"}}>
+      <button onClick={toggleOpen} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 18px",background:t.bgElevated,border:"none",cursor:"pointer",fontFamily:"inherit"}}>
+        <span style={{fontSize:13.5,fontWeight:700,color:t.text}}>كتالوج الصلاحيات الكامل بالنظام (مرجع للقراءة فقط)</span>
+        <LuChevronDown size={16} style={{color:t.textMuted,transform:open?"rotate(180deg)":"none",transition:"transform 0.15s",flexShrink:0}}/>
+      </button>
+      {open&&(
+        <div style={{padding:"16px 18px",background:t.bgSurface,borderTop:`1px solid ${t.border}`}}>
+          {loading?(
+            <div style={{textAlign:"center",padding:20,color:t.textMuted,fontSize:13}}>جارٍ التحميل...</div>
+          ):error?(
+            <div style={{textAlign:"center",padding:20,color:"#c74848",fontSize:13,fontWeight:600}}>{error}</div>
+          ):(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+              {groups?.map(group=>(
+                <div key={group.module} style={{border:`1px solid ${t.border}`,borderRadius:11,overflow:"hidden"}}>
+                  <div style={{padding:"8px 12px",background:t.bgElevated,fontSize:12.5,fontWeight:700,color:t.text}}>{group.moduleLabel}</div>
+                  <div style={{padding:"8px 12px",display:"flex",flexDirection:"column",gap:5}}>
+                    {group.permissions.map(p=>(
+                      <div key={p.code} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,fontSize:12,color:t.textSec,padding:"2px 0"}}>
+                        <span>{p.label}</span>
+                        <code style={{fontSize:10,color:t.textMuted,background:t.bgElevated,padding:"2px 6px",borderRadius:5,direction:"ltr",flexShrink:0}}>{p.code}</code>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const EMP_ROLE_STATUS_LABEL={ACTIVE:"نشط",BLOCKED:"موقوف",ARCHIVED:"مؤرشف"};
+
+function EmpStatusBadge({status,t}){
+  const map={
+    ACTIVE:t.completed,
+    BLOCKED:t.cancelled,
+    ARCHIVED:t.expired,
+  };
+  const c=map[status]||t.expired;
+  return(
+    <span style={{display:"inline-flex",alignItems:"center",gap:5,background:c.bg,color:c.text,padding:"2px 9px",borderRadius:20,fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>
+      <span style={{width:6,height:6,borderRadius:"50%",background:c.dot,flexShrink:0}}/>
+      {EMP_ROLE_STATUS_LABEL[status]||status}
+    </span>
+  );
+}
+
+function EmployeeRoleSection({t,showToast}){
+  const [employees,setEmployees]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [updating,setUpdating]=useState(null);
+  const [refresh,setRefresh]=useState(0);
+
+  useEffect(()=>{
+    let cancelled=false;
+    (async()=>{
+      setLoading(true);
+      try{
+        const res=await employeesService.getAll();
+        const body=res.data?.data||res.data;
+        if(!cancelled)setEmployees(Array.isArray(body)?body:[]);
+      }catch{
+        if(!cancelled)setEmployees([]);
+      }finally{
+        if(!cancelled)setLoading(false);
+      }
+    })();
+    return()=>{cancelled=true;};
+  },[refresh]);
+
+  const handleRoleChange=async(emp,newRole)=>{
+    if(!newRole||newRole===emp.role||updating)return;
+    setUpdating(emp.employeeId);
+    try{
+      await employeesService.updateRole(emp.employeeId,newRole);
+      showToast("تم تغيير دور الموظف بنجاح");
+      setRefresh(k=>k+1);
+    }catch(err){
+      const msg=err.response?.data?.message||err.message||"حدث خطأ أثناء تغيير الدور";
+      showToast(Array.isArray(msg)?msg.join("، "):msg,true);
+    }finally{
+      setUpdating(null);
+    }
+  };
+
+  return(
+    <div>
+      <div style={{fontSize:16,fontWeight:700,color:t.text,marginBottom:4}}>إسناد الأدوار للموظفين</div>
+      <div style={{fontSize:12,color:t.textMuted,marginBottom:12}}>تغيير دور موظف بين استقبال ومحاسبة — يُطبَّق فوراً عند الاختيار</div>
+      {loading?(
+        <div style={{padding:30,textAlign:"center",color:t.textMuted,fontSize:13}}>جارٍ تحميل الموظفين...</div>
+      ):employees.length===0?(
+        <div style={{padding:30,textAlign:"center",color:t.textMuted,fontSize:13}}>لا يوجد موظفون مسجلون بعد</div>
+      ):(
+        <div style={{borderRadius:11,border:`1px solid ${t.border}`,overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+            <thead>
+              <tr style={{background:t.bgElevated}}>
+                {["الاسم","رقم الهاتف","الحالة","الدور الحالي"].map((h,i)=>(
+                  <th key={i} style={{padding:"10px 14px",textAlign:"right",color:t.textMuted,fontWeight:600,fontSize:11,borderBottom:`1px solid ${t.border}`,whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {employees.map((emp,i)=>{
+                const name=emp.user?.name||emp.name||"—";
+                const phone=emp.user?.phone||emp.phone||"—";
+                const status=emp.user?.accountStatus||emp.accountStatus||"ACTIVE";
+                return(
+                  <tr key={emp.employeeId??emp.id??i} style={{background:i%2===0?t.bgSurface:t.bgElevated,borderBottom:`1px solid ${t.border}`}}>
+                    <td style={{padding:"11px 14px",fontWeight:600,color:t.text}}>{name}</td>
+                    <td style={{padding:"11px 14px",color:t.textSec,fontSize:12,direction:"ltr",textAlign:"right"}}>{phone}</td>
+                    <td style={{padding:"11px 14px"}}><EmpStatusBadge status={status} t={t}/></td>
+                    <td style={{padding:"11px 14px"}}>
+                      <select
+                        value={emp.role||""}
+                        disabled={updating===emp.employeeId}
+                        onChange={e=>handleRoleChange(emp,e.target.value)}
+                        style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:12,fontFamily:"inherit",cursor:updating===emp.employeeId?"not-allowed":"pointer"}}
+                      >
+                        <option value="RECEPTIONIST">موظف استقبال</option>
+                        <option value="ACCOUNTANT">محاسب</option>
+                      </select>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PgPermissions({t}){
+  const [roles,setRoles]=useState([]);
+  const [rolesLoading,setRolesLoading]=useState(true);
+  const [rolesError,setRolesError]=useState(null);
+  const [rolesRefreshKey,setRolesRefreshKey]=useState(0);
+  const [activeRoleId,setActiveRoleId]=useState(null);
+  const [toast,setToast]=useState(null);
+
+  const showToast=(msg,isErr=false)=>{setToast({msg,isErr});setTimeout(()=>setToast(null),3500);};
+
+  useEffect(()=>{
+    let cancelled=false;
+    (async()=>{
+      setRolesLoading(true);setRolesError(null);
+      try{
+        const res=await rolesService.getAll();
+        const body=res.data?.data??res.data;
+        const list=Array.isArray(body)?body:(body?.roles||[]);
+        const normalized=list.map(normalizeRole);
+        if(!cancelled){
+          setRoles(normalized);
+          setActiveRoleId(prev=>(prev&&normalized.some(r=>r.id===prev))?prev:(normalized[0]?.id??null));
+        }
+      }catch(err){
+        if(!cancelled)setRolesError(err.response?.data?.message||err.message||"فشل تحميل الأدوار");
+      }finally{
+        if(!cancelled)setRolesLoading(false);
+      }
+    })();
+    return()=>{cancelled=true;};
+  },[rolesRefreshKey]);
+
+  const activeRoleMeta=roles.find(r=>r.id===activeRoleId)||null;
+
+  return(
+    <div style={{padding:"20px 24px",overflowY:"auto",flex:1,position:"relative"}}>
+      <style>{`@keyframes rpShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}`}</style>
+      {toast&&(
+        <div style={{position:"fixed",top:22,left:"50%",transform:"translateX(-50%)",zIndex:3000,background:toast.isErr?"#9F1239":"#3F6B3A",color:"#fff",padding:"11px 26px",borderRadius:12,fontSize:13,fontWeight:600,boxShadow:"0 8px 28px rgba(0,0,0,0.22)",whiteSpace:"nowrap",pointerEvents:"none"}}>
+          {toast.msg}
+        </div>
+      )}
+
+      <div style={{marginBottom:18}}>
+        <div style={{fontSize:20,fontWeight:700,color:t.text}}>إدارة الأدوار والصلاحيات</div>
+        <div style={{fontSize:13,color:t.textSec,marginTop:2}}>اختر دوراً من الأعلى لعرض صلاحياته وتعديلها</div>
+      </div>
+
+      <CatalogInlineSection t={t}/>
+
+      {rolesLoading?(
+        <RoleTabsSkeleton t={t}/>
+      ):rolesError?(
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:40,gap:10}}>
+          <div style={{fontSize:13,color:"#c74848",fontWeight:600}}>{rolesError}</div>
+          <Btn label="إعادة المحاولة" onClick={()=>setRolesRefreshKey(k=>k+1)} t={t}/>
+        </div>
+      ):(
+        <>
+          <RoleTabs roles={roles} activeId={activeRoleId} onSelect={setActiveRoleId} t={t}/>
+          {activeRoleId&&(
+            <RolePermissionsPanel
+              key={activeRoleId}
+              roleId={activeRoleId}
+              roleMeta={activeRoleMeta}
+              t={t}
+              showToast={showToast}
+              onSaved={(newCount)=>{
+                setRoles(prev=>prev.map(r=>r.id===activeRoleId?{...r,permissionsCount:newCount}:r));
+              }}
+            />
+          )}
+        </>
+      )}
+
+      <div style={{marginTop:32,paddingTop:24,borderTop:`1px solid ${t.border}`}}>
+        <EmployeeRoleSection t={t} showToast={showToast}/>
       </div>
     </div>
   );

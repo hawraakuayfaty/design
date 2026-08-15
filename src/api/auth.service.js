@@ -37,6 +37,10 @@ const authService = {
     return client.get("/auth/me");
   },
 
+  getMyPermissions() {
+    return client.get("/auth/me/permissions");
+  },
+
   logoutAll() {
     return client.post("/auth/logout-all").finally(() => {
       localStorage.removeItem("token");

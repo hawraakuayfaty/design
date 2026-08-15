@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { todayStr, firstOfMonthStr, currentYearMonth } from "./utils/dateUtils";
 import { generalExpensesService, employeesService, employeeAccountingService } from "./api";
+import { useAuth } from "./contexts/useAuth";
+import { P } from "./constants/roles";
 import { FiTrash2 } from "react-icons/fi";
 import { LuEye, LuEyeOff, LuPencil, LuBan, LuLockOpen, LuBanknote, LuFileText } from "react-icons/lu";
 
@@ -678,6 +680,11 @@ function ArchiveEmployeeConfirm({t,employee,onClose,onSuccess}){
 }
 
 function PgEmployees({t}){
+  const {hasPermission}=useAuth();
+  const canCreate=hasPermission(P.EMPLOYEES_CREATE);
+  const canUpdate=hasPermission(P.EMPLOYEES_UPDATE);
+  const canArchive=hasPermission(P.EMPLOYEES_ARCHIVE);
+  const canManageRoles=hasPermission(P.ROLES_MANAGE);
   const [employees,setEmployees]=useState([]);
   const [loading,setLoading]=useState(true);
   const [addModal,setAddModal]=useState(false);
@@ -715,7 +722,7 @@ function PgEmployees({t}){
       {toast&&<div style={{position:"fixed",top:22,left:"50%",transform:"translateX(-50%)",zIndex:3000,background:toast.err?"#9F1239":"#3F6B3A",color:"#fff",padding:"11px 26px",borderRadius:12,fontSize:13,fontWeight:600,boxShadow:"0 8px 28px rgba(0,0,0,0.22)",whiteSpace:"nowrap",pointerEvents:"none"}}>{toast.msg}</div>}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <div><div style={{fontSize:20,fontWeight:700,color:t.text}}>الموظفون والمستخدمون</div><div style={{fontSize:13,color:t.textSec,marginTop:2}}>{loading?"جارٍ التحميل...":`${employees.length} موظف مسجل`}</div></div>
-        <Btn label="+ إضافة موظف" onClick={()=>setAddModal(true)} t={t}/>
+        {canCreate&&<Btn label="+ إضافة موظف" onClick={()=>setAddModal(true)} t={t}/>}
       </div>
       {!sumLoading&&summary&&(
         <div style={{marginBottom:16}}>
@@ -731,7 +738,7 @@ function PgEmployees({t}){
         <div style={{borderRadius:11,border:`1px solid ${t.border}`,overflowX:"auto",overflowY:"hidden"}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
             <thead><tr style={{background:t.bgElevated}}>{["الاسم","رقم الهاتف","الدور","الحالة","الراتب","تاريخ التعيين","الإجراءات"].map((h,i)=>(<th key={i} style={{padding:"10px 14px",textAlign:"right",color:t.textMuted,fontWeight:600,fontSize:11,borderBottom:`1px solid ${t.border}`,whiteSpace:"nowrap",...(i===6&&{minWidth:320,textAlign:"center"})}}>{h}</th>))}</tr></thead>
-            <tbody>{employees.map((emp,i)=>{const status=mapStatus(emp);const archived=isArchived(emp);return(<tr key={emp.employeeId??emp.id??i} style={{background:i%2===0?t.bgSurface:t.bgElevated,borderBottom:`1px solid ${t.border}`}}><td style={{padding:"11px 14px",fontWeight:600,color:t.text}}>{emp.user?.name||emp.name||"—"}</td><td style={{padding:"11px 14px",color:t.textSec,fontSize:12,direction:"ltr",textAlign:"right"}}>{emp.user?.phone||emp.phone||"—"}</td><td style={{padding:"11px 14px"}}><select value={emp.role||""} disabled={roleUpdating===emp.employeeId} onChange={e=>handleRoleChange(emp,e.target.value)} style={{padding:"5px 8px",borderRadius:7,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:11,fontFamily:"inherit",cursor:roleUpdating===emp.employeeId?"not-allowed":"pointer"}}><option value="RECEPTIONIST">موظف إداري</option><option value="ACCOUNTANT">محاسب</option></select></td><td style={{padding:"11px 14px"}}><Badge s={status} t={t}/></td><td style={{padding:"11px 14px",color:t.textSec,fontSize:12}}>{emp.monthlySalary?`${Number(emp.monthlySalary).toLocaleString("en")} ل.س`:"—"}</td><td style={{padding:"11px 14px",color:t.textMuted,fontSize:12}}>{emp.hireDate||"—"}</td><td style={{padding:"8px 14px"}}><div style={{display:"flex",flexWrap:"nowrap",alignItems:"center",justifyContent:"center",gap:6}}><button onClick={()=>setIssueModal(emp)} style={empActionBtnStyle(t.grad,"#fff")}><LuBanknote size={12}/>صرف دفعة</button><button onClick={()=>setStatementModal(emp)} style={empActionBtnStyle(t.accentLight,t.accentText)}><LuFileText size={12}/>كشف الحساب</button><button onClick={()=>setEditEmployee(emp)} style={empActionBtnStyle(t.accentLight,t.accentText)}><LuPencil size={12}/>تعديل</button><button onClick={()=>setArchiveTarget(emp)} style={empActionBtnStyle(archived?t.confirmed.bg:"#FEF2F2",archived?t.confirmed.text:"#DC2626",archived?"none":"1px solid #FECACA")}>{archived?<LuLockOpen size={12}/>:<LuBan size={12}/>}{archived?"إلغاء الأرشفة":"أرشفة"}</button></div></td></tr>);})}</tbody>
+            <tbody>{employees.map((emp,i)=>{const status=mapStatus(emp);const archived=isArchived(emp);return(<tr key={emp.employeeId??emp.id??i} style={{background:i%2===0?t.bgSurface:t.bgElevated,borderBottom:`1px solid ${t.border}`}}><td style={{padding:"11px 14px",fontWeight:600,color:t.text}}>{emp.user?.name||emp.name||"—"}</td><td style={{padding:"11px 14px",color:t.textSec,fontSize:12,direction:"ltr",textAlign:"right"}}>{emp.user?.phone||emp.phone||"—"}</td><td style={{padding:"11px 14px"}}>{canManageRoles?<select value={emp.role||""} disabled={roleUpdating===emp.employeeId} onChange={e=>handleRoleChange(emp,e.target.value)} style={{padding:"5px 8px",borderRadius:7,border:`1px solid ${t.border}`,background:t.bgElevated,color:t.text,fontSize:11,fontFamily:"inherit",cursor:roleUpdating===emp.employeeId?"not-allowed":"pointer"}}><option value="RECEPTIONIST">موظف إداري</option><option value="ACCOUNTANT">محاسب</option></select>:<span style={{fontSize:12,color:t.textSec}}>{emp.role==="RECEPTIONIST"?"موظف إداري":emp.role==="ACCOUNTANT"?"محاسب":"—"}</span>}</td><td style={{padding:"11px 14px"}}><Badge s={status} t={t}/></td><td style={{padding:"11px 14px",color:t.textSec,fontSize:12}}>{emp.monthlySalary?`${Number(emp.monthlySalary).toLocaleString("en")} ل.س`:"—"}</td><td style={{padding:"11px 14px",color:t.textMuted,fontSize:12}}>{emp.hireDate||"—"}</td><td style={{padding:"8px 14px"}}><div style={{display:"flex",flexWrap:"nowrap",alignItems:"center",justifyContent:"center",gap:6}}><button onClick={()=>setIssueModal(emp)} style={empActionBtnStyle(t.grad,"#fff")}><LuBanknote size={12}/>صرف دفعة</button><button onClick={()=>setStatementModal(emp)} style={empActionBtnStyle(t.accentLight,t.accentText)}><LuFileText size={12}/>كشف الحساب</button>{canUpdate&&<button onClick={()=>setEditEmployee(emp)} style={empActionBtnStyle(t.accentLight,t.accentText)}><LuPencil size={12}/>تعديل</button>}{canArchive&&<button onClick={()=>setArchiveTarget(emp)} style={empActionBtnStyle(archived?t.confirmed.bg:"#FEF2F2",archived?t.confirmed.text:"#DC2626",archived?"none":"1px solid #FECACA")}>{archived?<LuLockOpen size={12}/>:<LuBan size={12}/>}{archived?"إلغاء الأرشفة":"أرشفة"}</button>}</div></td></tr>);})}</tbody>
           </table>
         </div>
       )}
