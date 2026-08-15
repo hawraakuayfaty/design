@@ -28,6 +28,12 @@ const certificatesService = {
   getRevenueSummaryByRange(params) { return client.get("/certificates/revenue/summary", { params }); },
   getRevenueDailyByDate(params)    { return client.get("/certificates/revenue/daily", { params }); },
 
+  /* ── Government Remittance ────────────────────────────────────────── */
+  getGovernmentOutstanding()          { return client.get("/certificates/government-remittance/outstanding"); },
+  getGovernmentHistory()              { return client.get("/certificates/government-remittance/history"); },
+  recordGovernmentRemittance(data)    { return client.post("/certificates/government-remittance", data); },
+  rollbackGovernmentRemittance(data)  { return client.post("/certificates/government-remittance/reverse", data); },
+
   /* ── Legacy (kept for any remaining callers) ──────────────────────── */
   cancel(id, data)            { return client.post(`/reception/certificates/${id}/cancel`, data); },
   exportFile(data)            { return client.post("/reception/certificates/export", data, { responseType: "blob" }); },

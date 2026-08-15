@@ -219,17 +219,19 @@ function PgGeneralExpenses({ t }) {
     if (Object.keys(errs).length) return;
     setSubmitting(true);
     try {
-      await generalExpensesService.create({
+      const res = await generalExpensesService.create({
         type: form.type,
         amount: Number(form.amount),
         paymentMethod: form.paymentMethod,
         ...(form.expenseDate && { expenseDate: form.expenseDate }),
         ...(form.note.trim() && { note: form.note.trim() }),
       });
+      const expense = res.data?.data?.expense ?? res.data?.expense;
+      const by = expense?.disbursedBy ?? expense?.enteredBy;
       setAddOpen(false);
       setForm(emptyForm);
       setFErr({});
-      showToast("تمت إضافة المصروف بنجاح");
+      showToast(by?.name ? `تمت إضافة المصروف بنجاح — سُجّلت باسم: ${by.name}` : "تمت إضافة المصروف بنجاح");
       refresh();
     } catch (e) {
       const msg = e.response?.data?.message || e.message || "حدث خطأ";
@@ -376,6 +378,7 @@ function PgGeneralExpenses({ t }) {
                   <th style={thSt}>طريقة الدفع</th>
                   <th style={thSt}>التاريخ</th>
                   <th style={thSt}>ملاحظات</th>
+                  <th style={thSt}>أدخلها</th>
                   <th style={{ ...thSt, textAlign: "center" }}>حذف</th>
                 </tr>
               </thead>
@@ -388,6 +391,7 @@ function PgGeneralExpenses({ t }) {
                     <td style={tdSt}>{PAY_LABEL[row.paymentMethod] || row.paymentMethod}</td>
                     <td style={{ ...tdSt, color: t.textSec }}>{row.expenseDate || row.paidAt?.split("T")[0] || "—"}</td>
                     <td style={{ ...tdSt, color: t.textMuted, maxWidth: 180 }}>{row.note || "—"}</td>
+                    <td style={{ ...tdSt, color: t.textSec, fontSize: 12 }}>{row.disbursedBy?.name ?? row.enteredBy?.name ?? "—"}</td>
                     <td style={{ ...tdSt, textAlign: "center" }}>
                       <button onClick={() => setDelTarget(row)} style={{ background: "none", border: "none", cursor: "pointer", color: "#C74848", padding: "4px 6px", borderRadius: 6, display: "flex", alignItems: "center" }}>
                         <FiTrash2 size={15} />
