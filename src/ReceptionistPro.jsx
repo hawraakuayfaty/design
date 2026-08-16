@@ -294,8 +294,8 @@ function SectionStudents({t}){
       await bookingsService.updateStatus(bookingId, status);
       await fetchBookings();
     } catch (err) {
-      const msg = err?.response?.data?.message || "حدث خطأ أثناء تحديث الحجز";
-      showActionToast(msg, true);
+      const raw = err?.response?.data?.message;
+      showActionToast(Array.isArray(raw) ? raw.join("، ") : (raw || "حدث خطأ أثناء تحديث الحجز"), true);
     } finally {
       setStatusBusyId(null);
     }
@@ -316,20 +316,25 @@ function SectionStudents({t}){
     finally { setCreating(false); }
   };
 
-  const mappedBookings = (Array.isArray(bookings) ? bookings : []).map(b => ({
-    id: b.id,
-    dateTime: formatBookingDate(b),
-    inst:           b.instructorName || b.instructor?.name || "—",
-    type:           TRAINING_MAP[b.trainingType] || b.trainingType || "—",
-    status:         BOOKING_STATUS_MAP[b.bookingStatus] || b.bookingStatus || "—",
-    pay:            PAYMENT_STATUS_MAP[b.paymentStatus] || b.paymentStatus || "—",
-    rawStatus:       b.bookingStatus,
-    rawPayment:      b.paymentStatus,
-    canPayRemainder: b.canPayRemainder ?? false,
-    vehicleSource:   b.vehicleSource,
-    vehiclePlate:    b.vehiclePlate,
-    remainingAmount: b.remainingAmount,
-  }));
+  const mappedBookings = (Array.isArray(bookings) ? bookings : []).map(b => {
+    const dateStr = b.date ? b.date.split("T")[0] : null;
+    const et = b.endTime ? b.endTime.substring(0, 5) : null;
+    return {
+      id: b.id,
+      dateTime: formatBookingDate(b),
+      inst:           b.instructorName || b.instructor?.name || "—",
+      type:           TRAINING_MAP[b.trainingType] || b.trainingType || "—",
+      status:         BOOKING_STATUS_MAP[b.bookingStatus] || b.bookingStatus || "—",
+      pay:            PAYMENT_STATUS_MAP[b.paymentStatus] || b.paymentStatus || "—",
+      rawStatus:       b.bookingStatus,
+      rawPayment:      b.paymentStatus,
+      canPayRemainder: b.canPayRemainder ?? false,
+      vehicleSource:   b.vehicleSource,
+      vehiclePlate:    b.vehiclePlate,
+      remainingAmount: b.remainingAmount,
+      sessionEnded:    dateStr && et ? Date.now() > new Date(`${dateStr}T${et}:00`).getTime() : false,
+    };
+  });
   const shownBookings = mappedBookings;
 
   const dotColor = (raw) => {
@@ -453,10 +458,16 @@ function SectionStudents({t}){
                           label={statusBusyId === b.id ? "جارٍ..." : "✓ إكمال الجلسة"}
                           onClick={() => handleUpdateStatus(b.id, "COMPLETED")}
                           t={t} sz="sm"
-                          disabled={statusBusyId === b.id || b.rawPayment !== "FULLY_PAID"}
-                          title={b.rawPayment !== "FULLY_PAID" ? "حصّل المبلغ المتبقي أولاً" : undefined}
+                          disabled={statusBusyId === b.id || !b.sessionEnded || b.rawPayment !== "FULLY_PAID"}
+                          title={!b.sessionEnded ? "بعد انتهاء الجلسة" : (b.rawPayment !== "FULLY_PAID" ? "حصّل المبلغ المتبقي أولاً" : undefined)}
                         />
-                        <Btn label="لم يحضر" onClick={() => handleUpdateStatus(b.id, "NO_SHOW")} t={t} sz="sm" v="danger" disabled={statusBusyId === b.id} />
+                        <Btn
+                          label="لم يحضر"
+                          onClick={() => handleUpdateStatus(b.id, "NO_SHOW")}
+                          t={t} sz="sm" v="danger"
+                          disabled={statusBusyId === b.id || !b.sessionEnded}
+                          title={!b.sessionEnded ? "بعد انتهاء الجلسة" : undefined}
+                        />
                       </>)}
                       {(b.canPayRemainder || b.remainingAmount != null) && (
                         <Btn label={`تحصيل الباقي${b.remainingAmount != null ? ` — ${Number(b.remainingAmount).toLocaleString("en")} ل.س` : ""}`} onClick={() => handlePayRemainder(b)} t={t} sz="sm" v="secondary" disabled={statusBusyId === b.id} />
@@ -2204,6 +2215,7 @@ function SectionBookings({ t }) {
   const [cancelModal, setCancelModal] = useState(null);
   const [cancelToast, setCancelToast] = useState(null);
   const [nsBusy, setNsBusy] = useState(false);
+  const [nsError, setNsError] = useState("");
   const [completeBusyId, setCompleteBusyId] = useState(null);
   const [completeToast, setCompleteToast] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -2258,10 +2270,19 @@ function SectionBookings({ t }) {
 
   const handleNoShow = async () => {
     if (!nsModal) return;
+    setNsError("");
     setNsBusy(true);
-    try { await bookingsService.updateStatus(nsModal.id, "NO_SHOW"); setNsModal(null); await fetchBookings(); }
-    catch { /* silent */ }
-    finally { setNsBusy(false); }
+    try {
+      await bookingsService.updateStatus(nsModal.id, "NO_SHOW");
+      setNsModal(null);
+      setNsError("");
+      await fetchBookings();
+    } catch (err) {
+      const raw = err?.response?.data?.message;
+      setNsError(Array.isArray(raw) ? raw.join("، ") : (raw || "حدث خطأ أثناء تسجيل الغياب"));
+    } finally {
+      setNsBusy(false);
+    }
   };
 
   const handleComplete = async (bookingId) => {
@@ -2272,8 +2293,10 @@ function SectionBookings({ t }) {
       setTimeout(() => setCompleteToast(null), 3500);
       await fetchBookings();
     } catch (err) {
-      setCompleteToast(`✗ ${err?.response?.data?.message || "حدث خطأ أثناء إكمال الجلسة"}`);
-      setTimeout(() => setCompleteToast(null), 4000);
+      const raw = err?.response?.data?.message;
+      const msg = Array.isArray(raw) ? raw.join("، ") : (raw || "حدث خطأ أثناء إكمال الجلسة");
+      setCompleteToast(`✗ ${msg}`);
+      setTimeout(() => setCompleteToast(null), 5000);
     } finally {
       setCompleteBusyId(null);
     }
@@ -2300,6 +2323,8 @@ function SectionBookings({ t }) {
     const type = TRAINING_MAP[b.trainingType] || b.trainingType || "—";
     const status = BOOKING_STATUS_MAP[b.bookingStatus] || b.bookingStatus || "—";
     const pay = PAYMENT_STATUS_MAP[b.paymentStatus] || b.paymentStatus || "—";
+    const dateStr = b.date ? b.date.split("T")[0] : null;
+    const et = b.endTime ? b.endTime.substring(0, 5) : null;
     return {
       id: b.id,
       student,
@@ -2313,6 +2338,7 @@ function SectionBookings({ t }) {
       rawPayment:      b.paymentStatus,
       canPayRemainder: b.canPayRemainder ?? false,
       remainingAmount: b.remainingAmount ?? null,
+      sessionEnded:    dateStr && et ? Date.now() > new Date(`${dateStr}T${et}:00`).getTime() : false,
       raw: b,
     };
   };
@@ -2397,10 +2423,16 @@ function SectionBookings({ t }) {
                     label={completeBusyId === b.id ? "جارٍ..." : "✓ إكمال الجلسة"}
                     onClick={() => handleComplete(b.id)}
                     t={t} sz="sm"
-                    disabled={completeBusyId === b.id || b.rawPayment !== "FULLY_PAID"}
-                    title={b.rawPayment !== "FULLY_PAID" ? "حصّل المبلغ المتبقي أولاً" : undefined}
+                    disabled={completeBusyId === b.id || !b.sessionEnded || b.rawPayment !== "FULLY_PAID"}
+                    title={!b.sessionEnded ? "بعد انتهاء الجلسة" : (b.rawPayment !== "FULLY_PAID" ? "حصّل المبلغ المتبقي أولاً" : undefined)}
                   />
-                  <Btn label="لم يحضر" onClick={() => setNsModal(b)} t={t} sz="sm" v="danger" disabled={completeBusyId === b.id} />
+                  <Btn
+                    label="لم يحضر"
+                    onClick={() => setNsModal(b)}
+                    t={t} sz="sm" v="danger"
+                    disabled={completeBusyId === b.id || !b.sessionEnded}
+                    title={!b.sessionEnded ? "بعد انتهاء الجلسة" : undefined}
+                  />
                 </>)}
                 {canCancel && (b.rawStatus === "BOOKED" || b.rawStatus === "PENDING_PAYMENT") && (
                   <Btn label="إلغاء الحجز" onClick={(e) => { e.stopPropagation(); setCancelModal(b); }} t={t} sz="sm" v="danger" disabled={completeBusyId === b.id} />
@@ -2507,15 +2539,18 @@ function SectionBookings({ t }) {
         }}>{cancelToast}</div>
       )}
       {nsModal && (
-        <Modal title="تأكيد: لم يحضر" onClose={() => setNsModal(null)} t={t} width={370}>
+        <Modal title="تأكيد: لم يحضر" onClose={() => { setNsModal(null); setNsError(""); }} t={t} width={400}>
           <div style={{ padding: "10px 12px", borderRadius: 9, background: t.noshow.bg, marginBottom: 12, fontSize: 12, color: t.noshow.text }}>
             العربون غير مسترد — تُسجَّل الجلسة كـ No-Show
           </div>
           <InfoRow k="الطالب" v={nsModal.student} t={t} />
           <InfoRow k="الجلسة" v={nsModal.dateTime} t={t} />
+          {nsError && (
+            <div style={{ background: "rgba(199,72,72,0.1)", border: "1px solid rgba(199,72,72,0.3)", borderRadius: 9, padding: "10px 12px", marginTop: 10, fontSize: 13, color: "#c74848" }}>{nsError}</div>
+          )}
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
             <Btn label={nsBusy ? "جارٍ..." : "تأكيد No-Show"} onClick={handleNoShow} t={t} v="danger" style={{ flex: 1 }} disabled={nsBusy} />
-            <Btn label="إلغاء" onClick={() => setNsModal(null)} t={t} v="ghost" />
+            <Btn label="إلغاء" onClick={() => { setNsModal(null); setNsError(""); }} t={t} v="ghost" />
           </div>
         </Modal>
       )}

@@ -2055,13 +2055,36 @@ function ArchiveInstructorConfirm({ t, instructor, onClose, onSuccess }) {
   const name = instructor.user?.name || instructor.name || "المدرب";
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [upcomingCount, setUpcomingCount] = useState(null);
+  const [loadingCount, setLoadingCount] = useState(!isArchived);
+
+  useEffect(() => {
+    if (isArchived) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await instructorsService.getBookings(instructor.instructorId, { bookingStatus: "BOOKED", limit: 1 });
+        const body = res.data?.data ?? res.data;
+        if (!cancelled) {
+          setUpcomingCount(body?.meta?.total ?? (Array.isArray(body?.data) ? body.data.length : Array.isArray(body) ? body.length : 0));
+        }
+      } catch {
+        if (!cancelled) setUpcomingCount(0);
+      } finally {
+        if (!cancelled) setLoadingCount(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConfirm = async () => {
     setError("");
     setSubmitting(true);
     try {
-      await instructorsService.archive(instructor.instructorId, !isArchived);
-      onSuccess();
+      const res = await instructorsService.archive(instructor.instructorId, !isArchived);
+      const body = res.data?.data ?? res.data;
+      const cancelledCount = body?.cancelledBookingsCount ?? 0;
+      onSuccess({ cancelledCount, unarchived: isArchived });
     } catch (err) {
       const msg = err.response?.data?.message;
       setError(Array.isArray(msg) ? msg.join("، ") : msg || `حدث خطأ أثناء ${isArchived ? "إلغاء أرشفة" : "أرشفة"} المدرب`);
@@ -2078,7 +2101,7 @@ function ArchiveInstructorConfirm({ t, instructor, onClose, onSuccess }) {
     }} onClick={onClose}>
       <div onClick={(ev) => ev.stopPropagation()} style={{
         background: t.bgSurface, borderRadius: 20, padding: "32px 28px",
-        width: "100%", maxWidth: 400, border: `1px solid ${t.borderCard}`,
+        width: "100%", maxWidth: 430, border: `1px solid ${t.borderCard}`,
         boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -2089,12 +2112,26 @@ function ArchiveInstructorConfirm({ t, instructor, onClose, onSuccess }) {
           }}><LuX /></button>
         </div>
         <div style={{
-          padding: "10px 12px", borderRadius: 9, background: t.cancelled.bg,
-          marginBottom: 16, fontSize: 13, color: t.cancelled.text,
+          padding: "12px 14px", borderRadius: 9,
+          background: isArchived ? t.confirmed.bg : t.cancelled.bg,
+          marginBottom: 16, fontSize: 13,
+          color: isArchived ? t.confirmed.text : t.cancelled.text,
+          lineHeight: 1.7,
         }}>
-          {isArchived
-            ? `هل أنت متأكد من إلغاء أرشفة المدرب ${name}؟ سيعود الحساب نشطاً.`
-            : `هل أنت متأكد من أرشفة المدرب ${name}؟ لن يظهر كمتاح للحجوزات الجديدة.`}
+          {isArchived ? (
+            <>
+              هل أنت متأكد من إلغاء أرشفة المدرب <strong>{name}</strong>؟ سيعود الحساب نشطاً ومتاحاً للحجوزات الجديدة.
+              <div style={{ marginTop: 8, fontSize: 12, fontStyle: "italic", opacity: 0.85 }}>
+                ملاحظة: الدروس التي أُلغيت عند الأرشفة لن تُستعاد تلقائياً.
+              </div>
+            </>
+          ) : loadingCount ? (
+            <span style={{ color: t.textMuted }}>جارٍ حساب الدروس القادمة...</span>
+          ) : (
+            <>
+              سيتم إلغاء <strong>{upcomingCount ?? 0}</strong> درساً قادماً لهذا المدرب، وإشعار طلابهم بحفظ عرابينهم. هل تتابع؟
+            </>
+          )}
         </div>
         {error && (
           <div style={{
@@ -2104,11 +2141,11 @@ function ArchiveInstructorConfirm({ t, instructor, onClose, onSuccess }) {
           }}>{error}</div>
         )}
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={handleConfirm} disabled={submitting} style={{
+          <button onClick={handleConfirm} disabled={submitting || loadingCount} style={{
             flex: 1, padding: "12px", borderRadius: 12,
-            background: submitting ? t.textMuted : "#c74848",
+            background: submitting || loadingCount ? t.textMuted : (isArchived ? "#778a3b" : "#c74848"),
             color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
-            cursor: submitting ? "not-allowed" : "pointer",
+            cursor: submitting || loadingCount ? "not-allowed" : "pointer",
           }}>{submitting ? "جارٍ التنفيذ..." : (isArchived ? "تأكيد إلغاء الأرشفة" : "تأكيد الأرشفة")}</button>
           <button onClick={onClose} style={{
             padding: "12px 20px", borderRadius: 12,
@@ -2269,6 +2306,7 @@ function PageInstructors({ t }) {
   const [showModal, setShowModal] = useState(false);
   const [editInstructor, setEditInstructor] = useState(null);
   const [archiveTarget, setArchiveTarget] = useState(null);
+  const [archiveResult, setArchiveResult] = useState(null);
   const [profileInstructorId, setProfileInstructorId] = useState(null);
 
   const fetchInstructors = async () => {
@@ -2435,12 +2473,31 @@ function PageInstructors({ t }) {
         />
       )}
 
+      {archiveResult && (
+        <div style={{
+          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+          zIndex: 2000, background: t.bgSurface, border: `1px solid ${t.border}`,
+          borderRadius: 10, padding: "12px 20px", fontSize: 13, fontWeight: 600,
+          color: t.text, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", whiteSpace: "nowrap",
+        }}>{archiveResult}</div>
+      )}
       {archiveTarget && (
         <ArchiveInstructorConfirm
           t={t}
           instructor={archiveTarget}
           onClose={() => setArchiveTarget(null)}
-          onSuccess={() => { setArchiveTarget(null); fetchInstructors(); }}
+          onSuccess={({ cancelledCount, unarchived }) => {
+            setArchiveTarget(null);
+            fetchInstructors();
+            if (unarchived) {
+              setArchiveResult("تم إلغاء أرشفة المدرب بنجاح — الحساب نشط الآن.");
+            } else if (cancelledCount > 0) {
+              setArchiveResult(`تم أرشفة المدرب — تم إلغاء ${cancelledCount} درساً قادماً وإشعار الطلاب بحفظ عرابينهم.`);
+            } else {
+              setArchiveResult("تم أرشفة المدرب بنجاح — لا توجد دروس قادمة متأثرة.");
+            }
+            setTimeout(() => setArchiveResult(null), 5000);
+          }}
         />
       )}
 
