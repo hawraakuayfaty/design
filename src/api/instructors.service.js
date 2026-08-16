@@ -73,6 +73,10 @@ const instructorsService = {
     return client.get(`/instructors/${id}/dues`);
   },
 
+  getDuesSummary(params) {
+    return client.get("/instructors/dues/summary", { params });
+  },
+
   settle(id, data) {
     return client.post(`/instructors/${id}/settle`, data);
   },

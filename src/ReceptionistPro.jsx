@@ -10,6 +10,7 @@ import { FaCar } from "react-icons/fa";
 import { bookingsService, studentsService, instructorsService, certificatesService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
+import RequirePermission from "./components/RequirePermission";
 
 
 const T = {
@@ -267,7 +268,7 @@ function SectionStudents({t}){
       const body = res.data?.data ?? res.data;
       const list = Array.isArray(body?.data) ? body.data : [];
       if (!cancelled.v) setBookings(list);
-    } catch (err) {
+    } catch {
       if (!cancelled.v) setBookings([]);
     } finally {
       if (!cancelled.v) setLoadingBk(false);
@@ -280,6 +281,7 @@ function SectionStudents({t}){
     const guard = { v: false };
     (async () => { await fetchStudentBookings(guard); })();
     return () => { guard.v = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sel, bFilt]);
 
   const showActionToast = (msg, isErr = false) => {
@@ -898,7 +900,12 @@ function SectionInstructors({ t }) {
   const shiftBookingDate = (delta) => {
     const d = new Date(bookingDate + "T00:00:00");
     d.setDate(d.getDate() + delta);
-    setBookingDate(d.toISOString().slice(0, 10));
+    // toISOString() reads UTC — in UTC+ timezones local midnight is still the previous UTC day,
+    // silently shifting the result by a day. Read back local Y/M/D instead of round-tripping through UTC.
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    setBookingDate(`${y}-${m}-${day}`);
   };
 
   const formatDayHeader = (dateStr) => {
@@ -1504,7 +1511,6 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
   // Step 3 state
   const [credit, setCredit] = useState(null);
   const [checkingCredit, setCheckingCredit] = useState(false);
-  const [collectedAmount, setCollectedAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const [errors, setErrors] = useState({});
@@ -1528,7 +1534,7 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
       finally { if (!cancelled) setLoadingStudents(false); }
     }, delay);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [studentQuery, lockedStudent]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [studentQuery, lockedStudent]);
 
   const getSid = (s) => s.studentId ?? s.id;
   const sName = (s) => s.user?.name || s.name || "";
@@ -1569,6 +1575,17 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
 
   const errMsg = (field) => errors[field] ? <div style={{ fontSize: 11, color: "#c74848", marginTop: 4 }}>{errors[field]}</div> : null;
 
+  // جلب المواعيد المتاحة فقط (بلا تغيير خطوة/أخطاء) — يُستخدم من handleShowSlots (الانتقال 1→2)
+  // ومن handleSubmit لإعادة تحميل المواعيد بعد رفض حجز مدرب مؤرشف (409)
+  const fetchAvailableSlots = async () => {
+    const params = { trainingType, vehicleSource };
+    if (genderFilter) params.instructorGender = genderFilter;
+    const res = await bookingsService.getAvailableSlots(params);
+    const body = res.data?.data ?? res.data;
+    setPricing(body?.pricing || null);
+    setSlots(Array.isArray(body?.instructors) ? body.instructors : Array.isArray(body) ? body : []);
+  };
+
   // ── Step 1 → 2 ──
   const handleShowSlots = async () => {
     setServerError("");
@@ -1581,12 +1598,7 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
 
     setLoadingSlots(true);
     try {
-      const params = { trainingType, vehicleSource };
-      if (genderFilter) params.instructorGender = genderFilter;
-      const res = await bookingsService.getAvailableSlots(params);
-      const body = res.data?.data ?? res.data;
-      setPricing(body?.pricing || null);
-      setSlots(Array.isArray(body?.instructors) ? body.instructors : Array.isArray(body) ? body : []);
+      await fetchAvailableSlots();
       setStep(2);
     } catch (err) {
       const msg = err.response?.data?.message || err.response?.data?.data?.message || err.message;
@@ -1651,7 +1663,16 @@ function CreateBookingModal({ t, onClose, onSuccess, initialStudentId, initialSt
       const data   = err.response?.data?.data || err.response?.data;
       const raw    = data?.message || err.response?.data?.message || err.message;
       const msg    = Array.isArray(raw) ? raw.join("، ") : (raw || "");
-      if (status === 409) {
+      if (status === 409 && /لم يعد يستقبل|no longer accept/i.test(msg)) {
+        // المدرب صار مؤرشفاً بين لحظة عرض المواعيد ولحظة التأكيد — نعرض رسالة الخادم كما هي
+        // ونرجع لخطوة اختيار الموعد بعد تحديث القائمة، بدل ترك المستخدم عالقاً على مدرب لم يعد متاحاً
+        setSelectedInstructorId(""); setSelectedInstructorName(""); setSelectedDate(""); setSelectedTime("");
+        setServerError(msg || "هذا المدرب لم يعد يستقبل حجوزات جديدة — اختر مدرباً آخر");
+        setStep(2);
+        setLoadingSlots(true);
+        try { await fetchAvailableSlots(); } catch { /* تبقى القائمة كما كانت إن فشل التحديث */ }
+        finally { setLoadingSlots(false); }
+      } else if (status === 409) {
         // Backend returns English; detect student-time-conflict vs. instructor-time-conflict
         const isStudentConflict = /student.*time|same\s+time|exact\s+time/i.test(msg);
         setServerError(
@@ -2211,7 +2232,7 @@ function SectionBookings({ t }) {
   useEffect(() => {
     const timer = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350);
     return () => clearTimeout(timer);
-  }, [search]); // eslint-disable-line react-hooks/set-state-in-effect
+  }, [search]);  
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -2252,7 +2273,7 @@ function SectionBookings({ t }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [tab, debouncedSearch, page]); // eslint-disable-line react-hooks/set-state-in-effect,react-hooks/exhaustive-deps
+  }, [tab, debouncedSearch, page]);  
 
   const handlePayRemainder = (b) => setPayModal(b);
 
@@ -5036,7 +5057,7 @@ function RevHistoryTab({t, historyRev}){
     }catch(e){setError(e.response?.data?.message||"تعذّر تحميل السجل");}
     finally{setLoading(false);}
   };
-  useEffect(()=>{load();},[historyRev]);// eslint-disable-line react-hooks/set-state-in-effect,react-hooks/exhaustive-deps
+  useEffect(()=>{load();},[historyRev]);// eslint-disable-line react-hooks/set-state-in-effect
 
   const toggleExpand=id=>setExpanded(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n;});
   const toggleCourse=(remId,cid)=>setSelected(p=>{const s=new Set(p[remId]||[]);s.has(cid)?s.delete(cid):s.add(cid);return{...p,[remId]:s};});
@@ -5274,12 +5295,12 @@ export default function ReceptionistPro({embedded=false,page:forcedPage,darkMode
   const t=T[dark?"dark":"light"];
   const sidebarWidth = collapsed ? 84 : 308;
   const pages={
-    students:<SectionStudents t={t}/>,
-    instructors:<SectionInstructors t={t}/>,
-    bookings:<SectionBookings t={t}/>,
+    students:<RequirePermission permission={P.STUDENTS_READ} t={t}><SectionStudents t={t}/></RequirePermission>,
+    instructors:<RequirePermission permission={P.INSTRUCTORS_READ} t={t}><SectionInstructors t={t}/></RequirePermission>,
+    bookings:<RequirePermission permission={P.BOOKINGS_READ} t={t}><SectionBookings t={t}/></RequirePermission>,
     vehicles:<SectionVehicles t={t}/>,
     transport:<SectionTransport t={t}/>,
-    certificate:<SectionCertificate t={t}/>,
+    certificate:<RequirePermission permission={P.CERTIFICATES_READ} t={t}><SectionCertificate t={t}/></RequirePermission>,
   };
   // sync when parent forces a page (embedded mode)
   if(forcedPage && forcedPage!==page){ setPage(forcedPage); }

@@ -45,7 +45,12 @@ function formatDateOnly(value) {
 function shiftDateStr(dateStr, deltaDays) {
   const d = new Date(`${dateStr}T00:00:00`);
   d.setDate(d.getDate() + deltaDays);
-  return d.toISOString().slice(0, 10);
+  // toISOString() reads UTC — in UTC+ timezones local midnight is still the previous UTC day,
+  // silently shifting the result by a day. Read back local Y/M/D instead of round-tripping through UTC.
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function isDarkTheme(t) {

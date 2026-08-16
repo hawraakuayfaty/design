@@ -8,7 +8,7 @@ import { LuX, LuEye } from "react-icons/lu";
 import {
   TbArrowRight, TbUser, TbReceipt, TbPlus, TbChevronRight, TbChevronLeft,
   TbHourglass, TbCoin, TbCircleCheck, TbCircleX, TbGift, TbCalendarWeek,
-  TbArrowBackUp, TbTrash,
+  TbArrowBackUp, TbTrash, TbReportMoney,
 } from "react-icons/tb";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -211,6 +211,18 @@ function ProportionBar({ segments, t }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function StatCardEx({ label, value, sub, color, icon, t }) {
+  const shadow = isDarkTheme(t) ? "0 18px 40px rgba(2,8,23,0.34)" : "0 18px 24px rgba(15,23,42,0.08)";
+  return (
+    <div style={{ background: t.bgSurface, borderRadius: 18, border: `1px solid ${t.borderCard}`, padding: "18px 18px 16px", display: "flex", flexDirection: "column", gap: 8, boxShadow: shadow }}>
+      <div style={{ width: 44, height: 44, borderRadius: 14, display: "grid", placeItems: "center", background: t.accentGradientSoft, color: t.accent, fontSize: 20, lineHeight: 1 }}>{icon}</div>
+      <div style={{ fontSize: 26, fontWeight: 800, color, lineHeight: 1.1 }}>{value}</div>
+      <div style={{ fontSize: 13, color: t.textMuted }}>{label}</div>
+      {sub && <div style={{ fontSize: 12, color: t.textSec, fontWeight: 700 }}>{sub}</div>}
     </div>
   );
 }
@@ -1227,6 +1239,93 @@ function InstructorDetailReport({ t, instructorId, onBack }) {
 }
 
 // ═══════════════════════════════════════════════
+// LEVEL 1 — OVERALL SUMMARY + PICKER
+// ═══════════════════════════════════════════════
+function InstructorReportOverview({ t, onSelect }) {
+  const dark = isDarkTheme(t);
+  const [summaryFrom, setSummaryFrom] = useState(firstDayOfMonthStr());
+  const [summaryTo, setSummaryTo] = useState(currentDateStr());
+  const [summary, setSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setSummaryLoading(true);
+      try {
+        const { data } = await instructorsService.getDuesSummary({ from: summaryFrom, to: summaryTo });
+        if (!cancelled) setSummary(data?.data ?? data);
+      } catch {
+        if (!cancelled) setSummary(null);
+      } finally {
+        if (!cancelled) setSummaryLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [summaryFrom, summaryTo]);
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted }}>من</label>
+        <input type="date" value={summaryFrom} onChange={(ev) => setSummaryFrom(ev.target.value)} style={{
+          padding: "9px 12px", borderRadius: 10, border: `1px solid ${t.border}`,
+          background: t.bgSurface, color: t.text, fontSize: 13, fontWeight: 600, colorScheme: dark ? "dark" : "light",
+        }} />
+        <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted }}>إلى</label>
+        <input type="date" value={summaryTo} onChange={(ev) => setSummaryTo(ev.target.value)} style={{
+          padding: "9px 12px", borderRadius: 10, border: `1px solid ${t.border}`,
+          background: t.bgSurface, color: t.text, fontSize: 13, fontWeight: 600, colorScheme: dark ? "dark" : "light",
+        }} />
+      </div>
+
+      {summaryLoading ? <SkeletonStatsGrid t={t} /> : !summary ? (
+        <div style={{ ...cardStyle(t), height: "auto", textAlign: "center", color: t.textMuted, fontSize: 13, padding: 32, marginBottom: 20 }}>
+          تعذر تحميل ملخص مستحقات المدربين لهذه الفترة
+        </div>
+      ) : (
+        <div className="dashboard-stats-grid" style={{ marginBottom: 20 }}>
+          <StatCardEx
+            label="دروس مدفوعة"
+            value={formatMoney(summary.lessons?.paid?.amount)}
+            sub={`${summary.lessons?.paid?.count ?? 0} جلسة — نقداً ${formatMoney(summary.lessons?.paid?.cash)} / شام كاش ${formatMoney(summary.lessons?.paid?.shamCash)}`}
+            color={t.completed.text}
+            icon={<TbCircleCheck size={22} />}
+            t={t}
+          />
+          <StatCardEx
+            label="دروس غير مدفوعة"
+            value={formatMoney(summary.lessons?.unpaid?.amount)}
+            sub={`${summary.lessons?.unpaid?.count ?? 0} جلسة`}
+            color={t.pending.text}
+            icon={<TbHourglass size={22} />}
+            t={t}
+          />
+          <StatCardEx
+            label="المكافآت"
+            value={formatMoney(summary.bonuses?.total?.amount)}
+            sub={`${summary.bonuses?.total?.count ?? 0} مكافأة`}
+            color={t.confirmed.text}
+            icon={<TbGift size={22} />}
+            t={t}
+          />
+          <StatCardEx
+            label="المجموع الإجمالي"
+            value={formatMoney(summary.overall?.total?.amount)}
+            sub={`${summary.overall?.total?.count ?? 0} حركة`}
+            color={t.accent}
+            icon={<TbReportMoney size={22} />}
+            t={t}
+          />
+        </div>
+      )}
+
+      <InstructorReportPicker t={t} onSelect={onSelect} />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
 // MAIN EXPORT — LEVEL SWITCHER
 // ═══════════════════════════════════════════════
 export default function InstructorReportDashboard({ t, onBack }) {
@@ -1246,7 +1345,7 @@ export default function InstructorReportDashboard({ t, onBack }) {
       )}
       <SectionHeader title="تقرير المدربين" subtitle="اختر مدرباً لعرض تقرير الأداء والمستحقات التفصيلي" t={t} />
       <div style={{ marginTop: 16 }}>
-        <InstructorReportPicker t={t} onSelect={(id) => setSelectedInstructorId(id)} />
+        <InstructorReportOverview t={t} onSelect={(id) => setSelectedInstructorId(id)} />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect, Component } from "react";
+import { useState, useEffect, useMemo, Component } from "react";
 import { todayStr, firstOfMonthStr } from "./utils/dateUtils";
 import qeyadahLogo from "./assets/qeyadah-logo.jpg";
 import AdminPro from "./AdminPro";
@@ -13,7 +13,9 @@ import GovCertificateReportDashboard from "./GovCertificateReportDashboard";
 import { studentsService, instructorsService, vehiclesService, dashboardService, accountingService, settingsService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
-import { PAGE_PERMISSIONS } from "./constants/pageAccess";
+import { PAGE_PERMISSIONS, isPageAllowed } from "./constants/pageAccess";
+import AccessDenied from "./components/AccessDenied";
+import RequirePermission from "./components/RequirePermission";
 import { CiSettings } from "react-icons/ci";
 import { PiChartLineDown, PiChartLineUp, PiUsersThin } from "react-icons/pi";
 import { TbReport } from "react-icons/tb";
@@ -28,7 +30,7 @@ import { FaChartLine } from "react-icons/fa6";
 import { FaChartColumn } from "react-icons/fa6";
 import { FaBellConcierge } from "react-icons/fa6";
 
-import { LuX, LuEye, LuEyeOff, LuPencil, LuBan, LuLockOpen, LuCalendarDays } from "react-icons/lu";
+import { LuX, LuEye, LuEyeOff, LuPencil, LuBan, LuLockOpen, LuCalendarDays, LuFuel, LuWrench, LuArchive, LuArchiveRestore } from "react-icons/lu";
 
 import { MdAdminPanelSettings } from "react-icons/md";
 import { PiMedalFill } from "react-icons/pi";
@@ -40,6 +42,10 @@ import { BsPaperclip } from "react-icons/bs";
 import { TbCalendarCancel } from "react-icons/tb";
 import { MdOutlineCancel } from "react-icons/md";
 import { FaRegCalendarCheck } from "react-icons/fa6";
+import {
+  TbReceipt2, TbCoins, TbWallet, TbGasStation, TbTool, TbShieldCheck,
+  TbDroplet, TbAlertTriangle, TbDotsCircleHorizontal, TbFilter,
+} from "react-icons/tb";
 
 
 // ═══════════════════════════════════════════════
@@ -2094,7 +2100,7 @@ function ArchiveInstructorConfirm({ t, instructor, onClose, onSuccess }) {
         }}>
           {isArchived
             ? `هل أنت متأكد من إلغاء أرشفة المدرب ${name}؟ سيعود الحساب نشطاً.`
-            : `هل أنت متأكد من أرشفة المدرب ${name}؟ لن يظهر كمتاح للحجوزات الجديدة.`}
+            : `سيتوقف ظهور المدرب ${name} للطلاب ولن تُحجز عنده دروس جديدة. دروسه المحجوزة حالياً تبقى قائمة ويؤديها كالمعتاد.`}
         </div>
         {error && (
           <div style={{
@@ -3441,6 +3447,7 @@ function VehicleDetailsModal({ t, vehicleId, onClose }) {
 }
 
 function ArchiveVehicleConfirm({ t, vehicle, onClose, onSuccess }) {
+  const isArchived = vehicle.status === "ARCHIVED";
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -3448,11 +3455,11 @@ function ArchiveVehicleConfirm({ t, vehicle, onClose, onSuccess }) {
     setError("");
     setSubmitting(true);
     try {
-      const { data } = await vehiclesService.archive(vehicle.id);
+      const { data } = await vehiclesService.archive(vehicle.id, !isArchived);
       onSuccess(data?.data ?? data);
     } catch (err) {
       const msg = err.response?.data?.message;
-      setError(Array.isArray(msg) ? msg.join("، ") : msg || "حدث خطأ أثناء أرشفة المركبة");
+      setError(Array.isArray(msg) ? msg.join("، ") : msg || `حدث خطأ أثناء ${isArchived ? "إرجاع" : "أرشفة"} المركبة`);
     } finally {
       setSubmitting(false);
     }
@@ -3470,17 +3477,21 @@ function ArchiveVehicleConfirm({ t, vehicle, onClose, onSuccess }) {
         boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: t.text }}>أرشفة المركبة</h3>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: t.text }}>{isArchived ? "إرجاع المركبة للخدمة" : "أرشفة المركبة"}</h3>
           <button onClick={onClose} style={{
             background: "none", border: "none", cursor: "pointer",
             color: t.textMuted, fontSize: 22, padding: 4, lineHeight: 1,
           }}><LuX /></button>
         </div>
         <div style={{
-          padding: "10px 12px", borderRadius: 9, background: t.cancelled.bg,
-          marginBottom: 16, fontSize: 13, color: t.cancelled.text,
+          padding: "10px 12px", borderRadius: 9,
+          background: isArchived ? t.completed.bg : t.cancelled.bg,
+          marginBottom: 16, fontSize: 13,
+          color: isArchived ? t.completed.text : t.cancelled.text,
         }}>
-          هل أنت متأكد من أرشفة المركبة {vehicle.plateNumber}؟ قد يتم إلغاء أو إعادة جدولة حجوزاتها المستقبلية.
+          {isArchived
+            ? `هل أنت متأكد من إرجاع المركبة ${vehicle.plateNumber} للخدمة؟`
+            : `هل أنت متأكد من أرشفة المركبة ${vehicle.plateNumber}؟ سيتم إلغاء أو إعادة إسناد حجوزاتها المستقبلية المرتبطة بها.`}
         </div>
         {error && (
           <div style={{
@@ -3492,10 +3503,10 @@ function ArchiveVehicleConfirm({ t, vehicle, onClose, onSuccess }) {
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={handleConfirm} disabled={submitting} style={{
             flex: 1, padding: "12px", borderRadius: 12,
-            background: submitting ? t.textMuted : "#c74848",
+            background: submitting ? t.textMuted : (isArchived ? "#778a3b" : "#c74848"),
             color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
             cursor: submitting ? "not-allowed" : "pointer",
-          }}>{submitting ? "جارٍ الأرشفة..." : "تأكيد الأرشفة"}</button>
+          }}>{submitting ? "جارٍ التنفيذ..." : (isArchived ? "تأكيد الإرجاع للخدمة" : "تأكيد الأرشفة")}</button>
           <button onClick={onClose} style={{
             padding: "12px 20px", borderRadius: 12,
             background: t.bgElevated, color: t.textSec,
@@ -3566,15 +3577,6 @@ function PageVehicles({ t }) {
     return () => { cancelled = true; };
   }, [search, statusFilter, typeFilter]);
 
-  const tableRows = vehicles.map((v) => [
-    v.plateNumber || "—",
-    v.model || "—",
-    VEHICLE_TYPE_MAP[v.type] || v.type || "—",
-    v.color || "—",
-    VEHICLE_STATUS_MAP[v.status] || v.status || "—",
-    v,
-  ]);
-
   return (
     <div>
       <SectionHeader
@@ -3625,65 +3627,83 @@ function PageVehicles({ t }) {
           لا توجد مركبات
         </div>
       ) : (
-        <div style={{ borderRadius: 10, border: `0.5px solid ${t.border}`, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+        <div style={{ borderRadius: 10, border: `0.5px solid ${t.border}`, overflow: "auto" }}>
+          <table style={{ width: "100%", minWidth: 860, borderCollapse: "collapse", fontSize: 14 }}>
             <thead>
               <tr style={{ background: t.bgElevated }}>
-                {["رقم اللوحة", "الموديل", "النوع", "اللون", "الحالة", "إجراءات"].map((h, i) => (
+                {["رقم اللوحة", "الموديل", "النوع", "اللون", "الحالة", "الإجراءات"].map((h, i) => (
                   <th key={i} style={{
                     padding: "10px 14px", textAlign: "right",
                     color: t.textMuted, fontWeight: 600,
                     fontSize: 12, borderBottom: `0.5px solid ${t.border}`,
+                    whiteSpace: "nowrap",
                   }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {tableRows.map((row, ri) => {
-                const vehicle = row[5];
+              {vehicles.map((vehicle, ri) => {
+                const isArchived = vehicle.status === "ARCHIVED";
+                let statusLabel, statusColor, statusSub;
+                if (isArchived) {
+                  statusLabel = "خارج الخدمة"; statusColor = t.cancelled; statusSub = null;
+                } else if (vehicle.currentMaintenance) {
+                  statusLabel = "في الصيانة"; statusColor = t.pending;
+                  statusSub = vehicle.currentMaintenance.endAt
+                    ? `حتى ${formatMaintDateTime(vehicle.currentMaintenance.endAt)}`
+                    : "صيانة مفتوحة — غير محدد";
+                } else {
+                  statusLabel = "متاحة"; statusColor = t.confirmed;
+                  statusSub = vehicle.upcomingMaintenance
+                    ? `صيانة مجدولة: ${formatMaintDateTime(vehicle.upcomingMaintenance.startAt)}`
+                    : null;
+                }
+                const actionBtnStyle = {
+                  padding: "4px 9px", borderRadius: 6, border: "none", fontSize: 11,
+                  cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
+                };
                 return (
-                <tr key={ri} style={{
+                <tr key={vehicle.id ?? ri} style={{
                   background: ri % 2 === 0 ? t.bgSurface : t.bgPage,
                   borderBottom: `0.5px solid ${t.border}`,
                 }}>
-                  {row.slice(0, 5).map((cell, ci) => (
-                    <td key={ci} style={{ padding: "10px 14px", color: t.text, fontSize: 14 }}>
-                      {typeof cell === "string" && ["متاحة", "في الصيانة", "غير متاحة", "عادي", "أوتوماتيك"].includes(cell)
-                        ? <Badge status={cell} t={t} />
-                        : cell}
-                    </td>
-                  ))}
+                  <td style={{ padding: "10px 14px", color: t.text, whiteSpace: "nowrap" }}>{vehicle.plateNumber || "—"}</td>
+                  <td style={{ padding: "10px 14px", color: t.text }}>{vehicle.model || "—"}</td>
+                  <td style={{ padding: "10px 14px", color: t.text, whiteSpace: "nowrap" }}><Badge status={VEHICLE_TYPE_MAP[vehicle.type] || vehicle.type || "—"} t={t} /></td>
+                  <td style={{ padding: "10px 14px", color: t.text }}>{vehicle.color || "—"}</td>
+                  <td style={{ padding: "10px 14px" }}>
+                    <Badge status={statusLabel} t={t} color={statusColor} />
+                    {statusSub && <div style={{ fontSize: 10, color: t.textMuted, marginTop: 4 }}>{statusSub}</div>}
+                  </td>
                   <td style={{ padding: "10px 14px" }}>
                     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                       <button onClick={() => setDetailsVehicleId(vehicle?.id)} style={{
-                        padding: "4px 10px", borderRadius: 6, background: t.bgElevated,
-                        color: t.text, border: `1px solid ${t.border}`, fontSize: 11, cursor: "pointer", fontWeight: 600,
-                        display: "flex", alignItems: "center", gap: 4,
+                        ...actionBtnStyle, background: t.bgElevated, color: t.text, border: `1px solid ${t.border}`,
                       }}><LuEye size={13} />تفاصيل</button>
                       {canUpdate && (
                         <button onClick={() => setEditVehicle(vehicle)} style={{
-                          padding: "4px 10px", borderRadius: 6, background: t.accentLight,
-                          color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                        }}>تعديل</button>
+                          ...actionBtnStyle, background: t.accentLight, color: t.accentText,
+                        }}><LuPencil size={13} />تعديل</button>
                       )}
                       {canFuel && (
                         <button onClick={() => setFuelVehicle(vehicle)} style={{
-                          padding: "4px 10px", borderRadius: 6, background: t.accentLight,
-                          color: t.accentText, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                        }}>وقود</button>
+                          ...actionBtnStyle, background: t.accentLight, color: t.accentText,
+                        }}><LuFuel size={13} />وقود</button>
                       )}
-                      {canMaintenance && vehicle?.status !== "ARCHIVED" && (
+                      {canMaintenance && !isArchived && (
                         <button onClick={() => setMaintenanceVehicle(vehicle)} style={{
-                          padding: "4px 10px", borderRadius: 6, background: t.pending.bg,
-                          color: t.pending.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                        }}>الصيانة</button>
+                          ...actionBtnStyle, background: t.pending.bg, color: t.pending.text,
+                        }}><LuWrench size={13} />الصيانة</button>
                       )}
-                      {canArchive && vehicle?.status !== "ARCHIVED" && (
+                      {canArchive && (isArchived ? (
                         <button onClick={() => setArchiveTarget(vehicle)} style={{
-                          padding: "4px 10px", borderRadius: 6, background: t.cancelled.bg,
-                          color: t.cancelled.text, border: "none", fontSize: 11, cursor: "pointer", fontWeight: 600,
-                        }}>أرشفة</button>
-                      )}
+                          ...actionBtnStyle, background: t.completed.bg, color: t.completed.text,
+                        }}><LuArchiveRestore size={13} />إرجاع للخدمة</button>
+                      ) : (
+                        <button onClick={() => setArchiveTarget(vehicle)} style={{
+                          ...actionBtnStyle, background: t.cancelled.bg, color: t.cancelled.text,
+                        }}><LuArchive size={13} />أرشفة</button>
+                      ))}
                     </div>
                   </td>
                 </tr>
@@ -4137,7 +4157,133 @@ function VehicleReportPicker({ t, onSelect }) {
   );
 }
 
+// نفس لوحة الألوان الستّ CVD-safe المعتمدة في VehicleReportDashboard.jsx (EXPENSE_REASON_META) —
+// معاد استخدامها هنا بمفاتيح lowercase لمطابقة حقل "Reason" في GET /vehicles/expenses/summary
+const VEHICLE_EXPENSE_REASON_META = {
+  gas: { label: "وقود", Icon: TbGasStation, colorLight: "#008300", colorDark: "#008300" },
+  maintenance: { label: "صيانة", Icon: TbTool, colorLight: "#2a78d6", colorDark: "#3987e5" },
+  wash: { label: "غسيل", Icon: TbDroplet, colorLight: "#eda100", colorDark: "#c98500" },
+  fine: { label: "مخالفات", Icon: TbAlertTriangle, colorLight: "#1baf7a", colorDark: "#199e70" },
+  insurance: { label: "تأمين", Icon: TbShieldCheck, colorLight: "#e87ba4", colorDark: "#d55181" },
+  other: { label: "أخرى", Icon: TbDotsCircleHorizontal, colorLight: "#eb6834", colorDark: "#d95926" },
+};
+
+function reportCardStyle(t) {
+  return { background: t.bgSurface, borderRadius: 18, border: `1px solid ${t.borderCard}`, padding: 18, boxShadow: darkShadow(t) };
+}
+
+function reportDateInputStyle(t, dark) {
+  return {
+    padding: "9px 12px", borderRadius: 10, border: `1px solid ${t.border}`,
+    background: t.bgSurface, color: t.text, fontSize: 13, fontWeight: 600, colorScheme: dark ? "dark" : "light",
+  };
+}
+
+function VehicleReportOverview({ t, onSelect }) {
+  const dark = t.bgSurface === "#27272a";
+  const [summaryFrom, setSummaryFrom] = useState(firstOfMonthStr());
+  const [summaryTo, setSummaryTo] = useState(todayStr());
+  const [summary, setSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setSummaryLoading(true);
+      try {
+        const { data } = await vehiclesService.getExpensesSummary({ from: summaryFrom, to: summaryTo });
+        if (!cancelled) setSummary(data?.data ?? data);
+      } catch {
+        if (!cancelled) setSummary(null);
+      } finally {
+        if (!cancelled) setSummaryLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [summaryFrom, summaryTo]);
+
+  const reasonBreakdown = useMemo(() => {
+    const reason = summary?.Reason;
+    if (!reason) return [];
+    const list = Object.keys(VEHICLE_EXPENSE_REASON_META)
+      .map((key) => ({ key, ...reason[key] }))
+      .filter((r) => (r.total || 0) > 0);
+    const total = list.reduce((sum, r) => sum + r.total, 0);
+    if (!total) return [];
+    return list.map((r) => ({ ...r, pct: Math.round((r.total / total) * 1000) / 10 }));
+  }, [summary]);
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted }}>من</label>
+        <input type="date" value={summaryFrom} onChange={(ev) => setSummaryFrom(ev.target.value)} style={reportDateInputStyle(t, dark)} />
+        <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted }}>إلى</label>
+        <input type="date" value={summaryTo} onChange={(ev) => setSummaryTo(ev.target.value)} style={reportDateInputStyle(t, dark)} />
+      </div>
+
+      {summaryLoading ? (
+        <div className="dashboard-stats-grid" style={{ marginBottom: 20 }}>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="skeleton-pulse" style={{ ...reportCardStyle(t), height: 130 }} />
+          ))}
+        </div>
+      ) : !summary ? (
+        <div style={{ ...reportCardStyle(t), marginBottom: 20, textAlign: "center", color: t.textMuted, fontSize: 13, padding: 32 }}>
+          تعذر تحميل ملخص مصاريف المركبات لهذه الفترة
+        </div>
+      ) : (
+        <>
+          <div className="dashboard-stats-grid" style={{ marginBottom: 20 }}>
+            <StatCard t={t} label="إجمالي المصاريف" value={formatMoney(summary.totalAmount)} color={t.accent} icon={<TbReportMoney size={20} />} />
+            <StatCard t={t} label="عدد العمليات" value={String(summary.totalCount ?? 0)} color={t.text} icon={<TbReceipt2 size={20} />} />
+            <StatCard t={t} label="الدفع نقداً" value={formatMoney(summary.cash)} color={t.completed.text} icon={<TbCoins size={20} />} />
+            <StatCard t={t} label="شام كاش" value={formatMoney(summary.shamCash)} color={t.confirmed.text} icon={<TbWallet size={20} />} />
+          </div>
+
+          {reasonBreakdown.length > 0 && (
+            <div style={{ ...reportCardStyle(t), marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 800, color: t.text, marginBottom: 14 }}>
+                <TbFilter size={16} /> تفاصيل أسباب المصاريف
+              </div>
+              <div style={{ display: "flex", height: 10, borderRadius: 6, overflow: "hidden", background: t.bgElevated }}>
+                {reasonBreakdown.map((r, i) => (
+                  <div key={r.key} title={`${VEHICLE_EXPENSE_REASON_META[r.key]?.label}: ${formatMoney(r.total)}`} style={{
+                    width: `${r.pct}%`,
+                    background: dark ? VEHICLE_EXPENSE_REASON_META[r.key].colorDark : VEHICLE_EXPENSE_REASON_META[r.key].colorLight,
+                    marginInlineEnd: i < reasonBreakdown.length - 1 ? 2 : 0,
+                  }} />
+                ))}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 10 }}>
+                {reasonBreakdown.map((r) => {
+                  const meta = VEHICLE_EXPENSE_REASON_META[r.key];
+                  const Icon = meta?.Icon;
+                  const color = dark ? meta.colorDark : meta.colorLight;
+                  return (
+                    <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: t.textSec }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
+                      {Icon && <Icon size={14} color={t.textSec} />}
+                      {meta?.label} ({r.count ?? 0})
+                      <span style={{ fontWeight: 700, color: t.text }}>{formatMoney(r.total)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      <VehicleReportPicker t={t} onSelect={onSelect} />
+    </div>
+  );
+}
+
 function PageReports({ t }) {
+  const { hasPermission } = useAuth();
+  const canReadExpenses = hasPermission(P.EXPENSES_READ);
+  const canReadPayments = hasPermission(P.PAYMENTS_READ);
   const [vehicleReportOpen, setVehicleReportOpen] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
   const [instructorReportOpen, setInstructorReportOpen] = useState(false);
@@ -4155,7 +4301,11 @@ function PageReports({ t }) {
   }
 
   if (bookingRevenueReportOpen) {
-    return <BookingRevenueReportDashboard t={t} onBack={() => setBookingRevenueReportOpen(false)} />;
+    return (
+      <RequirePermission permission={P.PAYMENTS_READ} t={t}>
+        <BookingRevenueReportDashboard t={t} onBack={() => setBookingRevenueReportOpen(false)} />
+      </RequirePermission>
+    );
   }
 
   if (employeeReportOpen) {
@@ -4163,11 +4313,19 @@ function PageReports({ t }) {
   }
 
   if (generalExpensesReportOpen) {
-    return <GeneralExpensesReportDashboard t={t} onBack={() => setGeneralExpensesReportOpen(false)} />;
+    return (
+      <RequirePermission permission={P.EXPENSES_READ} t={t}>
+        <GeneralExpensesReportDashboard t={t} onBack={() => setGeneralExpensesReportOpen(false)} />
+      </RequirePermission>
+    );
   }
 
   if (govCertificateReportOpen) {
-    return <GovCertificateReportDashboard t={t} onBack={() => setGovCertificateReportOpen(false)} />;
+    return (
+      <RequirePermission permission={P.PAYMENTS_READ} t={t}>
+        <GovCertificateReportDashboard t={t} onBack={() => setGovCertificateReportOpen(false)} />
+      </RequirePermission>
+    );
   }
 
   if (vehicleReportOpen) {
@@ -4179,7 +4337,7 @@ function PageReports({ t }) {
         }}>→ رجوع للتقارير</button>
         <SectionHeader title="تقرير المركبات" subtitle="اختر مركبة لعرض تقرير الأداء والمصاريف التفصيلي" t={t} />
         <div style={{ marginTop: 16 }}>
-          <VehicleReportPicker t={t} onSelect={(id) => setSelectedVehicleId(id)} />
+          <VehicleReportOverview t={t} onSelect={(id) => setSelectedVehicleId(id)} />
         </div>
       </div>
     );
@@ -4220,6 +4378,7 @@ function PageReports({ t }) {
             desc: "إيرادات مقبوضة، مستحقات قادمة، تفصيل يومي للدفعات",
             icon: <RiCalendarScheduleLine size={24} color="t.accent" />,
             onOpen: () => setBookingRevenueReportOpen(true),
+            visible: canReadPayments,
           },
           {
             key: "employeeExpenses",
@@ -4234,6 +4393,7 @@ function PageReports({ t }) {
             desc: "مياه، كهرباء، إنترنت، مطبخ، قرطاسية، وغير ذلك",
             icon: <TbReportMoney size={24} color="t.accent" />,
             onOpen: () => setGeneralExpensesReportOpen(true),
+            visible: canReadExpenses,
           },
           {
             key: "govCertificate",
@@ -4241,8 +4401,9 @@ function PageReports({ t }) {
             desc: "رسوم الشهادة، إعادة الامتحان، حصة المدرسة والحكومة",
             icon: <FaRegAddressCard size={24} color="t.accent" />,
             onOpen: () => setGovCertificateReportOpen(true),
+            visible: canReadPayments,
           },
-        ].map((r) => (
+        ].filter((r) => r.visible !== false).map((r) => (
           <div
             key={r.key}
             onClick={r.onOpen}
@@ -4546,30 +4707,6 @@ function PlaceholderPage({ title, t }) {
   );
 }
 
-function AccessDeniedPage({ t }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "90px 20px",
-        textAlign: "center",
-        height: "100%",
-      }}
-    >
-      <div style={{ fontSize: 42, marginBottom: 14 }}>🔒</div>
-      <div style={{ fontSize: 18, fontWeight: 800, color: t.text, marginBottom: 8 }}>
-        غير مصرح لك بالوصول لهذه الصفحة
-      </div>
-      <div style={{ fontSize: 13, color: t.textMuted, maxWidth: 380, lineHeight: 1.8 }}>
-        صلاحياتك الحالية لا تشمل عرض هذا القسم. إذا كنت تعتقد أن هذا خطأ، تواصل مع مدير النظام.
-      </div>
-    </div>
-  );
-}
-
 // ═══════════════════════════════════════════════
 // MAIN APP SHELL
 // ═══════════════════════════════════════════════
@@ -4659,13 +4796,12 @@ export default function App({
   // principle end up on a restricted page some other way (stale state, a direct setActivePage
   // call, permissions changing mid-session) — this guard is the actual access boundary.
   if (embeddedMode) {
-    const requiredPermission = PAGE_PERMISSIONS[activePage];
-    const isAllowed = !requiredPermission || hasPermission(requiredPermission);
+    const isAllowed = isPageAllowed(hasPermission, PAGE_PERMISSIONS[activePage]);
     return (
       <PageErrorBoundary key={activePage} t={t}>
         {isAllowed
           ? pageComponents[activePage] || <PlaceholderPage title={activePage} t={t} />
-          : <AccessDeniedPage t={t} />}
+          : <AccessDenied t={t} />}
       </PageErrorBoundary>
     );
   }
