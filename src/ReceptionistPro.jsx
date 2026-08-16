@@ -454,7 +454,7 @@ function SectionStudents({t}){
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 7, marginTop: 9, flexWrap: "wrap" }}>
-                      {canCompleteBooking && b.rawStatus === "BOOKED" && (<>
+                      {canCompleteBooking && (b.rawStatus === "BOOKED" || b.rawStatus === "NO_SHOW") && (
                         <Btn
                           label={statusBusyId === b.id ? "جارٍ..." : "✓ إكمال الجلسة"}
                           onClick={() => handleUpdateStatus(b.id, "COMPLETED")}
@@ -462,6 +462,8 @@ function SectionStudents({t}){
                           disabled={statusBusyId === b.id || !b.sessionEnded || b.rawPayment !== "FULLY_PAID"}
                           title={!b.sessionEnded ? "بعد انتهاء الجلسة" : (b.rawPayment !== "FULLY_PAID" ? "حصّل المبلغ المتبقي أولاً" : undefined)}
                         />
+                      )}
+                      {canCompleteBooking && b.rawStatus === "BOOKED" && (
                         <Btn
                           label="لم يحضر"
                           onClick={() => handleUpdateStatus(b.id, "NO_SHOW")}
@@ -469,8 +471,8 @@ function SectionStudents({t}){
                           disabled={statusBusyId === b.id || !b.sessionEnded}
                           title={!b.sessionEnded ? "بعد انتهاء الجلسة" : undefined}
                         />
-                      </>)}
-                      {(b.canPayRemainder || b.remainingAmount != null) && (
+                      )}
+                      {(b.canPayRemainder || b.remainingAmount != null || b.rawPayment === "DEPOSIT_NON_REFUNDABLE") && (
                         <Btn label={`تحصيل الباقي${b.remainingAmount != null ? ` — ${Number(b.remainingAmount).toLocaleString("en")} ل.س` : ""}`} onClick={() => handlePayRemainder(b)} t={t} sz="sm" v="secondary" disabled={statusBusyId === b.id} />
                       )}
                       {canCancelBooking && (b.rawStatus === "BOOKED" || b.rawStatus === "PENDING_PAYMENT") && (
@@ -2430,10 +2432,10 @@ function SectionBookings({ t }) {
                 <Badge s={b.status} t={t} />
               </div>
               <div style={{ display: "flex", gap: 5, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                {canPay && (b.canPayRemainder || b.remainingAmount !== null) && (
+                {canPay && (b.canPayRemainder || b.remainingAmount !== null || b.rawPayment === "DEPOSIT_NON_REFUNDABLE") && (
                   <Btn label={`دفع المتبقي${b.remainingAmount !== null ? ` — ${b.remainingAmount} ل.س` : ""}`} onClick={() => handlePayRemainder(b)} t={t} sz="sm" style={{ background: "#6b723a", color: "#fff" }} />
                 )}
-                {canComplete && b.rawStatus === "BOOKED" && (<>
+                {canComplete && (b.rawStatus === "BOOKED" || b.rawStatus === "NO_SHOW") && (
                   <Btn
                     label={completeBusyId === b.id ? "جارٍ..." : "✓ إكمال الجلسة"}
                     onClick={() => handleComplete(b.id)}
@@ -2441,6 +2443,8 @@ function SectionBookings({ t }) {
                     disabled={completeBusyId === b.id || !b.sessionEnded || b.rawPayment !== "FULLY_PAID"}
                     title={!b.sessionEnded ? "بعد انتهاء الجلسة" : (b.rawPayment !== "FULLY_PAID" ? "حصّل المبلغ المتبقي أولاً" : undefined)}
                   />
+                )}
+                {canComplete && b.rawStatus === "BOOKED" && (
                   <Btn
                     label="لم يحضر"
                     onClick={() => setNsModal(b)}
@@ -2448,7 +2452,7 @@ function SectionBookings({ t }) {
                     disabled={completeBusyId === b.id || !b.sessionEnded}
                     title={!b.sessionEnded ? "بعد انتهاء الجلسة" : undefined}
                   />
-                </>)}
+                )}
                 {canCancel && (b.rawStatus === "BOOKED" || b.rawStatus === "PENDING_PAYMENT") && (
                   <Btn label="إلغاء الحجز" onClick={(e) => { e.stopPropagation(); setCancelModal(b); }} t={t} sz="sm" v="danger" disabled={completeBusyId === b.id} />
                 )}
