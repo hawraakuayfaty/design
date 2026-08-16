@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { todayStr } from "./utils/dateUtils";
-import { TbBus } from "react-icons/tb";
 import { IoIosCalendar } from "react-icons/io";
 
 import { IoDocumentTextOutline } from "react-icons/io5";
@@ -1004,11 +1003,6 @@ function SectionInstructors({ t }) {
                 {iGender(display) && <Badge s={GENDER_MAP[iGender(display)] || iGender(display)} t={t} />}
               </div>
             </div>
-            {canManageLeave && (
-              <div style={{ display: "flex", gap: 7 }}>
-                <Btn label="+ تسجيل إجازة" onClick={() => setLeaveModal({})} t={t} sz="sm" v="secondary" />
-              </div>
-            )}
           </div>
 
           <div style={{ display: "flex", borderBottom: `1px solid ${t.border}`, background: t.bgSurface, padding: "0 22px", flexShrink: 0 }}>
@@ -2798,390 +2792,6 @@ function SectionVehicles({t}){
   );
 }
 
-const TRANSPORT_SERVICES=[
-  {id:1,type:"محاضرات نظرية",label:"المحاضرات الإجبارية الثلاث",date:"١٥–١٧ يونيو",assembly:"٧:٣٠ ص",dest:"مركز المحاضرات الوطني",price:2000,days:3},
-  {id:2,type:"يوم الامتحان",label:"نقل يوم الامتحان الحكومي",date:"٢٥ يونيو",assembly:"٨:٠٠ ص",dest:"مركز الاختبارات",price:800,days:1},
-];
-const TRANSPORT_STUDENTS=[
-  {id:1,name:"نورا الأحمد",d1:"حضر",d2:"حضر",d3:"—",paid:true,sid:1},
-  {id:2,name:"كريم عبدو",d1:"حضر",d2:"لم يحضر",d3:"—",paid:true,sid:1},
-  {id:3,name:"سعيد المحمد",d1:"حضر",d2:"—",d3:"—",paid:true,sid:1},
-  {id:4,name:"لمى الزعبي",d1:"لم يحضر",d2:"—",d3:"—",paid:true,sid:1},
-  {id:5,name:"باسل الخطيب",d1:"حضر",d2:"—",d3:"—",paid:true,sid:2},
-  {id:6,name:"رنا سليمان",d1:"—",d2:"—",d3:"—",paid:false,sid:2},
-];
-
-function SectionTransport({t}){
-  const [sel,setSel]=useState(TRANSPORT_SERVICES[0]);
-  const [addModal,setAddModal]=useState(false);
-  const students=TRANSPORT_STUDENTS.filter(s=>s.sid===sel?.id);
-  return (
-    <div style={{ display: "flex", height: "100%" }}>
-      <div
-        style={{
-          width: 280,
-          flexShrink: 0,
-          display: "flex",
-          flexDirection: "column",
-          borderLeft: `1px solid ${t.border}`,
-        }}
-      >
-        <div
-          style={{
-            padding: "12px 12px 8px",
-            borderBottom: `1px solid ${t.border}`,
-            fontSize: 12,
-            fontWeight: 700,
-            color: t.text,
-          }}
-        >
-          خدمات النقل النشطة
-        </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "8px" }}>
-          {TRANSPORT_SERVICES.map((s) => (
-            <div
-              key={s.id}
-              onClick={() => setSel(s)}
-              style={{
-                padding: "13px 12px",
-                borderRadius: 10,
-                marginBottom: 7,
-                cursor: "pointer",
-                background: sel?.id === s.id ? t.accentLight : t.bgSurface,
-                border: `1px solid ${sel?.id === s.id ? t.accent : t.borderCard}`,
-              }}
-            >
-              <div style={{ display: "flex", gap: 8, marginBottom: 5 }}>
-                <span style={{ fontSize: 18 }}>
-                  {s.type === "محاضرات نظرية" ? "" : ""}
-                </span>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: t.text }}>
-                    {s.label}
-                  </div>
-                  <div
-                    style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}
-                  >
-                    {s.date}
-                  </div>
-                </div>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 11,
-                }}
-              >
-                <span style={{ color: t.textSec }}>
-                  {TRANSPORT_STUDENTS.filter((st) => st.sid === s.id).length}{" "}
-                  مسجل
-                </span>
-                <span style={{ fontWeight: 700, color: t.accent }}>
-                  {s.price.toLocaleString("en")} ل.س
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div
-          style={{ padding: "10px 10px", borderTop: `1px solid ${t.border}` }}
-        >
-          <Btn
-            label="+ إضافة خدمة نقل"
-            onClick={() => setAddModal(true)}
-            t={t}
-            sz="sm"
-            style={{ width: "100%" }}
-          />
-        </div>
-      </div>
-      {sel && (
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 22px" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              marginBottom: 16,
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: t.text }}>
-                {sel.label}
-              </div>
-              <div style={{ fontSize: 12, color: t.textSec, marginTop: 4 }}>
-                <IoIosCalendar /> {sel.date} • ⏰ {sel.assembly} • 📍 {sel.dest}
-              </div>
-            </div>
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 19, fontWeight: 800, color: t.accent }}>
-                {sel.price.toLocaleString("en")} ل.س
-              </div>
-              <div style={{ fontSize: 10, color: t.textMuted }}>
-                رسوم التسجيل
-              </div>
-            </div>
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3,1fr)",
-              gap: 9,
-              marginBottom: 14,
-            }}
-          >
-            {[
-              { l: "مسجلون", v: students.length, c: t.accent },
-              {
-                l: "دفعوا",
-                v: students.filter((s) => s.paid).length,
-                c: t.completed.text,
-              },
-              {
-                l: "لم يدفعوا",
-                v: students.filter((s) => !s.paid).length,
-                c: t.pending.text,
-              },
-            ].map((s, i) => (
-              <div
-                key={i}
-                style={{
-                  background: t.bgSurface,
-                  borderRadius: 9,
-                  border: `1px solid ${t.borderCard}`,
-                  padding: 12,
-                  textAlign: "center",
-                }}
-              >
-                <div style={{ fontSize: 20, fontWeight: 700, color: s.c }}>
-                  {s.v}
-                </div>
-                <div style={{ fontSize: 10, color: t.textMuted, marginTop: 3 }}>
-                  {s.l}
-                </div>
-              </div>
-            ))}
-          </div>
-          <Card t={t} p={0} style={{ overflow: "hidden" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: 13,
-              }}
-            >
-              <thead>
-                <tr style={{ background: t.bgElevated }}>
-                  {[
-                    "الطالب",
-                    ...(sel.type === "محاضرات نظرية"
-                      ? ["اليوم ١", "اليوم ٢", "اليوم ٣"]
-                      : ["يوم الامتحان"]),
-                    "الدفع",
-                    "إجراء",
-                  ].map((h, i) => (
-                    <th
-                      key={i}
-                      style={{
-                        padding: "9px 13px",
-                        textAlign: "right",
-                        color: t.textMuted,
-                        fontWeight: 600,
-                        fontSize: 11,
-                        borderBottom: `1px solid ${t.border}`,
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((s, i) => (
-                  <tr
-                    key={i}
-                    style={{
-                      background: i % 2 === 0 ? t.bgSurface : t.bgList,
-                      borderBottom: `1px solid ${t.border}`,
-                    }}
-                  >
-                    <td
-                      style={{
-                        padding: "10px 13px",
-                        fontWeight: 600,
-                        color: t.text,
-                      }}
-                    >
-                      {s.name}
-                    </td>
-                    {sel.type === "محاضرات نظرية" ? (
-                      <>
-                        <td style={{ padding: "10px 13px" }}>
-                          {s.d1 !== "—" ? (
-                            <Badge
-                              s={s.d1 === "حضر" ? "حضر" : "لم يحضر"}
-                              t={t}
-                            />
-                          ) : (
-                            <span style={{ color: t.textMuted }}>—</span>
-                          )}
-                        </td>
-                        <td style={{ padding: "10px 13px" }}>
-                          {s.d2 !== "—" ? (
-                            <Badge
-                              s={s.d2 === "حضر" ? "حضر" : "لم يحضر"}
-                              t={t}
-                            />
-                          ) : (
-                            <span style={{ color: t.textMuted }}>—</span>
-                          )}
-                        </td>
-                        <td style={{ padding: "10px 13px" }}>
-                          <span style={{ color: t.textMuted }}>—</span>
-                        </td>
-                      </>
-                    ) : (
-                      <td style={{ padding: "10px 13px" }}>
-                        {s.d1 !== "—" ? (
-                          <Badge s={s.d1 === "حضر" ? "حضر" : "لم يحضر"} t={t} />
-                        ) : (
-                          <span style={{ color: t.textMuted }}>—</span>
-                        )}
-                      </td>
-                    )}
-                    <td style={{ padding: "10px 13px" }}>
-                      <Badge s={s.paid ? "مدفوع" : "معلق"} t={t} />
-                    </td>
-                    <td style={{ padding: "10px 13px" }}>
-                      <div style={{ display: "flex", gap: 5 }}>
-                        {!s.paid && <Btn label="تم الدفع" t={t} sz="sm" />}
-                        <Btn label="لم يأتِ" t={t} sz="sm" v="danger" />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </div>
-      )}
-      {addModal && (
-        <Modal
-          title="إضافة خدمة نقل جديدة"
-          onClose={() => setAddModal(false)}
-          t={t}
-          width={460}
-        >
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
-          >
-            {[
-              {
-                l: "نوع الخدمة",
-                type: "select",
-                opts: ["محاضرات نظرية إجبارية", "يوم الامتحان الحكومي"],
-              },
-              { l: "تاريخ الرحلة", type: "date" },
-              { l: "وقت التجمع", type: "time" },
-              { l: "رسوم التسجيل (ل.س)", type: "number", ph: "0" },
-            ].map((f, i) => (
-              <div key={i}>
-                <label
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: t.textSec,
-                    display: "block",
-                    marginBottom: 4,
-                  }}
-                >
-                  {f.l}
-                </label>
-                {f.type === "select" ? (
-                  <select
-                    style={{
-                      width: "100%",
-                      padding: "8px 9px",
-                      borderRadius: 8,
-                      border: `1px solid ${t.border}`,
-                      background: t.bgElevated,
-                      color: t.text,
-                      fontSize: 12,
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    {f.opts.map((o) => (
-                      <option key={o}>{o}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type={f.type}
-                    placeholder={f.ph}
-                    style={{
-                      width: "100%",
-                      padding: "8px 9px",
-                      borderRadius: 8,
-                      border: `1px solid ${t.border}`,
-                      background: t.bgElevated,
-                      color: t.text,
-                      fontSize: 12,
-                      fontFamily: "inherit",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 10 }}>
-            <label
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: t.textSec,
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
-              الوجهة / المركز
-            </label>
-            <input
-              type="text"
-              style={{
-                width: "100%",
-                padding: "8px 9px",
-                borderRadius: 8,
-                border: `1px solid ${t.border}`,
-                background: t.bgElevated,
-                color: t.text,
-                fontSize: 13,
-                fontFamily: "inherit",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            <Btn
-              label="✓ إنشاء خدمة النقل"
-              onClick={() => setAddModal(false)}
-              t={t}
-              style={{ flex: 1 }}
-            />
-            <Btn
-              label="إلغاء"
-              onClick={() => setAddModal(false)}
-              t={t}
-              v="ghost"
-            />
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
 const CERT_STATUS_MAP = {
   WAITING_FOR_TRAINING_SCHEDULE: { label: "بانتظار جدولة التدريب",     tk: "pending" },
   IN_GOVERNMENT_TRAINING:        { label: "في التدريب الحكومي",         tk: "inprogress" },
@@ -3751,7 +3361,7 @@ function CourseDetailView({t,course:payload,onBack,onToast,toastEl,onRefresh,onO
       const d=r.data?.data;
       const count=d?.count??filled.length;
       const notified=d?.notified??0;
-      setSavedSessions([...filled]);
+      setSavedSessions(filled.map(s=>({...s,scheduledAt:`${s.date}T${s.time.slice(0,5)}:00`})));
       onToast(`حُفظت ${count} جلسات · أُشعر ${notified} طالباً`);
       await onRefresh();
     }catch(e){onToast(e.response?.data?.message||"حدث خطأ","err");}
@@ -3868,7 +3478,7 @@ function CourseDetailView({t,course:payload,onBack,onToast,toastEl,onRefresh,onO
         <Card t={t}>
           {/* Header */}
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-            <span style={{width:22,height:22,borderRadius:"50%",background:t.accent,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:700,flexShrink:0}}>①</span>
+            <span style={{width:26,height:26,borderRadius:"50%",background:t.accent,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#fff",fontWeight:700,flexShrink:0}}>1</span>
             <span style={{fontSize:13,fontWeight:700,color:t.text}}>الجلسات الحكومية الثلاث</span>
             {savedSessions.length>=3
               ?<span style={{display:"inline-flex",background:"#DCFCE7",color:"#166534",borderRadius:20,padding:"1px 10px",fontSize:10,fontWeight:700,marginRight:"auto"}}>✓ محدّدة</span>
@@ -3927,7 +3537,7 @@ function CourseDetailView({t,course:payload,onBack,onToast,toastEl,onRefresh,onO
         {/* Card ② Exam schedule */}
         <Card t={t}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-            <span style={{width:22,height:22,borderRadius:"50%",background:t.accent,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:700,flexShrink:0}}>②</span>
+            <span style={{width:26,height:26,borderRadius:"50%",background:t.accent,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#fff",fontWeight:700,flexShrink:0}}>2</span>
             <span style={{fontSize:13,fontWeight:700,color:t.text}}>موعد الامتحان</span>
             {c.examScheduledAt
               ?<span style={{display:"inline-flex",background:"#DCFCE7",color:"#166534",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:700,marginRight:"auto"}}>✓ محدّد</span>
@@ -5314,7 +4924,6 @@ const NAV = [
   { id: "instructors", label: "إدارة المدربين", icon: <FaUserTie /> },
   { id: "bookings", label: "الحجوزات", icon: <IoIosCalendar /> },
   { id: "vehicles", label: "المركبات", icon: <FaCar /> },
-  { id: "transport", label: "خدمة النقل", icon: <TbBus /> },
   {
     id: "certificate",
     label: "الشهادة الحكومية",
@@ -5334,7 +4943,6 @@ export default function ReceptionistPro({embedded=false,page:forcedPage,darkMode
     instructors:<RequirePermission permission={P.INSTRUCTORS_READ} t={t}><SectionInstructors t={t}/></RequirePermission>,
     bookings:<RequirePermission permission={P.BOOKINGS_READ} t={t}><SectionBookings t={t}/></RequirePermission>,
     vehicles:<SectionVehicles t={t}/>,
-    transport:<SectionTransport t={t}/>,
     certificate:<RequirePermission permission={P.CERTIFICATES_READ} t={t}><SectionCertificate t={t}/></RequirePermission>,
   };
   // sync when parent forces a page (embedded mode)

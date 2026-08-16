@@ -382,9 +382,8 @@ function CatalogInlineSection({t}){
                   <div style={{padding:"8px 12px",background:t.bgElevated,fontSize:12.5,fontWeight:700,color:t.text}}>{group.moduleLabel}</div>
                   <div style={{padding:"8px 12px",display:"flex",flexDirection:"column",gap:5}}>
                     {group.permissions.map(p=>(
-                      <div key={p.code} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,fontSize:12,color:t.textSec,padding:"2px 0"}}>
+                      <div key={p.code} style={{fontSize:12,color:t.textSec,padding:"2px 0"}}>
                         <span>{p.label}</span>
-                        <code style={{fontSize:10,color:t.textMuted,background:t.bgElevated,padding:"2px 6px",borderRadius:5,direction:"ltr",flexShrink:0}}>{p.code}</code>
                       </div>
                     ))}
                   </div>

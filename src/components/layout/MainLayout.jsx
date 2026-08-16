@@ -13,10 +13,8 @@ import {
 import qeyadahLogo from "../../assets/qeyadah-logo.jpg";
 
 import { CiSettings } from "react-icons/ci";
-import { PiUsersThin } from "react-icons/pi";
 import { TbReport } from "react-icons/tb";
 import { FaCar, FaUserTie } from "react-icons/fa";
-import { TbBus } from "react-icons/tb";
 import { PiStudent } from "react-icons/pi";
 import { FaChartLine, FaChartColumn, FaBellConcierge } from "react-icons/fa6";
 import { MdAdminPanelSettings } from "react-icons/md";
@@ -70,22 +68,10 @@ const navItems = [
     page: "Vehicles",
   },
   {
-    id: "transport",
-    label: "خدمة النقل",
-    icon: <TbBus />,
-    page: "Transport",
-  },
-  {
     id: "reports",
     label: "التقارير",
     icon: <TbReport />,
     page: "Reports",
-  },
-  {
-    id: "users",
-    label: "المستخدمون",
-    icon: <PiUsersThin />,
-    page: "Users",
   },
   {
     id: "settings",
@@ -111,7 +97,6 @@ const RECEPTIONIST_SUB_TABS = [
   { id: "bookings", label: "الحجوزات" },
   { id: "instructors", label: "المدربون" },
   { id: "certificate", label: "الشهادة" },
-  { id: "transport", label: "النقل" },
 ];
 
 export default function MainLayout({

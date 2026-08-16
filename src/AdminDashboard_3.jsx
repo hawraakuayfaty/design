@@ -17,10 +17,10 @@ import { PAGE_PERMISSIONS, isPageAllowed } from "./constants/pageAccess";
 import AccessDenied from "./components/AccessDenied";
 import RequirePermission from "./components/RequirePermission";
 import { CiSettings } from "react-icons/ci";
-import { PiChartLineDown, PiChartLineUp, PiUsersThin } from "react-icons/pi";
+import { PiChartLineDown, PiChartLineUp } from "react-icons/pi";
 import { TbReport } from "react-icons/tb";
 import { FaRegAddressCard } from "react-icons/fa";
-import { TbBus, TbUserDollar } from "react-icons/tb";
+import { TbUserDollar } from "react-icons/tb";
 import { FaCar } from "react-icons/fa";
 
 import { FaUserTie } from "react-icons/fa";
@@ -179,15 +179,7 @@ const navItems = [
     icon: <FaCar />,
     page: "Vehicles",
   },
-  { id: "transport", label: "خدمة النقل", icon: <TbBus />, page: "Transport" },
   { id: "reports", label: "التقارير", icon: <TbReport />, page: "Reports" },
-  {
-    id: "users",
-    label: "المستخدمون",
-    icon: <PiUsersThin />,
-    page: "Users",
-    permission: P.USERS_READ,
-  },
   {
     id: "settings",
     label: "إعدادات النظام",
@@ -3791,95 +3783,6 @@ function PageVehicles({ t }) {
 }
 
 // ═══════════════════════════════════════════════
-// PAGE: TRANSPORT SERVICE — خدمة النقل
-// ═══════════════════════════════════════════════
-function PageTransport({ t }) {
-  return (
-    <div>
-      <SectionHeader title="خدمة النقل الجماعي" subtitle="نقل الطلاب للمحاضرات النظرية ويوم الامتحان" action="+ رحلة جديدة" t={t} />
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-
-        {/* Lecture Transport */}
-        <div style={{ background: t.bgSurface, borderRadius: 12, border: `0.5px solid ${t.borderCard}`, padding: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>رحلات المحاضرات النظرية</div>
-            <Badge status="قيد المتابعة" t={t} />
-          </div>
-          <div style={{ fontSize: 12, color: t.textSec, marginBottom: 12 }}>
-            ٣ أيام متتالية — دفع واحد من أول يوم
-          </div>
-          <Table t={t}
-            headers={["الطالب", "اليوم ١", "اليوم ٢", "اليوم ٣", "الدفع"]}
-            rows={[
-              ["نورا الأحمد", "حضر", "حضر", "—", "مدفوع"],
-              ["كريم عبدو", "حضر", "حضر", "—", "مدفوع"],
-              ["سعيد المحمد", "حضر", "—", "—", "مدفوع"],
-              ["لمى الزعبي", "لم يحضر", "—", "—", "مدفوع"],
-            ]}
-          />
-          <div style={{ marginTop: 10, padding: "8px 12px", background: t.accentLight, borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: t.accentText }}>
-              مواعيد الرحلة: الأحد ١٥ يونيو — الاثنين ١٦ يونيو — الثلاثاء ١٧ يونيو
-            </div>
-            <div style={{ fontSize: 11, color: t.accentText, marginTop: 2 }}>
-              موعد التجمع: ٧:٣٠ صباحاً أمام المدرسة
-            </div>
-          </div>
-        </div>
-
-        {/* Exam Day Transport */}
-        <div style={{ background: t.bgSurface, borderRadius: 12, border: `0.5px solid ${t.borderCard}`, padding: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>رحلة يوم الامتحان</div>
-            <Badge status="قيد المتابعة" t={t} />
-          </div>
-          <div style={{ fontSize: 12, color: t.textSec, marginBottom: 12 }}>
-            يوم واحد فقط — اختياري — دفع منفصل
-          </div>
-          <Table t={t}
-            headers={["الطالب", "موعد الامتحان", "التسجيل", "الدفع"]}
-            rows={[
-              ["باسل الخطيب", "٤ يونيو — ٩:٠٠", "مسجل", "مدفوع"],
-              ["رنا سليمان", "٤ يونيو — ١٠:٠٠", "مسجل", "مدفوع"],
-              ["سعيد المحمد", "٢٥ يونيو", "غير مسجل", "—"],
-            ]}
-          />
-          <div style={{ marginTop: 10, padding: "8px 12px", background: t.accentLight, borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: t.accentText }}>
-              الطالب يتلقى إشعاراً بموعد امتحانه ورابط تسجيل خدمة النقل
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Transport flow explanation */}
-      <div style={{ background: t.bgSurface, borderRadius: 12, border: `0.5px solid ${t.borderCard}`, padding: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 12 }}>آلية خدمة النقل</div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {[
-            "١. قبول طلب الشهادة",
-            "٢. إرسال إشعار للطالب بالمحاضرات",
-            "٣. الطالب يسجل في خدمة النقل",
-            "٤. دفع رسوم النقل من المدرسة",
-            "٥. تسجيل الحضور ٣ أيام",
-            "٦. إرسال موعد الامتحان",
-            "٧. خدمة نقل يوم الامتحان (اختياري)",
-          ].map((s, i) => (
-            <div key={i} style={{
-              padding: "6px 14px", borderRadius: 8,
-              background: t.accentLight, color: t.accentText,
-              fontSize: 12, fontWeight: 600,
-              border: `0.5px solid ${t.accentText}30`,
-            }}>{s}</div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════
 // PAGE: ACCOUNTING
 // ═══════════════════════════════════════════════
 function PageAccounting({ t }) {
@@ -4458,44 +4361,6 @@ function PageReports({ t }) {
 }
 
 // ═══════════════════════════════════════════════
-// PAGE: USERS & PERMISSIONS
-// ═══════════════════════════════════════════════
-function PageUsers({ t }) {
-  const { hasPermission } = useAuth();
-  return (
-    <div>
-      <SectionHeader title="إدارة المستخدمين والصلاحيات" subtitle="للمدير فقط" action={hasPermission(P.USERS_CREATE) ? "+ إضافة مستخدم" : null} t={t} />
-      <Table t={t}
-        headers={["الاسم", "اسم المستخدم", "الدور", "الحالة", "آخر دخول", "ملاحظة"]}
-        rows={[
-          ["محمد هاشم", "mhashm", "مدير", "نشط", "الآن", "—"],
-          ["أم كمال", "umkamal", "موظف إداري + محاسب", "نشط", "منذ ساعة", "صلاحيتان مدمجتان"],
-          ["خالد عمر", "khalid.omar", "مدرب", "نشط", "أمس", "مرتبط بملف المدرب"],
-          ["ليلى سعد", "layla.saad", "مدرب", "نشط", "أمس", "مرتبط بملف المدرب"],
-          ["أحمد الناصر", "ahmad.n", "طالب", "نشط", "اليوم", "مرتبط بملف الطالب"],
-          ["سعد القديمي", "saad.old", "موظف إداري", "غير نشط", "منذ ٦ أشهر", "موظف سابق"],
-        ]}
-      />
-      <div style={{ marginTop: 16, background: t.bgSurface, borderRadius: 12, border: `0.5px solid ${t.borderCard}`, padding: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 12 }}>مصفوفة الصلاحيات</div>
-        <Table t={t}
-          headers={["الموديول", "المدير", "الموظف الإداري", "المحاسب", "المدرب", "الطالب"]}
-          rows={[
-            ["لوحة التحكم", "✔ كامل", "✔ كامل", "✔ مالي", "✖", "✖"],
-            ["إدارة الطلاب", "✔", "✔", "👁️ عرض", "✖", "👤 نفسه"],
-            ["الحجز والجدولة", "✔", "✔", "👁️ عرض", "📅 جدوله", "✔ لنفسه"],
-            ["الدفعات", "✔", "تسجيل نقدي", "✔ كامل", "✖", "رفع إثبات"],
-            ["المحاسبة", "✔", "✖", "✔ كامل", "✖", "✖"],
-            ["المستخدمون", "✔ حصراً", "✖", "✖", "✖", "✖"],
-            ["الإعدادات", "✔ حصراً", "✖", "✖", "✖", "✖"],
-          ]}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════
 // PAGE: SETTINGS — helpers (module-level)
 // ═══════════════════════════════════════════════
 
@@ -4802,10 +4667,8 @@ export default function App({
     Students: <PageStudents t={t} />,
     Instructors: <PageInstructors t={t} />,
     Vehicles: <PageVehicles t={t} />,
-    Transport: <PageTransport t={t} />,
     Accounting: <PageAccounting t={t} />,
     Reports: <PageReports t={t} />,
-    Users: <PageUsers t={t} />,
     Settings: <PageSettings t={t} />,
     AdminProPage: <AdminPro embedded={true} page={adminSubPage} darkMode={darkMode} />,
     AccountantProPage: <AccountantPro embedded={true} page={accountantSubPage} darkMode={darkMode} />,
@@ -5073,7 +4936,6 @@ export default function App({
                 { id: "bookings", label: "الحجوزات" },
                 { id: "instructors", label: "المدربون" },
                 { id: "certificate", label: "الشهادة" },
-                { id: "transport", label: "النقل" },
               ].map((a) => {
                 const isActive = receptionistSubPage === a.id;
                 return (

@@ -21,8 +21,6 @@ export const RECEPTIONIST_SUB_TAB_PERMISSIONS = {
   bookings: P.BOOKINGS_READ,
   instructors: P.INSTRUCTORS_READ,
   certificate: P.CERTIFICATES_READ,
-  // Transport is a static demo tab with no backing permission (see Transport below).
-  transport: null,
 };
 
 // A composite page (one with its own sub-tabs) must stay visible as long as the user can open
@@ -48,12 +46,8 @@ export const PAGE_PERMISSIONS = {
   Students: P.STUDENTS_READ,
   Instructors: P.INSTRUCTORS_READ,
   Vehicles: P.VEHICLES_READ,
-  // Transport and Users are static demo pages wired to permission codes the live backend
-  // never grants (transport.read / users.read don't exist in the current catalog) — left
-  // ungated on purpose so they don't silently vanish for everyone including MANAGER.
-  Transport: null,
+  // Reports is open to everyone who reaches the dashboard (no backing permission).
   Reports: null,
-  Users: null,
   Settings: P.SETTINGS_READ,
 };
 
