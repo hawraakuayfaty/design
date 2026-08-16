@@ -21,8 +21,8 @@ const vehiclesService = {
     return client.post(`/vehicles/${id}/fuel`, data);
   },
 
-  archive(id) {
-    return client.post(`/vehicles/${id}/archive`);
+  archive(id, archived) {
+    return client.put(`/vehicles/${id}/archive`, { archived });
   },
 
   sendVehicleToMaintenance(vehicleId, data) {
@@ -51,6 +51,10 @@ const vehiclesService = {
 
   getExpenses(vehicleId, params) {
     return client.get(`/vehicles/${vehicleId}/expenses`, { params });
+  },
+
+  getExpensesSummary(params) {
+    return client.get("/vehicles/expenses/summary", { params });
   },
 
   addExpense(vehicleId, data) {

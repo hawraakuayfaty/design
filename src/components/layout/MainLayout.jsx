@@ -3,7 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import { tokens } from "../../constants/theme";
 import { P } from "../../constants/roles";
-import { PAGE_PERMISSIONS } from "../../constants/pageAccess";
+import {
+  PAGE_PERMISSIONS,
+  isPageAllowed,
+  ADMIN_SUB_TAB_PERMISSIONS,
+  ACCOUNTANT_SUB_TAB_PERMISSIONS,
+  RECEPTIONIST_SUB_TAB_PERMISSIONS,
+} from "../../constants/pageAccess";
 import qeyadahLogo from "../../assets/qeyadah-logo.jpg";
 
 import { CiSettings } from "react-icons/ci";
@@ -140,11 +146,53 @@ export default function MainLayout({
     navigate("/");
   };
 
-  const visibleNav = navItems.filter((item) => {
-    const requiredPermission = PAGE_PERMISSIONS[item.page];
-    if (!requiredPermission) return true;
-    return hasPermission(requiredPermission);
-  });
+  const visibleNav = navItems.filter((item) => isPageAllowed(hasPermission, PAGE_PERMISSIONS[item.page]));
+
+  // Same "hop to the first authorized view" rule as the sub-tab effects below, one level up:
+  // if the current top-level page requires a permission the user no longer has (revoked mid-
+  // session, or simply the hardcoded "Dashboard" default not being valid for this role), switch
+  // to the first page still visible in the sidebar instead of leaving them on a dead/blocked tab.
+  useEffect(() => {
+    if (!onPageChange) return;
+    if (isPageAllowed(hasPermission, PAGE_PERMISSIONS[activePage])) return;
+    if (visibleNav.length && visibleNav[0].page !== activePage) onPageChange(visibleNav[0].page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePage, hasPermission]);
+
+  const canOpenSubTab = (subTabPermissions, tabId) => {
+    const perm = subTabPermissions[tabId];
+    return !perm || hasPermission(perm);
+  };
+  const visibleAdminSubTabs = ADMIN_SUB_TABS.filter((tab) => canOpenSubTab(ADMIN_SUB_TAB_PERMISSIONS, tab.id));
+  const visibleAccountantSubTabs = ACCOUNTANT_SUB_TABS.filter((tab) => canOpenSubTab(ACCOUNTANT_SUB_TAB_PERMISSIONS, tab.id));
+  const visibleReceptionistSubTabs = RECEPTIONIST_SUB_TABS.filter((tab) => canOpenSubTab(RECEPTIONIST_SUB_TAB_PERMISSIONS, tab.id));
+
+  // If permissions change (or the active sub-tab was never valid for this user) while a sub-tab
+  // that's no longer visible is selected, hop to the first one still open instead of leaving the
+  // topbar pointing at a hidden tab — mirrors the "auto-redirect to first authorized view" rule.
+  useEffect(() => {
+    if (activePage !== "AdminProPage" || !onAdminSubPageChange) return;
+    if (canOpenSubTab(ADMIN_SUB_TAB_PERMISSIONS, adminSubPage)) return;
+    const first = ADMIN_SUB_TABS.find((tab) => canOpenSubTab(ADMIN_SUB_TAB_PERMISSIONS, tab.id));
+    if (first) onAdminSubPageChange(first.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePage, adminSubPage, hasPermission]);
+
+  useEffect(() => {
+    if (activePage !== "AccountantProPage" || !onAccountantSubPageChange) return;
+    if (canOpenSubTab(ACCOUNTANT_SUB_TAB_PERMISSIONS, accountantSubPage)) return;
+    const first = ACCOUNTANT_SUB_TABS.find((tab) => canOpenSubTab(ACCOUNTANT_SUB_TAB_PERMISSIONS, tab.id));
+    if (first) onAccountantSubPageChange(first.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePage, accountantSubPage, hasPermission]);
+
+  useEffect(() => {
+    if (activePage !== "ReceptionistPage" || !onReceptionistSubPageChange) return;
+    if (canOpenSubTab(RECEPTIONIST_SUB_TAB_PERMISSIONS, receptionistSubPage)) return;
+    const first = RECEPTIONIST_SUB_TABS.find((tab) => canOpenSubTab(RECEPTIONIST_SUB_TAB_PERMISSIONS, tab.id));
+    if (first) onReceptionistSubPageChange(first.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePage, receptionistSubPage, hasPermission]);
 
   const displayLabel = (item) => {
     if (item.id === "students" && !hasPermission(P.STUDENTS_CREATE)) return "عرض الطلاب";
@@ -366,7 +414,7 @@ export default function MainLayout({
           {/* Sub-tabs or breadcrumb */}
           {activePage === "AdminProPage" && onAdminSubPageChange ? (
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {ADMIN_SUB_TABS.map((tab) => (
+              {visibleAdminSubTabs.map((tab) => (
                 <button key={tab.id} onClick={() => onAdminSubPageChange(tab.id)} style={{
                   padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
                   background: adminSubPage === tab.id ? t.bgSidebarActive : "transparent",
@@ -377,7 +425,7 @@ export default function MainLayout({
             </div>
           ) : activePage === "AccountantProPage" && onAccountantSubPageChange ? (
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {ACCOUNTANT_SUB_TABS.map((tab) => (
+              {visibleAccountantSubTabs.map((tab) => (
                 <button key={tab.id} onClick={() => onAccountantSubPageChange(tab.id)} style={{
                   padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
                   background: accountantSubPage === tab.id ? t.bgSidebarActive : "transparent",
@@ -388,7 +436,7 @@ export default function MainLayout({
             </div>
           ) : activePage === "ReceptionistPage" && onReceptionistSubPageChange ? (
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {RECEPTIONIST_SUB_TABS.map((tab) => (
+              {visibleReceptionistSubTabs.map((tab) => (
                 <button key={tab.id} onClick={() => onReceptionistSubPageChange(tab.id)} style={{
                   padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
                   background: receptionistSubPage === tab.id ? t.bgSidebarActive : "transparent",

@@ -3,7 +3,8 @@ import { IoIosUnlock } from "react-icons/io";
 import { TbReportMoney } from "react-icons/tb";
 import { LuShieldCheck, LuChevronDown } from "react-icons/lu";
 import { settingsService, rolesService, employeesService } from "./api";
-import { ROLE_LABELS } from "./constants/roles";
+import { ROLE_LABELS, P } from "./constants/roles";
+import RequirePermission from "./components/RequirePermission";
 
 
 
@@ -795,7 +796,10 @@ export default function AdminPro({embedded=false,page:forcedPage,darkMode}){
   const sidebarWidth = collapsed ? 84 : 320;
   // sync when parent forces a page (embedded mode)
   if(forcedPage && forcedPage!==page){ setPage(forcedPage); }
-  const pages={permissions:<PgPermissions t={t}/>,pricing:<PgPricing t={t}/>};
+  const pages={
+    permissions:<RequirePermission permission={P.ROLES_MANAGE} t={t}><PgPermissions t={t}/></RequirePermission>,
+    pricing:<RequirePermission permission={P.SETTINGS_READ} t={t}><PgPricing t={t}/></RequirePermission>,
+  };
   return(
     <div dir="rtl" style={{display:"flex",height: embedded?"100%":"100vh",overflow:"hidden",background:t.bgApp,fontFamily:"var(--font-body)"}}>
       {!embedded && <div style={{width:sidebarWidth,flexShrink:0}} />}
