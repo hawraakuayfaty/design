@@ -3822,6 +3822,14 @@ function PageAccounting({ t }) {
   const revenue  = data?.revenue  ?? {};
   const gov      = data?.governmentHoldings ?? {};
 
+  // الرصيد القائم: نفضّل totalLiability (القائم + بانتظار التجميع) ونرجع إلى outstanding
+  const govLiability = gov.totalLiability ?? gov.outstanding;
+  // المبلغ المُسلَّم: نستخدم قيمة الـ API إن وُجدت، وإلا نشتقّها من الفرق
+  const govRemitted =
+    gov.remitted != null
+      ? Number(gov.remitted) || 0
+      : Math.max(0, (Number(gov.collected) || 0) - (Number(govLiability) || 0));
+
   const resultColor = (v) =>
     v == null ? t.textMuted : v >= 0 ? "#16a34a" : "#dc2626";
 
@@ -3978,9 +3986,9 @@ function PageAccounting({ t }) {
         {sectionTitle("مستحقات الحكومة (محصَّل لحسابها)")}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 14 }}>
           {[
-            { label: "المبلغ المحصَّل", value: fmt$(gov.collected) },
-            { label: "المبلغ المُسلَّم", value: fmt$(gov.remitted) },
-            { label: "الرصيد القائم",   value: fmt$(gov.outstanding) },
+            { label: "مقبوضات الفترة", value: fmt$(gov.collected) },
+            { label: "المبالغ المسلمة", value: fmt$(govRemitted) },
+            { label: "المتبقي بذمتنا",  value: fmt$(govLiability) },
           ].map(({ label, value }) => (
             <div key={label} style={{
               background: t.bgElevated, borderRadius: 9,
@@ -3991,15 +3999,6 @@ function PageAccounting({ t }) {
             </div>
           ))}
         </div>
-        {gov.note && (
-          <div style={{
-            padding: "10px 13px", borderRadius: 8, fontSize: 12, lineHeight: 1.7,
-            background: t.bgPage, color: t.textSec,
-            border: `1px solid ${t.border}`,
-          }}>
-            ℹ {gov.note}
-          </div>
-        )}
       </div>
     </div>
   );

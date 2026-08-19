@@ -6,7 +6,7 @@ import { IoDocumentTextOutline } from "react-icons/io5";
 import {  PiUsersThin } from "react-icons/pi";
 import { FaUserTie } from "react-icons/fa";
 import { FaCar } from "react-icons/fa";
-import { bookingsService, studentsService, instructorsService, certificatesService } from "./api";
+import { bookingsService, studentsService, instructorsService, certificatesService, settingsService } from "./api";
 import { useAuth } from "./contexts/useAuth";
 import { P } from "./constants/roles";
 import RequirePermission from "./components/RequirePermission";
@@ -177,6 +177,7 @@ const STUDENT_STATUS_FILTER = [
 
 function SectionStudents({t}){
   const { hasPermission } = useAuth();
+  const lessonMinutes = useLessonMinutes();
   const canCreateStudent = hasPermission(P.STUDENTS_CREATE);
   const canCreateBooking = hasPermission(P.BOOKINGS_CREATE);
   const canCompleteBooking = hasPermission(P.BOOKINGS_COMPLETE);
@@ -322,7 +323,7 @@ function SectionStudents({t}){
     const et = b.endTime ? b.endTime.substring(0, 5) : null;
     return {
       id: b.id,
-      dateTime: formatBookingDate(b),
+      dateTime: formatBookingDate(b, lessonMinutes),
       inst:           b.instructorName || b.instructor?.name || "—",
       type:           TRAINING_MAP[b.trainingType] || b.trainingType || "—",
       status:         BOOKING_STATUS_MAP[b.bookingStatus] || b.bookingStatus || "—",
@@ -1438,18 +1439,71 @@ const BOOKING_STATUS_FILTER = [
 ];
 
 
-function formatBookingDate(b) {
+// ── مدة الحصة (lesson_duration_minutes) — تُجلب مرة واحدة وتُشارك بين المكوّنات ──
+let lessonMinutesCache = null;
+let lessonMinutesPromise = null;
+
+function fetchLessonMinutes() {
+  if (lessonMinutesCache != null) return Promise.resolve(lessonMinutesCache);
+  if (!lessonMinutesPromise) {
+    lessonMinutesPromise = settingsService.getAll()
+      .then((res) => {
+        const body = res.data?.data ?? res.data ?? {};
+        const row = (Array.isArray(body.system) ? body.system : [])
+          .find((s) => s.key === "lesson_duration_minutes");
+        const n = Number(row?.value);
+        lessonMinutesCache = Number.isFinite(n) && n > 0 ? n : null;
+        return lessonMinutesCache;
+      })
+      .catch(() => {
+        lessonMinutesPromise = null; // اسمح بإعادة المحاولة لاحقاً عند فشل الشبكة
+        return null;
+      });
+  }
+  return lessonMinutesPromise;
+}
+
+/** مدة الحصة بالدقائق، أو null إن تعذّر جلبها — عندها يُعرض وقت البداية وحده. */
+function useLessonMinutes() {
+  const [minutes, setMinutes] = useState(lessonMinutesCache);
+  useEffect(() => {
+    let alive = true;
+    fetchLessonMinutes().then((m) => { if (alive) setMinutes(m); });
+    return () => { alive = false; };
+  }, []);
+  return minutes;
+}
+
+/** يضيف دقائق إلى "HH:MM" مع الالتفاف عبر منتصف الليل. حسابٌ نصّي يتجنّب مزالق المناطق الزمنية. */
+function addMinutes(hhmmStr, minutes) {
+  if (!hhmmStr || !Number.isFinite(minutes)) return null;
+  const [h, m] = hhmmStr.split(":").map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  const wrapped = (((h * 60 + m + minutes) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(wrapped / 60)).padStart(2, "0")}:${String(wrapped % 60).padStart(2, "0")}`;
+}
+
+/** "الإثنين 17 آب | 08:00 - 08:10" — endTime من الـ API إن وُجد، وإلا يُشتقّ من المدة. */
+function formatBookingDate(b, lessonMinutes) {
+  const range = (start, end) => (end ? `${start} - ${end}` : start);
+
   if (b.dayName && b.date && b.startTime) {
     const [year, month, day] = b.date.split("T")[0].split("-");
     const localDate = new Date(Number(year), Number(month) - 1, Number(day));
     const dayPadded = String(Number(day)).padStart(2, "0");
     const monthName = localDate.toLocaleDateString("ar-SY", { month: "long" });
-    return `${b.dayName} ${dayPadded} ${monthName} ${b.startTime}`;
+    const start = hhmm(b.startTime);
+    const end = hhmm(b.endTime) || addMinutes(start, lessonMinutes);
+    return `${b.dayName} ${dayPadded} ${monthName} | ${range(start, end)}`;
   }
   if (b.startAt) {
     const d = new Date(b.startAt);
-    return d.toLocaleDateString("ar-SY", { weekday: "long", day: "2-digit", month: "long" })
-      + " " + d.toLocaleTimeString("ar-SY", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const asHHMM = (x) => x.toLocaleTimeString("ar-SY", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const start = asHHMM(d);
+    const end = b.endAt
+      ? asHHMM(new Date(b.endAt))
+      : (Number.isFinite(lessonMinutes) ? asHHMM(new Date(d.getTime() + lessonMinutes * 60000)) : null);
+    return `${d.toLocaleDateString("ar-SY", { weekday: "long", day: "2-digit", month: "long" })} | ${range(start, end)}`;
   }
   return "—";
 }
@@ -2212,6 +2266,7 @@ function CancelBookingModal({ booking, t, onClose, onSuccess }) {
 
 function SectionBookings({ t }) {
   const { hasPermission } = useAuth();
+  const lessonMinutes = useLessonMinutes();
   const canCreate = hasPermission(P.BOOKINGS_CREATE);
   const canCancel = hasPermission(P.BOOKINGS_CANCEL);
   const canComplete = hasPermission(P.BOOKINGS_COMPLETE);
@@ -2336,7 +2391,7 @@ function SectionBookings({ t }) {
     const vehicle = b.vehicleSource === "STUDENT_CAR"
       ? "سيارة الطالب"
       : (b.vehiclePlate || b.vehicle?.plateNumber || "—");
-    const dateTime = formatBookingDate(b);
+    const dateTime = formatBookingDate(b, lessonMinutes);
     const type = TRAINING_MAP[b.trainingType] || b.trainingType || "—";
     const status = BOOKING_STATUS_MAP[b.bookingStatus] || b.bookingStatus || "—";
     const pay = PAYMENT_STATUS_MAP[b.paymentStatus] || b.paymentStatus || "—";
